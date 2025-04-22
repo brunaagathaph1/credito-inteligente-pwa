@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -43,6 +44,23 @@ const contaBancariaSchema = z.object({
 });
 
 type ContaBancariaForm = z.infer<typeof contaBancariaSchema>;
+
+// Lista de bancos comuns no Brasil
+const bancosBrasileiros = [
+  { codigo: "001", nome: "Banco do Brasil" },
+  { codigo: "104", nome: "Caixa Econômica Federal" },
+  { codigo: "237", nome: "Bradesco" },
+  { codigo: "341", nome: "Itaú" },
+  { codigo: "033", nome: "Santander" },
+  { codigo: "756", nome: "Sicoob" },
+  { codigo: "748", nome: "Sicredi" },
+  { codigo: "077", nome: "Banco Inter" },
+  { codigo: "380", nome: "PicPay" },
+  { codigo: "290", nome: "PagBank" },
+  { codigo: "260", nome: "Nubank" },
+  { codigo: "336", nome: "C6 Bank" },
+  { codigo: "000", nome: "Outro" },
+];
 
 // Interface para o tipo de conta bancária
 interface ContaBancaria {
