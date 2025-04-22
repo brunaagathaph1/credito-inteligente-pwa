@@ -51,9 +51,9 @@ const Clientes = () => {
                           cliente.cpf?.includes(searchTerm) ||
                           cliente.email?.toLowerCase().includes(searchTerm.toLowerCase());
                           
-    const matchesStatus = statusFilter === "todos" || cliente.status === statusFilter;
-    
-    return matchesSearch && (statusFilter === "todos" || true); // Temporário até implementar status
+    // Since 'status' doesn't exist in the client type, we're removing this filter
+    // And always returning true for the status part of the filter
+    return matchesSearch;
   });
 
   const handleScoreClass = (score?: number) => {
@@ -155,7 +155,7 @@ const Clientes = () => {
           ) : (
             <EmptyState
               title="Nenhum cliente encontrado"
-              description={searchTerm || statusFilter !== "todos" 
+              description={searchTerm 
                 ? "Tente ajustar os filtros de busca" 
                 : "Comece a cadastrar seus clientes para visualizá-los aqui"}
               icon={<UserPlus className="h-10 w-10" />}
