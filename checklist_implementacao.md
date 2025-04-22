@@ -42,7 +42,7 @@
 - [x] Configurações gerais
 - [x] Gerenciamento de categorias
 - [x] Configuração de taxas de juros
-- [ ] Métodos de pagamento
+- [x] Métodos de pagamento
 - [ ] Contas bancárias
 - [x] Logs de atividades
 

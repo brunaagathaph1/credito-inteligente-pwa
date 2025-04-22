@@ -190,7 +190,7 @@ const Categorias = () => {
         <EmptyState
           title="Nenhuma categoria encontrada"
           description="Crie uma nova categoria para começar"
-          icon={AlertTriangle}
+          icon={<AlertTriangle />}
           action={
             <Button onClick={handleOpenNewDialog}>
               <Plus className="mr-2 h-4 w-4" />

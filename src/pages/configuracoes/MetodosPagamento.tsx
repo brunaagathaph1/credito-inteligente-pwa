@@ -228,7 +228,7 @@ const MetodosPagamento = () => {
         <EmptyState
           title="Nenhum método de pagamento encontrado"
           description="Crie um novo método para começar"
-          icon={CreditCard}
+          icon={<CreditCard />}
           action={
             <Button onClick={handleOpenNewDialog}>
               <Plus className="mr-2 h-4 w-4" />
