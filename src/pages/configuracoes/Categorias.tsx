@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -97,7 +96,6 @@ const Categorias = () => {
     }
 
     if (currentCategoria) {
-      // Editar categoria existente
       setCategorias((prev) =>
         prev.map((cat) =>
           cat.id === currentCategoria.id ? { ...cat, ...formData } : cat
@@ -108,7 +106,6 @@ const Categorias = () => {
         description: `A categoria "${formData.nome}" foi atualizada com sucesso`,
       });
     } else {
-      // Adicionar nova categoria
       const newCategoria: Categoria = {
         id: Date.now().toString(),
         nome: formData.nome,
@@ -203,7 +200,6 @@ const Categorias = () => {
         />
       )}
 
-      {/* Dialog para criar/editar categoria */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -250,7 +246,6 @@ const Categorias = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de confirmação para exclusão */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>

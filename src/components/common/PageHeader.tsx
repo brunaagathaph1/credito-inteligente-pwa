@@ -8,13 +8,15 @@ interface PageHeaderProps {
   description?: string;
   children?: React.ReactNode;
   showBackButton?: boolean;
+  actions?: React.ReactNode;
 }
 
 export function PageHeader({ 
   title, 
   description, 
   children, 
-  showBackButton = false 
+  showBackButton = false,
+  actions
 }: PageHeaderProps) {
   const navigate = useNavigate();
 
@@ -46,6 +48,7 @@ export function PageHeader({
           <p className="text-muted-foreground">{description}</p>
         )}
       </div>
+      {actions}
       {children}
     </div>
   );

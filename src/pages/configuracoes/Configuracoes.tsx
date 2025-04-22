@@ -1,14 +1,34 @@
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Tabs, 
   TabsContent, 
   TabsList, 
   TabsTrigger 
 } from "@/components/ui/tabs";
+import Categorias from "./Categorias";
+import MetodosPagamento from "./MetodosPagamento";
 
 const Configuracoes = () => {
   const [activeTab, setActiveTab] = useState("geral");
+  const navigate = useNavigate();
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    
+    // Navegação para URL específica com base na aba
+    switch(value) {
+      case "categorias":
+        navigate("/configuracoes/categorias");
+        break;
+      case "pagamentos":
+        navigate("/configuracoes/metodos-pagamento");
+        break;
+      default:
+        navigate("/configuracoes");
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -19,7 +39,7 @@ const Configuracoes = () => {
         </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid grid-cols-4">
           <TabsTrigger value="geral">Geral</TabsTrigger>
           <TabsTrigger value="financeiras">Configurações Financeiras</TabsTrigger>
@@ -44,19 +64,11 @@ const Configuracoes = () => {
         </TabsContent>
         
         <TabsContent value="categorias">
-          <div className="rounded-md border p-8 text-center">
-            <p className="text-muted-foreground">
-              Gerenciamento de categorias financeiras será implementado em breve.
-            </p>
-          </div>
+          <Categorias />
         </TabsContent>
         
         <TabsContent value="pagamentos">
-          <div className="rounded-md border p-8 text-center">
-            <p className="text-muted-foreground">
-              Configuração de métodos de pagamento será implementada em breve.
-            </p>
-          </div>
+          <MetodosPagamento />
         </TabsContent>
       </Tabs>
     </div>

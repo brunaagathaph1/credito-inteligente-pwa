@@ -1,8 +1,7 @@
-
 import { useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash, AlertTriangle, CreditCard, CheckCircle } from "lucide-react";
+import { Plus, Edit, Trash, AlertTriangle, CreditCard } from "lucide-react";
 import {
   Table,
   TableBody,
