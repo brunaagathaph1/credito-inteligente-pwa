@@ -103,10 +103,10 @@ const RelatoriosEGraficos = () => {
       
       // Processar status dos empréstimos para o gráfico de pizza
       const statusCount: Record<string, number> = {
-        "em-dia": 0,
+        "pendente": 0,
+        "em_dia": 0,
         "atrasado": 0,
-        "quitado": 0,
-        "pendente": 0
+        "quitado": 0
       };
       
       loans.forEach(emprestimo => {
@@ -116,10 +116,10 @@ const RelatoriosEGraficos = () => {
       });
       
       const statusArray = [
-        { name: "Em dia", value: statusCount["em-dia"] || 0 },
+        { name: "Pendentes", value: statusCount["pendente"] || 0 },
+        { name: "Em dia", value: statusCount["em_dia"] || 0 },
         { name: "Atrasados", value: statusCount["atrasado"] || 0 },
-        { name: "Quitados", value: statusCount["quitado"] || 0 },
-        { name: "Pendentes", value: statusCount["pendente"] || 0 }
+        { name: "Quitados", value: statusCount["quitado"] || 0 }
       ];
       
       // Filtrar para remover status com valor 0
@@ -131,7 +131,7 @@ const RelatoriosEGraficos = () => {
 
   const COLORS = ["#0088FE", "#FF8042", "#00C49F", "#8884d8"];
 
-  const formatCurrency = (value) => {
+  const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
@@ -167,7 +167,7 @@ const RelatoriosEGraficos = () => {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="mes" />
                     <YAxis />
-                    <Tooltip formatter={(value) => [formatCurrency(value), ""]} />
+                    <Tooltip formatter={(value) => [formatCurrency(value as number), ""]} />
                     <Legend />
                     <Bar 
                       name="Empréstimos" 

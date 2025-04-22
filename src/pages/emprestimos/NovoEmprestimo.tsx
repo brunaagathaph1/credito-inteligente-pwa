@@ -116,6 +116,12 @@ const NovoEmprestimo = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.clienteId) {
+      toast.error("Selecione um cliente para continuar");
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
@@ -127,16 +133,19 @@ const NovoEmprestimo = () => {
         data_emprestimo: formData.dataInicio,
         data_vencimento: formData.dataVencimento,
         status: "pendente",
-        created_by: "system", // Idealmente seria o ID do usuário logado
         observacoes: null,
         renegociacao_id: null,
-        renegociado: false
+        renegociado: false,
+        created_by: "system" // Idealmente seria o ID do usuário logado
       };
 
-      await createLoan.mutateAsync(emprestimoData);
-      logActivity("Cadastrou novo empréstimo");
-      toast.success("Empréstimo cadastrado com sucesso!");
-      navigate("/emprestimos");
+      const result = await createLoan.mutateAsync(emprestimoData);
+      
+      if (result) {
+        await logActivity("Cadastrou novo empréstimo", { emprestimo_id: result.id });
+        toast.success("Empréstimo cadastrado com sucesso!");
+        navigate("/emprestimos");
+      }
     } catch (error) {
       console.error("Erro ao cadastrar empréstimo:", error);
       toast.error("Erro ao cadastrar empréstimo. Tente novamente.");

@@ -3,6 +3,42 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { emprestimosApi, pagamentosApi } from "@/integrations/supabase/helpers";
 import { toast } from "sonner";
 
+export interface Pagamento {
+  id: string;
+  emprestimo_id: string;
+  valor: number;
+  data_pagamento: string;
+  tipo: string;
+  observacoes?: string;
+  created_at: string;
+  updated_at: string;
+  created_by: string;
+}
+
+export interface Loan {
+  id: string;
+  cliente_id: string;
+  valor_principal: number;
+  taxa_juros: number;
+  tipo_juros: string;
+  data_emprestimo: string;
+  data_vencimento: string;
+  status: string;
+  observacoes?: string;
+  renegociacao_id?: string;
+  renegociado: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by: string;
+  cliente?: {
+    id: string;
+    nome: string;
+    telefone?: string;
+    email?: string;
+  };
+  pagamentos?: Pagamento[];
+}
+
 export const useLoans = () => {
   const queryClient = useQueryClient();
 
@@ -22,7 +58,7 @@ export const useLoans = () => {
             return {
               ...loan,
               pagamentos: pagamentos || []
-            };
+            } as Loan;
           })
         );
         
@@ -50,25 +86,31 @@ export const useLoans = () => {
 
   // Create new loan
   const createLoan = useMutation({
-    mutationFn: async (loanData: any) => {
+    mutationFn: async (loanData: Omit<Loan, "id" | "created_at" | "updated_at" | "cliente" | "pagamentos">) => {
       const { data, error } = await emprestimosApi.create(loanData);
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
+    },
+    onError: (error: any) => {
+      toast.error(`Erro ao criar empréstimo: ${error.message}`);
     }
   });
 
   // Update loan
   const updateLoan = useMutation({
-    mutationFn: async ({ id, loanData }: { id: string; loanData: any }) => {
+    mutationFn: async ({ id, loanData }: { id: string; loanData: Partial<Loan> }) => {
       const { data, error } = await emprestimosApi.update(id, loanData);
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
+    },
+    onError: (error: any) => {
+      toast.error(`Erro ao atualizar empréstimo: ${error.message}`);
     }
   });
 
@@ -81,6 +123,9 @@ export const useLoans = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
+    },
+    onError: (error: any) => {
+      toast.error(`Erro ao excluir empréstimo: ${error.message}`);
     }
   });
 
