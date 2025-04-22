@@ -45,7 +45,7 @@ const contaBancariaSchema = z.object({
   tipo: z.enum(["corrente", "poupanca"]),
   titular: z.string().optional(),
   cpf_cnpj: z.string().optional(),
-  status: z.string().optional(),
+  status: z.string().optional().default("ativo"),
   observacoes: z.string().optional(),
 });
 
@@ -80,6 +80,9 @@ interface ContaBancaria {
   cpf_cnpj?: string | null;
   status: string;
   observacoes?: string | null;
+  criada_em?: string;
+  atualizada_em?: string;
+  criada_por?: string;
 }
 
 // Hooks principais
@@ -115,8 +118,14 @@ const ContasBancarias = () => {
       .order("criada_em", { ascending: false });
     if (error) {
       toast.error("Erro ao buscar contas bancárias");
+      console.error("Erro ao buscar contas:", error);
     } else {
-      setContas(data ?? []);
+      // Forçar o tipo para cada conta, garantindo tipo: "corrente" | "poupanca"
+      const contasFormatadas = data.map(conta => ({
+        ...conta,
+        tipo: conta.tipo as "corrente" | "poupanca"
+      }));
+      setContas(contasFormatadas);
     }
     setIsLoading(false);
   }
@@ -131,17 +140,31 @@ const ContasBancarias = () => {
   // Criar ou atualizar conta
   const onSubmit = async (values: ContaBancariaForm) => {
     if (!user) return;
+    
+    // Garantir que todos os campos obrigatórios estão presentes
+    const contaDados = {
+      nome: values.nome,
+      banco: values.banco,
+      numero_agencia: values.numero_agencia,
+      numero_conta: values.numero_conta,
+      tipo: values.tipo,
+      titular: values.titular || null,
+      cpf_cnpj: values.cpf_cnpj || null,
+      status: values.status || "ativo",
+      observacoes: values.observacoes || null,
+    };
+    
     if (editingConta) {
       const { error } = await supabase
         .from("contas_bancarias")
         .update({
-          ...values,
+          ...contaDados,
           atualizada_em: new Date().toISOString(),
         })
-        .eq("id", editingConta.id)
-        .select();
+        .eq("id", editingConta.id);
       if (error) {
         toast.error("Erro ao atualizar conta bancária");
+        console.error("Erro ao atualizar:", error);
       } else {
         toast.success("Conta bancária atualizada com sucesso!");
         fetchContas();
@@ -150,12 +173,12 @@ const ContasBancarias = () => {
       const { error } = await supabase
         .from("contas_bancarias")
         .insert({
-          ...values,
-          status: values.status ?? "ativo",
+          ...contaDados,
           criada_por: user.id,
         });
       if (error) {
         toast.error("Erro ao adicionar conta bancária");
+        console.error("Erro ao adicionar:", error);
       } else {
         toast.success("Conta bancária adicionada com sucesso!");
         fetchContas();
@@ -170,7 +193,15 @@ const ContasBancarias = () => {
   const handleEdit = (conta: ContaBancaria) => {
     setEditingConta(conta);
     form.reset({
-      ...conta,
+      nome: conta.nome,
+      banco: conta.banco,
+      numero_agencia: conta.numero_agencia,
+      numero_conta: conta.numero_conta,
+      tipo: conta.tipo,
+      titular: conta.titular || undefined,
+      cpf_cnpj: conta.cpf_cnpj || undefined,
+      status: conta.status,
+      observacoes: conta.observacoes || undefined,
     });
     setIsDialogOpen(true);
   };
@@ -183,6 +214,7 @@ const ContasBancarias = () => {
       .eq("id", id);
     if (error) {
       toast.error("Erro ao remover conta bancária");
+      console.error("Erro ao remover:", error);
     } else {
       toast.success("Conta bancária removida com sucesso!");
       fetchContas();
@@ -485,4 +517,3 @@ const ContasBancarias = () => {
 };
 
 export default ContasBancarias;
-
