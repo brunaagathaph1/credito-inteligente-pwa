@@ -29,11 +29,11 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const configSchema = z.object({
   nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  taxa_padrao_juros: z.string().transform(val => parseFloat(val)),
+  taxa_padrao_juros: z.coerce.number().min(0, "Taxa deve ser positiva"),
   tipo_juros_padrao: z.string(),
-  taxa_multa_atraso: z.string().transform(val => parseFloat(val)),
-  taxa_juros_atraso: z.string().transform(val => parseFloat(val)),
-  prazo_maximo_dias: z.string().transform(val => parseInt(val)),
+  taxa_multa_atraso: z.coerce.number().min(0, "Taxa deve ser positiva"),
+  taxa_juros_atraso: z.coerce.number().min(0, "Taxa deve ser positiva"),
+  prazo_maximo_dias: z.coerce.number().int().min(1, "Prazo deve ser pelo menos 1 dia"),
   observacoes: z.string().optional(),
 });
 
@@ -49,11 +49,11 @@ const ConfiguracoesFinanceiras = () => {
     resolver: zodResolver(configSchema),
     defaultValues: {
       nome: "Configuração Padrão",
-      taxa_padrao_juros: "2.5",
+      taxa_padrao_juros: 2.5,
       tipo_juros_padrao: "composto",
-      taxa_multa_atraso: "2.0",
-      taxa_juros_atraso: "1.0",
-      prazo_maximo_dias: "30",
+      taxa_multa_atraso: 2.0,
+      taxa_juros_atraso: 1.0,
+      prazo_maximo_dias: 30,
       observacoes: ""
     }
   });
@@ -81,11 +81,11 @@ const ConfiguracoesFinanceiras = () => {
           setConfigId(data.id);
           form.reset({
             nome: data.nome,
-            taxa_padrao_juros: data.taxa_padrao_juros.toString(),
+            taxa_padrao_juros: Number(data.taxa_padrao_juros),
             tipo_juros_padrao: data.tipo_juros_padrao,
-            taxa_multa_atraso: data.taxa_multa_atraso.toString(),
-            taxa_juros_atraso: data.taxa_juros_atraso.toString(),
-            prazo_maximo_dias: data.prazo_maximo_dias.toString(),
+            taxa_multa_atraso: Number(data.taxa_multa_atraso),
+            taxa_juros_atraso: Number(data.taxa_juros_atraso),
+            prazo_maximo_dias: Number(data.prazo_maximo_dias),
             observacoes: data.observacoes || ""
           });
         }
