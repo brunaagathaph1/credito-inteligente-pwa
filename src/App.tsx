@@ -8,7 +8,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/contexts/AuthContext";
-import { Button } from "@/components/ui/button"; // Added missing import
+import { Button } from "@/components/ui/button";
 import Layout from "./components/layout/Layout";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -17,6 +17,7 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import ResetPassword from "./pages/auth/ResetPassword";
 import NotFound from "./pages/NotFound";
+import Index from "./pages/Index";
 
 // Páginas protegidas
 import Dashboard from "./pages/Dashboard";
@@ -32,10 +33,12 @@ import MensagensETemplates from "./pages/mensagens/MensagensETemplates";
 
 // Error fallback
 function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) {
+  console.error("Application error:", error);
+  
   return (
     <div className="flex flex-col items-center justify-center h-screen">
       <h2 className="text-2xl font-bold mb-4">Algo deu errado</h2>
-      <p className="text-red-500 mb-4">{error.message}</p>
+      <p className="text-red-500 mb-4">{error.message || "Ocorreu um erro inesperado na aplicação."}</p>
       <Button onClick={resetErrorBoundary}>Tentar novamente</Button>
     </div>
   );
@@ -62,6 +65,9 @@ const App = () => (
             <Sonner />
             <BrowserRouter>
               <Routes>
+                {/* Rota da Página Inicial */}
+                <Route path="/" element={<Index />} />
+                
                 {/* Rotas Públicas */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/registro" element={<Register />} />
@@ -69,7 +75,6 @@ const App = () => (
                 
                 {/* Rotas Protegidas */}
                 <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
                   <Route path="/dashboard" element={
                     <Suspense fallback={<div>Carregando...</div>}>
                       <Dashboard />

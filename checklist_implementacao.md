@@ -4,7 +4,7 @@
 ## Configuração Inicial
 - [x] Criar arquivos de documentação (prompt_inicial.md, checklist_implementacao.md)
 - [x] Conectar com Supabase
-- [ ] Configurar PWA com vite-plugin-pwa
+- [x] Configurar PWA com vite-plugin-pwa
 - [x] Configurar tema claro/escuro
 - [x] Configurar rotas e navegação
 - [x] Configurar migrações SQL
@@ -61,10 +61,10 @@
 - [x] Exportação de dados
 
 ## PWA e Mobile
-- [ ] Manifest e service worker
+- [x] Manifest e service worker
 - [x] Layout responsivo
 - [ ] Funcionamento offline
-- [ ] Instalação como app nativo
+- [x] Instalação como app nativo
 - [ ] Notificações push
 
 ## Otimizações
