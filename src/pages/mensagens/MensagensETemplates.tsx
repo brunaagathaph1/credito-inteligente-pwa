@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -43,7 +42,6 @@ import {
 import { toast } from "sonner";
 import { useClients } from "@/hooks/useClients";
 
-// Variables to use in templates
 const SYSTEM_VARIABLES = [
   { name: "{nome_cliente}", description: "Nome do cliente" },
   { name: "{valor_emprestimo}", description: "Valor do empréstimo" },
@@ -77,7 +75,6 @@ const VariableButton = ({ variable, onClick }: { variable: { name: string, descr
 
 const TextEditor = ({ value, onChange, placeholder }: { value: string, onChange: (value: string) => void, placeholder: string }) => {
   const insertStyle = (tag: string) => {
-    // Simple style insertion, a more robust solution would use a proper editor like TinyMCE or Quill
     onChange(value + ` <${tag}>texto</${tag}> `);
   };
   
@@ -176,7 +173,6 @@ const EmailConfigCard = () => {
     setIsLoading(true);
     
     try {
-      // Check if config exists
       const { data, error } = await supabase
         .from('configuracoes_financeiras')
         .select('id')
@@ -197,7 +193,6 @@ const EmailConfigCard = () => {
       let result;
       
       if (data) {
-        // Update existing
         result = await supabase
           .from('configuracoes_financeiras')
           .update({
@@ -206,13 +201,12 @@ const EmailConfigCard = () => {
           })
           .eq('id', data.id);
       } else {
-        // Create new
         result = await supabase
           .from('configuracoes_financeiras')
           .insert({
             nome: 'smtp_config',
             ...configData,
-            created_by: "system" // Ideally the user ID
+            created_by: "system"
           });
       }
       
@@ -357,7 +351,6 @@ const MensagensETemplates = () => {
   const { user } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
 
-  // Templates state
   const [templateList, setTemplateList] = useState<Template[]>([]);
   const [loadingTemplates, setLoadingTemplates] = useState(true);
   const [templateName, setTemplateName] = useState("");
@@ -366,7 +359,6 @@ const MensagensETemplates = () => {
   const [templateType, setTemplateType] = useState("email");
   const [isSavingTemplate, setIsSavingTemplate] = useState(false);
   
-  // Messages state
   const [selectedClient, setSelectedClient] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("");
   const [messageSubject, setMessageSubject] = useState("");
@@ -375,7 +367,6 @@ const MensagensETemplates = () => {
   const [scheduleDate, setScheduleDate] = useState("");
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   
-  // Webhook state
   const [webhookConfig, setWebhookConfig] = useState({
     postUrl: "",
     apiUrl: "",
@@ -398,7 +389,6 @@ const MensagensETemplates = () => {
   const [isSavingWebhook, setIsSavingWebhook] = useState(false);
   const [isSavingEvolution, setIsSavingEvolution] = useState(false);
   
-  // Check admin status
   useEffect(() => {
     const checkAdminStatus = async () => {
       if (user) {
@@ -421,16 +411,13 @@ const MensagensETemplates = () => {
     checkAdminStatus();
   }, [user]);
   
-  // Load templates on component mount
   useEffect(() => {
     logActivity("Acessou página de mensagens e templates");
     loadTemplates();
     loadWebhookConfig();
     loadEvolutionConfig();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   
-  // Load templates
   const loadTemplates = async () => {
     setLoadingTemplates(true);
     try {
@@ -450,7 +437,6 @@ const MensagensETemplates = () => {
     }
   };
   
-  // Load webhook config
   const loadWebhookConfig = async () => {
     try {
       const { data, error } = await supabase
@@ -471,7 +457,6 @@ const MensagensETemplates = () => {
           emprestimoAtrasado: webhook.eventos.includes("emprestimo.atraso")
         };
         
-        // Split URL for post and API if needed
         const urls = webhook.url.split("|");
         
         setWebhookConfig({
@@ -485,7 +470,6 @@ const MensagensETemplates = () => {
     }
   };
   
-  // Load Evolution API config
   const loadEvolutionConfig = async () => {
     try {
       const { data, error } = await supabase
@@ -498,7 +482,6 @@ const MensagensETemplates = () => {
       
       if (data) {
         try {
-          // Parse config from observacoes
           const config = JSON.parse(data.observacoes || "{}");
           
           setEvolutionConfig({
@@ -519,7 +502,6 @@ const MensagensETemplates = () => {
     }
   };
   
-  // Save template
   const salvarTemplate = async () => {
     if (!templateName || !templateContent) {
       toast.error("Nome e conteúdo do template são obrigatórios");
@@ -548,12 +530,10 @@ const MensagensETemplates = () => {
       toast.success("Template salvo com sucesso!");
       logActivity("Criou template de mensagem");
       
-      // Clear form
       setTemplateName("");
       setTemplateSubject("");
       setTemplateContent("");
       
-      // Refresh templates
       loadTemplates();
     } catch (error) {
       console.error("Erro ao salvar template:", error);
@@ -563,7 +543,6 @@ const MensagensETemplates = () => {
     }
   };
   
-  // Handle template selection
   const handleTemplateChange = async (templateId: string) => {
     setSelectedTemplate(templateId);
     
@@ -580,13 +559,11 @@ const MensagensETemplates = () => {
         console.error("Erro ao carregar template:", error);
       }
     } else {
-      // Clear if no template is selected
       setMessageSubject("");
       setMessageContent("");
     }
   };
   
-  // Send message
   const enviarMensagem = async () => {
     if (!selectedClient || !messageContent) {
       toast.error("Cliente e conteúdo da mensagem são obrigatórios");
@@ -619,7 +596,6 @@ const MensagensETemplates = () => {
       toast.success(scheduleDate ? "Mensagem agendada com sucesso!" : "Mensagem enviada para a fila de processamento!");
       logActivity(scheduleDate ? "Agendou mensagem" : "Enviou mensagem");
       
-      // Clear form
       setSelectedClient("");
       setSelectedTemplate("");
       setMessageSubject("");
@@ -633,7 +609,6 @@ const MensagensETemplates = () => {
     }
   };
   
-  // Save webhook config
   const salvarWebhookConfig = async () => {
     if (!webhookConfig.postUrl && !webhookConfig.apiUrl) {
       toast.error("Pelo menos uma URL é obrigatória");
@@ -643,17 +618,14 @@ const MensagensETemplates = () => {
     setIsSavingWebhook(true);
     
     try {
-      // Create array of events
       const eventos = [];
       if (webhookConfig.events.novoEmprestimo) eventos.push("emprestimo.novo");
       if (webhookConfig.events.novoPagamento) eventos.push("pagamento.novo");
       if (webhookConfig.events.novoCliente) eventos.push("cliente.novo");
       if (webhookConfig.events.emprestimoAtrasado) eventos.push("emprestimo.atraso");
       
-      // Combine URLs
       const url = webhookConfig.postUrl + (webhookConfig.apiUrl ? `|${webhookConfig.apiUrl}` : "");
       
-      // Check if webhook already exists
       const { data: existingWebhook, error: fetchError } = await supabase
         .from('webhooks')
         .select('id')
@@ -664,7 +636,6 @@ const MensagensETemplates = () => {
       let result;
       
       if (existingWebhook && existingWebhook.length > 0) {
-        // Update existing
         result = await supabase
           .from('webhooks')
           .update({
@@ -674,7 +645,6 @@ const MensagensETemplates = () => {
           })
           .eq('id', existingWebhook[0].id);
       } else {
-        // Create new
         result = await supabase
           .from('webhooks')
           .insert({
@@ -698,7 +668,6 @@ const MensagensETemplates = () => {
     }
   };
   
-  // Save Evolution API config
   const salvarEvolutionConfig = async () => {
     if (!evolutionConfig.url) {
       toast.error("URL da Evolution API é obrigatória");
@@ -708,10 +677,8 @@ const MensagensETemplates = () => {
     setIsSavingEvolution(true);
     
     try {
-      // Save as JSON in the observacoes field
       const configJson = JSON.stringify(evolutionConfig);
       
-      // Check if config exists
       const { data: existingConfig, error: fetchError } = await supabase
         .from('configuracoes_financeiras')
         .select('id')
@@ -723,7 +690,6 @@ const MensagensETemplates = () => {
       let result;
       
       if (existingConfig) {
-        // Update existing
         result = await supabase
           .from('configuracoes_financeiras')
           .update({
@@ -732,7 +698,6 @@ const MensagensETemplates = () => {
           })
           .eq('id', existingConfig.id);
       } else {
-        // Create new
         result = await supabase
           .from('configuracoes_financeiras')
           .insert({
@@ -759,10 +724,8 @@ const MensagensETemplates = () => {
     }
   };
   
-  // Test webhook
   const testarWebhook = async () => {
     try {
-      // Log the test
       await supabase
         .from('webhook_logs')
         .insert({
@@ -994,7 +957,7 @@ const MensagensETemplates = () => {
                     <SelectValue placeholder="Selecione um template ou deixe em branco" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Personalizado (sem template)</SelectItem>
+                    <SelectItem value="no-template">Personalizado (sem template)</SelectItem>
                     {templateList
                       .filter(template => template.tipo === messageType)
                       .map(template => (
@@ -1109,7 +1072,7 @@ const MensagensETemplates = () => {
                     <SelectValue placeholder="Selecione um template ou deixe em branco" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Personalizado (sem template)</SelectItem>
+                    <SelectItem value="no-template">Personalizado (sem template)</SelectItem>
                     {templateList
                       .filter(template => template.tipo === messageType)
                       .map(template => (
