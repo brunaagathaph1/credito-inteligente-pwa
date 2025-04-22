@@ -976,4 +976,4 @@ const MensagensETemplates = () => {
                   <Label htmlFor="messageType">Tipo de Mensagem</Label>
                   <Select value={messageType} onValueChange={setMessageType}>
                     <SelectTrigger id="messageType">
-                      <SelectValue placeholder="Selecione o tipo" />
+                      <SelectValue placeholder="Selecione o tipo

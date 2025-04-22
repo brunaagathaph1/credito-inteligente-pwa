@@ -226,6 +226,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "emprestimos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "telefones_clientes"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "emprestimos_renegociacao_id_fkey"
             columns: ["renegociacao_id"]
             isOneToOne: false
@@ -319,6 +326,13 @@ export type Database = {
             columns: ["cliente_id"]
             isOneToOne: false
             referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mensagens_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "telefones_clientes"
             referencedColumns: ["id"]
           },
           {
@@ -618,7 +632,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      telefones_clientes: {
+        Row: {
+          id: string | null
+          telefone: string | null
+        }
+        Insert: {
+          id?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          id?: string | null
+          telefone?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
