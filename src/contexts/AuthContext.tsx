@@ -1,6 +1,5 @@
 
 import { createContext, useContext, useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Session, User } from '@supabase/supabase-js';
 import { auth } from '@/integrations/supabase/helpers';
 import { supabase } from '@/integrations/supabase/client';
@@ -9,7 +8,7 @@ interface AuthContextType {
   session: Session | null;
   user: User | null;
   loading: boolean;
-  isLoading: boolean; // Add this line to fix build errors
+  isLoading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, nome: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -22,20 +21,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    // First retrieve the session
+    const initializeAuth = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        setSession(data.session);
+        setUser(data.session?.user ?? null);
+        setLoading(false);
+      } catch (error) {
+        console.error("Error retrieving auth session:", error);
+        setLoading(false);
+      }
+    };
 
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    initializeAuth();
+
+    // Then set up the auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
+      setSession(newSession);
+      setUser(newSession?.user ?? null);
       setLoading(false);
     });
 
@@ -45,19 +51,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     const { error } = await auth.signIn(email, password);
     if (error) throw error;
-    navigate('/dashboard');
   };
 
   const signUp = async (email: string, password: string, nome: string) => {
     const { error } = await auth.signUp(email, password, nome);
     if (error) throw error;
-    navigate('/login');
   };
 
   const signOut = async () => {
     const { error } = await auth.signOut();
     if (error) throw error;
-    navigate('/login');
   };
 
   const resetPassword = async (email: string) => {
@@ -71,14 +74,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         session,
         user,
         loading,
-        isLoading: loading, // Add this line to fix build errors
+        isLoading: loading,
         signIn,
         signUp,
         signOut,
         resetPassword,
       }}
     >
-      {!loading && children}
+      {children}
     </AuthContext.Provider>
   );
 }

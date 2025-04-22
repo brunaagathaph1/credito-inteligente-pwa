@@ -29,10 +29,10 @@ import { ThemeProvider } from "@/components/theme-provider";
 
 const App = () => {
   return (
-    <BrowserRouter>
-      <ThemeProvider defaultTheme="light" storageKey="credito-inteligente-theme">
-        <OfflineIndicator />
-        <Toaster />
+    <ThemeProvider defaultTheme="light" storageKey="credito-inteligente-theme">
+      <OfflineIndicator />
+      <Toaster />
+      <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
@@ -40,32 +40,28 @@ const App = () => {
           <Route path="/recuperar-senha" element={<ResetPassword />} />
           
           <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-            <Route path="/dashboard" element={<Dashboard />} />
-            
-            <Route path="/clientes" element={<Clientes />} />
-            <Route path="/clientes/novo" element={<NovoCliente />} />
-            <Route path="/clientes/:id" element={<ClienteDetalhe />} />
-            
-            <Route path="/emprestimos" element={<Emprestimos />} />
-            <Route path="/emprestimos/novo" element={<NovoEmprestimo />} />
-            <Route path="/emprestimos/:id" element={<EmprestimoDetalhe />} />
-            
-            <Route path="/relatorios" element={<RelatoriosEGraficos />} />
-            <Route path="/mensagens" element={<MensagensETemplates />} />
-            
-            <Route path="/configuracoes" element={<Configuracoes />} />
-            <Route path="/configuracoes/categorias" element={<Categorias />} />
-            <Route path="/configuracoes/metodos-pagamento" element={<MetodosPagamento />} />
-            <Route path="/configuracoes/contas-bancarias" element={<ContasBancarias />} />
-            <Route path="/configuracoes/logs-atividades" element={<LogsAtividades />} />
-            <Route path="/configuracoes/perfil" element={<Perfil />} />
-            <Route path="/configuracoes/financeiras" element={<ConfiguracoesFinanceiras />} />
+            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="clientes" element={<Clientes />} />
+            <Route path="clientes/novo" element={<NovoCliente />} />
+            <Route path="clientes/:id" element={<ClienteDetalhe />} />
+            <Route path="emprestimos" element={<Emprestimos />} />
+            <Route path="emprestimos/novo" element={<NovoEmprestimo />} />
+            <Route path="emprestimos/:id" element={<EmprestimoDetalhe />} />
+            <Route path="relatorios" element={<RelatoriosEGraficos />} />
+            <Route path="mensagens" element={<MensagensETemplates />} />
+            <Route path="configuracoes" element={<Configuracoes />} />
+            <Route path="configuracoes/categorias" element={<Categorias />} />
+            <Route path="configuracoes/metodos-pagamento" element={<MetodosPagamento />} />
+            <Route path="configuracoes/contas-bancarias" element={<ContasBancarias />} />
+            <Route path="configuracoes/logs-atividades" element={<LogsAtividades />} />
+            <Route path="configuracoes/perfil" element={<Perfil />} />
+            <Route path="configuracoes/financeiras" element={<ConfiguracoesFinanceiras />} />
           </Route>
           
           <Route path="*" element={<NotFound />} />
         </Routes>
-      </ThemeProvider>
-    </BrowserRouter>
+      </BrowserRouter>
+    </ThemeProvider>
   );
 };
 
