@@ -1,4 +1,6 @@
 
+import { Suspense, lazy } from "react";
+import { ErrorBoundary } from "react-error-boundary";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -27,51 +29,77 @@ import Configuracoes from "./pages/configuracoes/Configuracoes";
 import RelatoriosEGraficos from "./pages/relatorios/RelatoriosEGraficos";
 import MensagensETemplates from "./pages/mensagens/MensagensETemplates";
 
-const queryClient = new QueryClient();
+// Error fallback
+function ErrorFallback({ error, resetErrorBoundary }: { error: Error, resetErrorBoundary: () => void }) {
+  return (
+    <div className="flex flex-col items-center justify-center h-screen">
+      <h2 className="text-2xl font-bold mb-4">Algo deu errado</h2>
+      <p className="text-red-500 mb-4">{error.message}</p>
+      <Button onClick={resetErrorBoundary}>Tentar novamente</Button>
+    </div>
+  );
+}
+
+// Create the query client with better error handling
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 5 * 60 * 1000,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <ThemeProvider defaultTheme="light" storageKey="credito-inteligente-theme">
-      <AuthProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* Rotas Públicas */}
-              <Route path="/login" element={<Login />} />
-              <Route path="/registro" element={<Register />} />
-              <Route path="/recuperar-senha" element={<ResetPassword />} />
-              
-              {/* Rotas Protegidas */}
-              <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="/dashboard" element={<Dashboard />} />
+  <ErrorBoundary FallbackComponent={ErrorFallback}>
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider defaultTheme="light" storageKey="credito-inteligente-theme">
+        <AuthProvider>
+          <TooltipProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                {/* Rotas Públicas */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/registro" element={<Register />} />
+                <Route path="/recuperar-senha" element={<ResetPassword />} />
                 
-                {/* Rotas de Clientes */}
-                <Route path="/clientes" element={<Clientes />} />
-                <Route path="/clientes/novo" element={<NovoCliente />} />
-                <Route path="/clientes/:id" element={<ClienteDetalhe />} />
+                {/* Rotas Protegidas */}
+                <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                  <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                  <Route path="/dashboard" element={
+                    <Suspense fallback={<div>Carregando...</div>}>
+                      <Dashboard />
+                    </Suspense>
+                  } />
+                  
+                  {/* Rotas de Clientes */}
+                  <Route path="/clientes" element={<Clientes />} />
+                  <Route path="/clientes/novo" element={<NovoCliente />} />
+                  <Route path="/clientes/:id" element={<ClienteDetalhe />} />
+                  
+                  {/* Rotas de Empréstimos */}
+                  <Route path="/emprestimos" element={<Emprestimos />} />
+                  <Route path="/emprestimos/novo" element={<NovoEmprestimo />} />
+                  <Route path="/emprestimos/:id" element={<EmprestimoDetalhe />} />
+                  
+                  {/* Outras Rotas */}
+                  <Route path="/configuracoes/*" element={<Configuracoes />} />
+                  <Route path="/relatorios" element={<RelatoriosEGraficos />} />
+                  <Route path="/mensagens" element={<MensagensETemplates />} />
+                </Route>
                 
-                {/* Rotas de Empréstimos */}
-                <Route path="/emprestimos" element={<Emprestimos />} />
-                <Route path="/emprestimos/novo" element={<NovoEmprestimo />} />
-                <Route path="/emprestimos/:id" element={<EmprestimoDetalhe />} />
-                
-                {/* Outras Rotas */}
-                <Route path="/configuracoes/*" element={<Configuracoes />} />
-                <Route path="/relatorios" element={<RelatoriosEGraficos />} />
-                <Route path="/mensagens" element={<MensagensETemplates />} />
-              </Route>
-              
-              {/* Rota 404 */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </AuthProvider>
-    </ThemeProvider>
-  </QueryClientProvider>
+                {/* Rota 404 */}
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </TooltipProvider>
+        </AuthProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  </ErrorBoundary>
 );
 
 export default App;

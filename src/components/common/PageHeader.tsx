@@ -10,13 +10,23 @@ interface PageHeaderProps {
   showBackButton?: boolean;
 }
 
-export function PageHeader({ title, description, children, showBackButton }: PageHeaderProps) {
+export function PageHeader({ 
+  title, 
+  description, 
+  children, 
+  showBackButton = false 
+}: PageHeaderProps) {
   const navigate = useNavigate();
 
   return (
     <div className="flex items-center gap-4 mb-6">
       {showBackButton && (
-        <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+        <Button 
+          variant="outline" 
+          size="icon" 
+          onClick={() => navigate(-1)}
+          type="button"
+        >
           <ArrowLeft className="h-4 w-4" />
         </Button>
       )}

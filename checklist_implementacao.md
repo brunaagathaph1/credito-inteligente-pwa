@@ -8,6 +8,7 @@
 - [x] Configurar tema claro/escuro
 - [x] Configurar rotas e navegação
 - [x] Configurar migrações SQL
+- [x] Adicionar tratamento de erros global
 
 ## Autenticação
 - [x] Tela de login
@@ -71,6 +72,8 @@
 - [x] Otimização de imagens
 - [x] Compressão de assets
 - [x] SEO básico
+- [x] Tratamento de erros aprimorado
+- [x] Validações de formatações
 
 ## Segurança
 - [x] Políticas de RLS
