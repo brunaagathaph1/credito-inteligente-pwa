@@ -11,6 +11,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import Layout from "./components/layout/Layout";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import OfflineIndicator from "./components/common/OfflineIndicator";
 
 // Páginas públicas
 import Login from "./pages/auth/Login";
@@ -28,6 +29,8 @@ import Emprestimos from "./pages/emprestimos/Emprestimos";
 import EmprestimoDetalhe from "./pages/emprestimos/EmprestimoDetalhe";
 import NovoEmprestimo from "./pages/emprestimos/NovoEmprestimo";
 import Configuracoes from "./pages/configuracoes/Configuracoes";
+import Categorias from "./pages/configuracoes/Categorias";
+import MetodosPagamento from "./pages/configuracoes/MetodosPagamento";
 import RelatoriosEGraficos from "./pages/relatorios/RelatoriosEGraficos";
 import MensagensETemplates from "./pages/mensagens/MensagensETemplates";
 
@@ -91,8 +94,12 @@ const App = () => (
                   <Route path="/emprestimos/novo" element={<NovoEmprestimo />} />
                   <Route path="/emprestimos/:id" element={<EmprestimoDetalhe />} />
                   
-                  {/* Outras Rotas */}
+                  {/* Rotas de Configurações */}
                   <Route path="/configuracoes/*" element={<Configuracoes />} />
+                  <Route path="/configuracoes/categorias" element={<Categorias />} />
+                  <Route path="/configuracoes/metodos-pagamento" element={<MetodosPagamento />} />
+                  
+                  {/* Outras Rotas */}
                   <Route path="/relatorios" element={<RelatoriosEGraficos />} />
                   <Route path="/mensagens" element={<MensagensETemplates />} />
                 </Route>
@@ -101,6 +108,7 @@ const App = () => (
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>
+            <OfflineIndicator />
           </TooltipProvider>
         </AuthProvider>
       </ThemeProvider>

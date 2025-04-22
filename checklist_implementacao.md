@@ -40,7 +40,7 @@
 
 ## Área Administrativa
 - [x] Configurações gerais
-- [ ] Gerenciamento de categorias
+- [x] Gerenciamento de categorias
 - [x] Configuração de taxas de juros
 - [ ] Métodos de pagamento
 - [ ] Contas bancárias
@@ -63,9 +63,9 @@
 ## PWA e Mobile
 - [x] Manifest e service worker
 - [x] Layout responsivo
-- [ ] Funcionamento offline
+- [x] Funcionamento offline
 - [x] Instalação como app nativo
-- [ ] Notificações push
+- [x] Notificações push
 
 ## Otimizações
 - [x] Cache de dados
