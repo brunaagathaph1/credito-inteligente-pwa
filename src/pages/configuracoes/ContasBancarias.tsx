@@ -101,10 +101,14 @@ const ContasBancarias = () => {
       setContas(updatedContas);
       toast.success("Conta bancária atualizada com sucesso!");
     } else {
-      // Adicionar nova conta
+      // Adicionar nova conta - Fix: Ensure all required properties are provided
       const novaConta: ContaBancaria = {
-        ...values,
         id: Math.random().toString(36).substr(2, 9),
+        nome: values.nome,
+        banco: values.banco,
+        agencia: values.agencia,
+        conta: values.conta,
+        tipo: values.tipo,
       };
       setContas([...contas, novaConta]);
       toast.success("Conta bancária adicionada com sucesso!");
