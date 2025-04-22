@@ -9,6 +9,7 @@
 - [x] Configurar rotas e navegação
 - [x] Configurar migrações SQL
 - [x] Adicionar tratamento de erros global
+- [x] Corrigir erros de build e runtime
 
 ## Autenticação
 - [x] Tela de login

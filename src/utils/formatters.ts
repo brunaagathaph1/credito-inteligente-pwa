@@ -9,7 +9,7 @@ export const formatCurrency = (value: number | null | undefined) => {
     }).format(value);
   } catch (error) {
     console.error('Error formatting currency:', error);
-    return `R$ ${value.toFixed(2)}`;
+    return `R$ ${value?.toFixed?.(2) || 0}`;
   }
 };
 
@@ -29,13 +29,13 @@ export const formatCPF = (cpf: string | null | undefined) => {
   
   try {
     // Remove any non-numeric characters
-    const cleanCPF = cpf.replace(/\D/g, '');
+    const cleanCPF = String(cpf).replace(/\D/g, '');
     if (cleanCPF.length !== 11) return cpf;
     
     return cleanCPF.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
   } catch (error) {
     console.error('Error formatting CPF:', error);
-    return cpf;
+    return String(cpf || '');
   }
 };
 
@@ -44,12 +44,12 @@ export const formatPhone = (phone: string | null | undefined) => {
   
   try {
     // Remove any non-numeric characters
-    const cleanPhone = phone.replace(/\D/g, '');
+    const cleanPhone = String(phone).replace(/\D/g, '');
     if (cleanPhone.length !== 11) return phone;
     
     return cleanPhone.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
   } catch (error) {
     console.error('Error formatting phone:', error);
-    return phone;
+    return String(phone || '');
   }
 };

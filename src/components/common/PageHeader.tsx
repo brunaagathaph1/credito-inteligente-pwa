@@ -18,13 +18,23 @@ export function PageHeader({
 }: PageHeaderProps) {
   const navigate = useNavigate();
 
+  const handleBack = () => {
+    try {
+      navigate(-1);
+    } catch (error) {
+      console.error('Error navigating back:', error);
+      // Fallback to home page if there's an error
+      navigate('/');
+    }
+  };
+
   return (
     <div className="flex items-center gap-4 mb-6">
       {showBackButton && (
         <Button 
           variant="outline" 
           size="icon" 
-          onClick={() => navigate(-1)}
+          onClick={handleBack}
           type="button"
         >
           <ArrowLeft className="h-4 w-4" />
