@@ -19,18 +19,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { ArrowLeft, Save, Calculator } from "lucide-react";
-import { useForm } from "react-hook-form";
-
-// Dados simulados de clientes
-const clientesMock = [
-  { id: "1", nome: "João da Silva" },
-  { id: "2", nome: "Maria Oliveira" },
-  { id: "3", nome: "Carlos Santos" },
-  { id: "4", nome: "Ana Souza" },
-  { id: "5", nome: "Roberto Ferreira" },
-];
+import { ArrowLeft, Save, Calculator, Loader2 } from "lucide-react";
+import { useClients } from "@/hooks/useClients";
+import { useLoans } from "@/hooks/useLoans";
+import { useActivityLogs } from "@/hooks/useActivityLogs";
+import { toast } from "sonner";
 
 const NovoEmprestimo = () => {
   const navigate = useNavigate();
@@ -40,6 +33,9 @@ const NovoEmprestimo = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [valorParcela, setValorParcela] = useState<number | null>(null);
   const [valorTotal, setValorTotal] = useState<number | null>(null);
+  const { clients, isLoadingClients } = useClients();
+  const { createLoan } = useLoans();
+  const { logActivity } = useActivityLogs();
 
   const [formData, setFormData] = useState({
     clienteId: clienteIdParam || "",
@@ -47,8 +43,27 @@ const NovoEmprestimo = () => {
     juros: "2.5",
     tipoJuros: "composto",
     parcelas: "10",
-    dataInicio: new Date().toISOString().split('T')[0]
+    dataInicio: new Date().toISOString().split('T')[0],
+    dataVencimento: ""
   });
+
+  // Log activity when component mounts
+  useEffect(() => {
+    logActivity("Acessou página de novo empréstimo");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Set default dataVencimento 30 days from dataInicio
+  useEffect(() => {
+    if (formData.dataInicio) {
+      const dataInicio = new Date(formData.dataInicio);
+      dataInicio.setDate(dataInicio.getDate() + 30);
+      setFormData(prev => ({
+        ...prev,
+        dataVencimento: dataInicio.toISOString().split('T')[0]
+      }));
+    }
+  }, [formData.dataInicio]);
 
   useEffect(() => {
     if (
@@ -99,18 +114,32 @@ const NovoEmprestimo = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
-    console.log("Dados do novo empréstimo:", formData);
-    
-    // Simulação de envio para API
-    setTimeout(() => {
-      setIsLoading(false);
-      // Após cadastro bem-sucedido, redirecionar para lista de empréstimos
+    try {
+      const emprestimoData = {
+        cliente_id: formData.clienteId,
+        valor_principal: parseFloat(formData.valor),
+        taxa_juros: parseFloat(formData.juros),
+        tipo_juros: formData.tipoJuros,
+        data_emprestimo: formData.dataInicio,
+        data_vencimento: formData.dataVencimento,
+        status: "pendente",
+        created_by: "system", // Idealmente seria o ID do usuário logado
+      };
+
+      await createLoan.mutateAsync(emprestimoData);
+      logActivity("Cadastrou novo empréstimo");
+      toast.success("Empréstimo cadastrado com sucesso!");
       navigate("/emprestimos");
-    }, 1500);
+    } catch (error) {
+      console.error("Erro ao cadastrar empréstimo:", error);
+      toast.error("Erro ao cadastrar empréstimo. Tente novamente.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -138,21 +167,28 @@ const NovoEmprestimo = () => {
           <CardContent className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="clienteId">Cliente</Label>
-              <Select
-                value={formData.clienteId}
-                onValueChange={(value) => handleSelectChange("clienteId", value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {clientesMock.map((cliente) => (
-                    <SelectItem key={cliente.id} value={cliente.id}>
-                      {cliente.nome}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              {isLoadingClients ? (
+                <div className="flex items-center space-x-2">
+                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                  <span className="text-sm text-muted-foreground">Carregando clientes...</span>
+                </div>
+              ) : (
+                <Select
+                  value={formData.clienteId}
+                  onValueChange={(value) => handleSelectChange("clienteId", value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients && clients.map((cliente) => (
+                      <SelectItem key={cliente.id} value={cliente.id}>
+                        {cliente.nome}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -234,6 +270,18 @@ const NovoEmprestimo = () => {
                 </Select>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="dataVencimento">Data de Vencimento</Label>
+              <Input
+                id="dataVencimento"
+                name="dataVencimento"
+                type="date"
+                value={formData.dataVencimento}
+                onChange={handleInputChange}
+                required
+              />
+            </div>
           </CardContent>
         </Card>
 
@@ -296,7 +344,10 @@ const NovoEmprestimo = () => {
             </Button>
             <Button type="submit" disabled={isLoading}>
               {isLoading ? (
-                "Salvando..."
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Salvando...
+                </>
               ) : (
                 <>
                   <Save className="mr-2 h-4 w-4" />
