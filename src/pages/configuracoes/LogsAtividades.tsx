@@ -1,163 +1,134 @@
 
-import { useEffect, useState } from "react";
-import { PageHeader } from "@/components/common/PageHeader";
-import { Activity, Filter, Download } from "lucide-react";
+import { useState, useEffect } from "react";
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
 import {
   Table,
   TableBody,
   TableCell,
   TableHead,
   TableHeader,
-  TableRow,
+  TableRow
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger
-} from "@/components/ui/dropdown-menu";
-import { EmptyState } from "@/components/common/EmptyState";
-import { useActivityLogs, ActivityLog } from "@/hooks/useActivityLogs";
-import { format } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { RefreshCw, ClockIcon } from "lucide-react";
+import { useActivityLogs } from "@/hooks/useActivityLogs";
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const LogsAtividades = () => {
   const { logs, loading, fetchUserLogs } = useActivityLogs();
-  const [filteredLogs, setFilteredLogs] = useState<ActivityLog[]>([]);
-  const [currentFilter, setCurrentFilter] = useState<string | null>(null);
-
+  const [refreshing, setRefreshing] = useState(false);
+  
   useEffect(() => {
-    fetchUserLogs(100);
+    fetchUserLogs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  useEffect(() => {
-    if (currentFilter) {
-      setFilteredLogs(logs.filter(log => log.acao.includes(currentFilter)));
-    } else {
-      setFilteredLogs(logs);
-    }
-  }, [logs, currentFilter]);
-
-  // Gerar tipos de ações únicas para o filtro
-  const acoesTipos = [...new Set(logs.map(log => log.acao))];
-
-  // Filtrar por tipo de ação
-  const handleFilterChange = (tipoAcao: string | null) => {
-    setCurrentFilter(tipoAcao);
+  
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await fetchUserLogs();
+    setTimeout(() => setRefreshing(false), 500);
   };
-
-  // Exportar logs para CSV
-  const exportToCSV = () => {
-    const csvHeader = "Data,Ação,Detalhes,IP,User Agent\n";
-    const csvData = filteredLogs.map(log => {
-      const dataFormatada = format(new Date(log.data_hora), "dd/MM/yyyy HH:mm:ss", { locale: ptBR });
-      const detalhes = log.detalhes ? JSON.stringify(log.detalhes).replace(/"/g, '""') : "";
-      return `"${dataFormatada}","${log.acao}","${detalhes}","${log.ip_origem || ""}","${log.user_agent || ""}"`;
-    }).join("\n");
-
-    const csvContent = csvHeader + csvData;
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `logs_atividades_${format(new Date(), "yyyy-MM-dd")}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  
+  const formatDateTime = (dateStr: string) => {
+    try {
+      const date = new Date(dateStr);
+      return format(date, "dd/MM/yyyy HH:mm", { locale: ptBR });
+    } catch (e) {
+      return dateStr;
+    }
   };
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Logs de Atividades"
-        description="Histórico das suas ações no sistema"
-        actions={
-          <div className="flex space-x-2">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  <Filter className="mr-2 h-4 w-4" />
-                  {currentFilter ? `Filtro: ${currentFilter}` : "Filtrar"}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent>
-                <DropdownMenuItem onClick={() => handleFilterChange(null)}>
-                  Todos os logs
-                </DropdownMenuItem>
-                {acoesTipos.map((tipo) => (
-                  <DropdownMenuItem 
-                    key={tipo} 
-                    onClick={() => handleFilterChange(tipo)}
-                  >
-                    {tipo}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            
-            <Button variant="outline" onClick={exportToCSV} disabled={filteredLogs.length === 0}>
-              <Download className="mr-2 h-4 w-4" />
-              Exportar CSV
-            </Button>
-          </div>
-        }
-      />
-
-      {loading ? (
-        <div className="flex justify-center py-10">Carregando...</div>
-      ) : filteredLogs.length > 0 ? (
-        <div className="bg-white rounded-md shadow">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Data/Hora</TableHead>
-                <TableHead>Ação</TableHead>
-                <TableHead>Detalhes</TableHead>
-                <TableHead>IP</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredLogs.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell>
-                    {format(new Date(log.data_hora), "dd/MM/yyyy HH:mm:ss", { locale: ptBR })}
-                  </TableCell>
-                  <TableCell className="font-medium">{log.acao}</TableCell>
-                  <TableCell>
-                    {log.detalhes ? (
-                      <div className="max-w-xs truncate">
-                        {JSON.stringify(log.detalhes)}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">Sem detalhes</span>
-                    )}
-                  </TableCell>
-                  <TableCell>{log.ip_origem || "-"}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold mb-2">Logs de Atividades</h1>
+          <p className="text-muted-foreground">
+            Visualize o histórico das suas ações no sistema.
+          </p>
         </div>
-      ) : (
-        <EmptyState
-          title="Nenhum log de atividade encontrado"
-          description={currentFilter 
-            ? `Não há registros para o filtro "${currentFilter}"`
-            : "Ainda não há registros de atividades no sistema"
-          }
-          icon={<Activity />}
-          action={
-            currentFilter ? (
-              <Button variant="outline" onClick={() => setCurrentFilter(null)}>
-                Limpar filtro
-              </Button>
-            ) : undefined
-          }
-        />
-      )}
+        <Button 
+          onClick={handleRefresh} 
+          variant="outline" 
+          disabled={refreshing || loading}
+          className="w-full md:w-auto"
+        >
+          <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+          Atualizar
+        </Button>
+      </div>
+
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle>Histórico de Atividades</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[180px]">Data/Hora</TableHead>
+                  <TableHead>Ação</TableHead>
+                  <TableHead className="hidden md:table-cell">Detalhes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="h-24 text-center">
+                      <div className="flex justify-center">
+                        <RefreshCw className="h-5 w-5 animate-spin text-muted-foreground" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : logs.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                      Nenhum log de atividade encontrado.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  logs.map((log) => (
+                    <TableRow key={log.id}>
+                      <TableCell className="whitespace-nowrap">
+                        <div className="flex items-center">
+                          <ClockIcon className="mr-2 h-4 w-4 text-muted-foreground" />
+                          {formatDateTime(log.data_hora)}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <div>{log.acao}</div>
+                          <div className="md:hidden text-xs text-muted-foreground mt-1 line-clamp-2">
+                            {log.detalhes ? JSON.stringify(log.detalhes) : ""}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {log.detalhes ? (
+                          <div className="text-sm text-muted-foreground max-w-md">
+                            {Object.entries(log.detalhes).map(([key, value]) => (
+                              <div key={key}>
+                                <span className="font-medium">{key}:</span> {String(value)}
+                              </div>
+                            ))}
+                          </div>
+                        ) : null}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

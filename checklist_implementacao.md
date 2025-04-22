@@ -29,7 +29,7 @@
 - [x] Filtros avançados de busca
 
 ## Empréstimos
-- [x] Listagem de empréstimos (básica)
+- [x] Listagem de empréstimos (real data)
 - [x] Cadastro de novo empréstimo (básico)
 - [x] Edição de empréstimo
 - [x] Cálculo de juros simples e compostos
@@ -55,10 +55,10 @@
 
 ## Relatórios e Gráficos
 - [x] Dashboard principal
-- [x] Gráficos de projeção financeira
-- [x] Relatórios por cliente
-- [x] Estatísticas de pagamentos
-- [x] Exportação de dados
+- [ ] Gráficos de projeção financeira (real data)
+- [ ] Relatórios por cliente
+- [ ] Estatísticas de pagamentos
+- [ ] Exportação de dados
 
 ## PWA e Mobile
 - [x] Manifest e service worker
@@ -95,3 +95,7 @@
 - [ ] Sistema de notificações avançado
 - [ ] Integração com serviços de cobrança
 - [ ] Módulo de análise de crédito avançado
+- [ ] Implementar página de perfil do usuário
+- [ ] Finalizar implementação de mensagens e templates
+- [ ] Melhorar relatórios e gráficos com dados reais
+- [ ] Finalizar página de configurações financeiras

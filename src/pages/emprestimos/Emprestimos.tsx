@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,86 +24,31 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { Search, PlusCircle, Eye } from "lucide-react";
-
-// Dados simulados de empréstimos
-const emprestimosMock = [
-  { 
-    id: "1", 
-    clienteId: "1",
-    clienteNome: "João da Silva", 
-    valor: 5000, 
-    dataInicio: "15/05/2023", 
-    juros: 2.5, 
-    tipoJuros: "composto", 
-    parcelas: 10, 
-    valorPago: 3000, 
-    valorRestante: 2500,
-    status: "em-dia"
-  },
-  { 
-    id: "2", 
-    clienteId: "1",
-    clienteNome: "João da Silva", 
-    valor: 2000, 
-    dataInicio: "20/01/2023", 
-    juros: 2.0, 
-    tipoJuros: "simples", 
-    parcelas: 5, 
-    valorPago: 2200, 
-    valorRestante: 0,
-    status: "quitado"
-  },
-  { 
-    id: "3", 
-    clienteId: "2",
-    clienteNome: "Maria Oliveira", 
-    valor: 10000, 
-    dataInicio: "05/02/2023", 
-    juros: 3.0, 
-    tipoJuros: "composto", 
-    parcelas: 12, 
-    valorPago: 5000, 
-    valorRestante: 6000,
-    status: "em-dia"
-  },
-  { 
-    id: "4", 
-    clienteId: "3",
-    clienteNome: "Carlos Santos", 
-    valor: 1500, 
-    dataInicio: "10/06/2023", 
-    juros: 2.2, 
-    tipoJuros: "simples", 
-    parcelas: 3, 
-    valorPago: 500, 
-    valorRestante: 1100,
-    status: "atrasado"
-  },
-  { 
-    id: "5", 
-    clienteId: "4",
-    clienteNome: "Ana Souza", 
-    valor: 7500, 
-    dataInicio: "30/04/2023", 
-    juros: 2.8, 
-    tipoJuros: "composto", 
-    parcelas: 15, 
-    valorPago: 2000, 
-    valorRestante: 6000,
-    status: "em-dia"
-  },
-];
+import { Search, PlusCircle, Eye, Loader2 } from "lucide-react";
+import { useLoans } from "@/hooks/useLoans";
+import { useActivityLogs } from "@/hooks/useActivityLogs";
+import { EmptyState } from "@/components/common/EmptyState";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 const Emprestimos = () => {
   const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
+  const { loans, isLoadingLoans } = useLoans();
+  const { logActivity } = useActivityLogs();
+  
+  // Log activity once when component mounts
+  useEffect(() => {
+    logActivity("Visualizou lista de empréstimos");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Filtrar empréstimos com base na busca e no filtro de status
-  const emprestimosFiltrados = emprestimosMock.filter(emprestimo => {
-    const matchesSearch = emprestimo.clienteNome.toLowerCase().includes(searchTerm.toLowerCase());
-                          
+  const emprestimosFiltrados = (loans || []).filter(emprestimo => {
+    const clienteNome = emprestimo.cliente?.nome || "";
+    const matchesSearch = clienteNome.toLowerCase().includes(searchTerm.toLowerCase());
+    
     const matchesStatus = statusFilter === "todos" || emprestimo.status === statusFilter;
     
     return matchesSearch && matchesStatus;
@@ -130,8 +75,27 @@ const Emprestimos = () => {
         return "Atrasado";
       case "quitado":
         return "Quitado";
+      case "pendente":
+        return "Pendente";
       default:
         return status;
+    }
+  };
+
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL"
+    });
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "-";
+    try {
+      return format(new Date(dateString), "dd/MM/yyyy", { locale: ptBR });
+    } catch (error) {
+      console.error("Error formatting date:", error);
+      return dateString;
     }
   };
 
@@ -177,50 +141,49 @@ const Emprestimos = () => {
                 <SelectItem value="em-dia">Em dia</SelectItem>
                 <SelectItem value="atrasado">Atrasados</SelectItem>
                 <SelectItem value="quitado">Quitados</SelectItem>
+                <SelectItem value="pendente">Pendentes</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead className="hidden md:table-cell">Data</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead className="hidden md:table-cell text-right">Restante</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {emprestimosFiltrados.length === 0 ? (
+          {isLoadingLoans ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+          ) : emprestimosFiltrados.length > 0 ? (
+            <div className="rounded-md border overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                      Nenhum empréstimo encontrado.
-                    </TableCell>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead className="hidden md:table-cell">Data</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead className="hidden md:table-cell text-right">Restante</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                ) : (
-                  emprestimosFiltrados.map((emprestimo) => (
+                </TableHeader>
+                <TableBody>
+                  {emprestimosFiltrados.map((emprestimo) => (
                     <TableRow key={emprestimo.id}>
                       <TableCell className="font-medium">
                         <div>
-                          <div>{emprestimo.clienteNome}</div>
+                          <div>{emprestimo.cliente?.nome || '-'}</div>
                           <div className="text-xs text-muted-foreground">
-                            {emprestimo.parcelas} parcelas • {emprestimo.juros}% ({emprestimo.tipoJuros === "composto" ? "composto" : "simples"})
+                            {emprestimo.taxa_juros}% ({emprestimo.tipo_juros === "composto" ? "composto" : "simples"})
                           </div>
                         </div>
                       </TableCell>
                       <TableCell className="hidden md:table-cell">
-                        {emprestimo.dataInicio}
+                        {formatDate(emprestimo.data_emprestimo)}
                       </TableCell>
                       <TableCell className="text-right">
-                        R$ {emprestimo.valor.toLocaleString("pt-BR")}
+                        {formatCurrency(Number(emprestimo.valor_principal))}
                       </TableCell>
                       <TableCell className="hidden md:table-cell text-right">
                         {emprestimo.status === "quitado" 
                           ? "Quitado" 
-                          : `R$ ${emprestimo.valorRestante.toLocaleString("pt-BR")}`
+                          : formatCurrency(Number(emprestimo.valor_principal)) // Placeholder - replace with actual remaining value
                         }
                       </TableCell>
                       <TableCell>
@@ -245,11 +208,24 @@ const Emprestimos = () => {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <EmptyState
+              title="Nenhum empréstimo encontrado"
+              description={searchTerm || statusFilter !== "todos" 
+                ? "Tente ajustar os filtros de busca" 
+                : "Comece a cadastrar empréstimos para visualizá-los aqui"}
+              icon={<PlusCircle className="h-10 w-10" />}
+              action={
+                <Button onClick={() => navigate("/emprestimos/novo")}>
+                  Cadastrar Empréstimo
+                </Button>
+              }
+            />
+          )}
         </CardContent>
       </Card>
     </div>
