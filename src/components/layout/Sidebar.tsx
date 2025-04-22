@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import { 
   Home, 
@@ -7,7 +6,8 @@ import {
   BarChart, 
   Mail, 
   Settings,
-  LogOut
+  LogOut,
+  Book
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -43,6 +43,11 @@ const Sidebar = () => {
       href: "/mensagens",
       label: "Mensagens",
       icon: Mail,
+    },
+    {
+      href: "/manual",
+      label: "Manual do Usuário",
+      icon: Book,
     },
   ];
 

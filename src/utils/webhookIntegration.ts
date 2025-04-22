@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 
 export const sendWebhookNotification = async (event: string, data: any) => {
@@ -17,51 +18,21 @@ export const sendWebhookNotification = async (event: string, data: any) => {
     // Validar se o webhook suporta o evento específico
     if (!webhook.eventos.includes(event)) return false;
     
-    const postUrl = webhook.url.split('|')[0];
+    const urls = webhook.url.split('|');
+    const postUrl = urls[0] || "";
     
     if (!postUrl) return false;
     
     // Registrar log do webhook
     await logWebhookEvent(event, data, webhook.id);
     
-    // Enviar webhook apenas para eventos específicos
-    const evolutionApiConfig = await getEvolutionApiConfig();
-    const eventMap: Record<string, string> = {
-      'emprestimo.novo': 'novoEmprestimo',
-      'pagamento.novo': 'novoPagamento',
-      'cliente.novo': 'novoCliente',
-      'emprestimo.atraso': 'emprestimoAtrasado'
-    };
-
-    const shouldNotifyEvolutionApi = evolutionApiConfig?.eventos?.[eventMap[event]];
-    
-    if (shouldNotifyEvolutionApi) {
-      console.log(`Webhook notification sent to ${postUrl} for event ${event}`);
-    }
+    // Aqui você faria a chamada real para o webhook
+    console.log(`Webhook notification sent to ${postUrl} for event ${event}`);
     
     return true;
   } catch (error) {
     console.error("Error sending webhook notification:", error);
     return false;
-  }
-};
-
-const getEvolutionApiConfig = async () => {
-  try {
-    const { data, error } = await supabase
-      .from('configuracoes_financeiras')
-      .select('observacoes')
-      .eq('nome', 'evolution_api')
-      .maybeSingle();
-      
-    if (error) throw error;
-    
-    if (!data || !data.observacoes) return null;
-    
-    return JSON.parse(data.observacoes);
-  } catch (error) {
-    console.error("Error fetching Evolution API config:", error);
-    return null;
   }
 };
 
@@ -83,8 +54,13 @@ export const logWebhookEvent = async (event: string, payload: any, webhookId: st
   }
 };
 
-export const shouldNotifyEvolutionApi = async (event: string) => {
+export const shouldNotifyEvolutionApi = async (event: string, messageType?: string) => {
   try {
+    // Se o tipo de mensagem não for WhatsApp, não notificar a Evolution API
+    if (messageType && messageType !== 'whatsapp') {
+      return false;
+    }
+    
     const { data, error } = await supabase
       .from('configuracoes_financeiras')
       .select('observacoes')
@@ -98,7 +74,7 @@ export const shouldNotifyEvolutionApi = async (event: string) => {
     try {
       const config = JSON.parse(data.observacoes);
       
-      // Map events to config properties
+      // Mapear eventos para propriedades de configuração
       const eventMap: Record<string, string> = {
         'emprestimo.novo': 'novoEmprestimo',
         'pagamento.novo': 'novoPagamento',
@@ -119,12 +95,12 @@ export const shouldNotifyEvolutionApi = async (event: string) => {
 
 export const sendEvolutionApiNotification = async (event: string, data: any, telefone?: string) => {
   try {
-    // Check if Evolution API should be notified
-    const shouldNotify = await shouldNotifyEvolutionApi(event);
+    // Verificar se a Evolution API deve ser notificada e se é mensagem do tipo WhatsApp
+    const shouldNotify = await shouldNotifyEvolutionApi(event, 'whatsapp');
     
     if (!shouldNotify) return false;
     
-    // Get Evolution API configuration
+    // Obter configuração da Evolution API
     const { data: configData, error } = await supabase
       .from('configuracoes_financeiras')
       .select('observacoes')
@@ -140,9 +116,9 @@ export const sendEvolutionApiNotification = async (event: string, data: any, tel
       
       if (!config.url) return false;
       
-      // Check if we have a phone number
+      // Verificar se temos um número de telefone
       if (!telefone) {
-        // Try to get phone number from cliente
+        // Tentar obter número de telefone do cliente
         if (data.cliente_id) {
           const { data: clienteData } = await supabase
             .from('clientes')
@@ -161,15 +137,14 @@ export const sendEvolutionApiNotification = async (event: string, data: any, tel
         return false;
       }
       
-      // Format phone number (remove non-digits)
+      // Formatar número de telefone (remover não-dígitos)
       const formattedPhone = telefone.replace(/\D/g, '');
       
-      // In a real production environment, you would make an HTTP request here
-      // This is simulated for this implementation
+      // Em um ambiente de produção, você faria uma solicitação HTTP aqui
       console.log(`Evolution API notification sent to ${config.url} for event ${event}`);
       console.log("Data:", { ...data, telefone: formattedPhone });
       
-      // Log the event
+      // Registrar o evento
       await logWebhookEvent(`evolution.${event}`, { ...data, telefone: formattedPhone });
       
       return true;

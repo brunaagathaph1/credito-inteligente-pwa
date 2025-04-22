@@ -6,7 +6,7 @@ export const triggerClienteNovo = async (clienteData: any) => {
   // Send webhook notification
   await sendWebhookNotification("cliente.novo", clienteData);
   
-  // Send Evolution API notification
+  // Send Evolution API notification (somente para WhatsApp)
   await sendEvolutionApiNotification("cliente.novo", clienteData, clienteData.telefone);
 };
 
@@ -15,7 +15,7 @@ export const triggerEmprestimoNovo = async (emprestimoData: any) => {
   // Send webhook notification
   await sendWebhookNotification("emprestimo.novo", emprestimoData);
   
-  // Send Evolution API notification
+  // Send Evolution API notification (somente para WhatsApp)
   await sendEvolutionApiNotification("emprestimo.novo", emprestimoData);
 };
 
@@ -24,7 +24,7 @@ export const triggerPagamentoNovo = async (pagamentoData: any) => {
   // Send webhook notification
   await sendWebhookNotification("pagamento.novo", pagamentoData);
   
-  // Send Evolution API notification
+  // Send Evolution API notification (somente para WhatsApp)
   await sendEvolutionApiNotification("pagamento.novo", pagamentoData);
 };
 
@@ -33,6 +33,6 @@ export const triggerEmprestimoAtrasado = async (emprestimoData: any) => {
   // Send webhook notification
   await sendWebhookNotification("emprestimo.atraso", emprestimoData);
   
-  // Send Evolution API notification
+  // Send Evolution API notification (somente para WhatsApp)
   await sendEvolutionApiNotification("emprestimo.atraso", emprestimoData);
 };

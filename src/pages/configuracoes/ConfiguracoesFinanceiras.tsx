@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,7 +37,7 @@ const ConfiguracoesFinanceiras = () => {
 
       if (data) {
         try {
-          const parsedConfig = JSON.parse(data.observacoes || '{}');
+          const parsedConfig = data.observacoes ? JSON.parse(data.observacoes) : {};
           setConfig(prev => ({
             ...prev,
             ...parsedConfig,
@@ -81,18 +82,108 @@ const ConfiguracoesFinanceiras = () => {
     }
   };
 
+  const handleFinancialInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setConfig(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleJurosTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setConfig(prev => ({
+      ...prev,
+      tipo_juros_padrao: e.target.value
+    }));
+  };
+
   return (
     <div className="space-y-6">
       <PageHeader 
         title="Configurações Financeiras" 
         description="Gerencie configurações padrão do sistema"
       />
+      
+      <Card>
+        <CardHeader>
+          <CardTitle>Configurações de Juros e Prazos</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="prazo_maximo_dias">Prazo Máximo (dias)</Label>
+              <Input 
+                id="prazo_maximo_dias"
+                name="prazo_maximo_dias"
+                type="number"
+                value={config.prazo_maximo_dias}
+                onChange={handleFinancialInputChange}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="taxa_padrao_juros">Taxa Padrão de Juros (%)</Label>
+              <Input 
+                id="taxa_padrao_juros"
+                name="taxa_padrao_juros"
+                type="number"
+                step="0.01"
+                value={config.taxa_padrao_juros}
+                onChange={handleFinancialInputChange}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="tipo_juros_padrao">Tipo de Juros Padrão</Label>
+              <select
+                id="tipo_juros_padrao"
+                className="w-full p-2 rounded-md border border-input bg-background"
+                value={config.tipo_juros_padrao}
+                onChange={handleJurosTypeChange}
+              >
+                <option value="">Selecione...</option>
+                <option value="simples">Simples</option>
+                <option value="composto">Composto</option>
+              </select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="taxa_juros_atraso">Taxa de Juros de Atraso (%)</Label>
+              <Input 
+                id="taxa_juros_atraso"
+                name="taxa_juros_atraso"
+                type="number"
+                step="0.01"
+                value={config.taxa_juros_atraso}
+                onChange={handleFinancialInputChange}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="taxa_multa_atraso">Taxa de Multa de Atraso (%)</Label>
+              <Input 
+                id="taxa_multa_atraso"
+                name="taxa_multa_atraso"
+                type="number"
+                step="0.01"
+                value={config.taxa_multa_atraso}
+                onChange={handleFinancialInputChange}
+              />
+            </div>
+          </div>
+          
+          <Button onClick={handleSave} className="mt-4">
+            Salvar Configurações
+          </Button>
+        </CardContent>
+      </Card>
+      
       <Card>
         <CardHeader>
           <CardTitle>Eventos da API Evolution</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="flex items-center space-x-2">
               <Checkbox 
                 id="novoEmprestimo"
@@ -143,7 +234,6 @@ const ConfiguracoesFinanceiras = () => {
           </Button>
         </CardContent>
       </Card>
-      
     </div>
   );
 };

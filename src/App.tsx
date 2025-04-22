@@ -1,4 +1,3 @@
-
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "@/pages/Index";
 import Login from "@/pages/auth/Login";
@@ -26,6 +25,7 @@ import ConfiguracoesFinanceiras from "@/pages/configuracoes/ConfiguracoesFinance
 import OfflineIndicator from "@/components/common/OfflineIndicator";
 import { Toaster } from "@/components/ui/toaster";
 import { ThemeProvider } from "@/components/theme-provider";
+import ManualUsuario from "./pages/ManualUsuario";
 
 const App = () => {
   return (
@@ -56,6 +56,7 @@ const App = () => {
             <Route path="configuracoes/logs-atividades" element={<LogsAtividades />} />
             <Route path="configuracoes/perfil" element={<Perfil />} />
             <Route path="configuracoes/financeiras" element={<ConfiguracoesFinanceiras />} />
+            <Route path="manual" element={<ManualUsuario />} />
           </Route>
           
           <Route path="*" element={<NotFound />} />
