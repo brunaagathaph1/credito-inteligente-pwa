@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -14,6 +13,10 @@ export type ActivityLog = {
   data_hora: string;
 };
 
+// Keep track of recent actions to prevent duplicates
+const recentActions = new Map<string, number>();
+const DUPLICATE_TIMEOUT = 3000; // 3 seconds
+
 export const useActivityLogs = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -22,6 +25,29 @@ export const useActivityLogs = () => {
   // Registrar uma atividade no log
   const logActivity = async (acao: string, detalhes?: any) => {
     if (!user) return { error: "Usuário não autenticado" };
+
+    // Create a key from action and details to track duplicates
+    const actionKey = `${acao}-${JSON.stringify(detalhes || {})}-${user.id}`;
+    const now = Date.now();
+    
+    // Check if this is a duplicate action within the timeout period
+    if (recentActions.has(actionKey)) {
+      const lastLogTime = recentActions.get(actionKey) || 0;
+      if (now - lastLogTime < DUPLICATE_TIMEOUT) {
+        console.log("Ação duplicada ignorada:", acao);
+        return { success: true, duplicateIgnored: true };
+      }
+    }
+    
+    // Update the timestamp for this action
+    recentActions.set(actionKey, now);
+    
+    // Clean up old entries from the map (optional)
+    for (const [key, timestamp] of recentActions.entries()) {
+      if (now - timestamp > DUPLICATE_TIMEOUT) {
+        recentActions.delete(key);
+      }
+    }
 
     try {
       // Get the real IP and user agent

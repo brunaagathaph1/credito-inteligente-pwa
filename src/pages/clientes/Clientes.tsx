@@ -25,58 +25,28 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Search, UserPlus, Eye, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActivityLogs } from "@/hooks/useActivityLogs";
 import { EmptyState } from "@/components/common/EmptyState";
-
-type Cliente = {
-  id: string;
-  nome: string;
-  cpf?: string;
-  telefone?: string;
-  email?: string;
-  score?: number;
-  status?: string;
-};
+import { useClients } from "@/hooks/useClients";
 
 const Clientes = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
-  const [clientes, setClientes] = useState<Cliente[]>([]);
-  const [loading, setLoading] = useState(true);
   const { logActivity } = useActivityLogs();
+  const { clients, isLoadingClients } = useClients();
   
+  // Log activity only once when component mounts
   useEffect(() => {
-    const fetchClientes = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from('clientes')
-          .select('*')
-          .order('nome');
-          
-        if (error) {
-          throw error;
-        }
-        
-        setClientes(data || []);
-        // Log activity after successful fetch
-        logActivity("Visualizou lista de clientes");
-      } catch (error) {
-        console.error("Erro ao buscar clientes:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    fetchClientes();
-  }, [logActivity]);
+    // Only log activity once on component mount
+    logActivity("Visualizou lista de clientes");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   
   // Filtrar clientes com base na busca e no filtro de status
-  const clientesFiltrados = clientes.filter(cliente => {
+  const clientesFiltrados = (clients || []).filter(cliente => {
     const matchesSearch = cliente.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           cliente.cpf?.includes(searchTerm) ||
                           cliente.email?.toLowerCase().includes(searchTerm.toLowerCase());
@@ -138,7 +108,7 @@ const Clientes = () => {
             </Select>
           </div>
 
-          {loading ? (
+          {isLoadingClients ? (
             <div className="flex justify-center py-10">
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </div>

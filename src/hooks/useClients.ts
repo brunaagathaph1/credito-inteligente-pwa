@@ -10,7 +10,7 @@ type ClienteInsert = Database['public']['Tables']['clientes']['Insert'];
 export function useClients() {
   const queryClient = useQueryClient();
 
-  const { data: clients, isLoading: isLoadingClients } = useQuery({
+  const { data: clients, isLoading: isLoadingClients, error: clientsError, refetch } = useQuery({
     queryKey: ['clients'],
     queryFn: async () => {
       const { data, error } = await clientesApi.getAll();
@@ -24,7 +24,6 @@ export function useClients() {
       clientesApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      toast.success('Cliente cadastrado com sucesso!');
     },
     onError: (error: any) => {
       toast.error('Erro ao cadastrar cliente: ' + error.message);
@@ -57,6 +56,8 @@ export function useClients() {
   return {
     clients,
     isLoadingClients,
+    clientsError,
+    refetch,
     createClient,
     updateClient,
     deleteClient,
