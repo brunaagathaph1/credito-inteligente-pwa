@@ -95,7 +95,7 @@ const ContasBancarias = () => {
       // Atualizar conta existente
       const updatedContas = contas.map((conta) =>
         conta.id === editingConta.id
-          ? { ...values, id: editingConta.id }
+          ? { ...values, id: editingConta.id } as ContaBancaria
           : conta
       );
       setContas(updatedContas);
