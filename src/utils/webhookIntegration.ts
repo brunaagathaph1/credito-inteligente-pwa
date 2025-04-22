@@ -1,7 +1,70 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
-// Function to log webhook events
+export const sendWebhookNotification = async (event: string, data: any) => {
+  try {
+    const { data: webhookData, error } = await supabase
+      .from('webhooks')
+      .select('*')
+      .eq('ativo', true)
+      .limit(1);
+      
+    if (error) throw error;
+    
+    if (!webhookData || webhookData.length === 0) return false;
+    
+    const webhook = webhookData[0];
+    
+    // Validar se o webhook suporta o evento específico
+    if (!webhook.eventos.includes(event)) return false;
+    
+    const postUrl = webhook.url.split('|')[0];
+    
+    if (!postUrl) return false;
+    
+    // Registrar log do webhook
+    await logWebhookEvent(event, data, webhook.id);
+    
+    // Enviar webhook apenas para eventos específicos
+    const evolutionApiConfig = await getEvolutionApiConfig();
+    const eventMap: Record<string, string> = {
+      'emprestimo.novo': 'novoEmprestimo',
+      'pagamento.novo': 'novoPagamento',
+      'cliente.novo': 'novoCliente',
+      'emprestimo.atraso': 'emprestimoAtrasado'
+    };
+
+    const shouldNotifyEvolutionApi = evolutionApiConfig?.eventos?.[eventMap[event]];
+    
+    if (shouldNotifyEvolutionApi) {
+      console.log(`Webhook notification sent to ${postUrl} for event ${event}`);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error sending webhook notification:", error);
+    return false;
+  }
+};
+
+const getEvolutionApiConfig = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('configuracoes_financeiras')
+      .select('observacoes')
+      .eq('nome', 'evolution_api')
+      .maybeSingle();
+      
+    if (error) throw error;
+    
+    if (!data || !data.observacoes) return null;
+    
+    return JSON.parse(data.observacoes);
+  } catch (error) {
+    console.error("Error fetching Evolution API config:", error);
+    return null;
+  }
+};
+
 export const logWebhookEvent = async (event: string, payload: any, webhookId: string = 'default') => {
   try {
     await supabase
@@ -20,46 +83,6 @@ export const logWebhookEvent = async (event: string, payload: any, webhookId: st
   }
 };
 
-// Function to send webhook notification
-export const sendWebhookNotification = async (event: string, data: any) => {
-  try {
-    // Get webhook configuration
-    const { data: webhookData, error } = await supabase
-      .from('webhooks')
-      .select('*')
-      .eq('ativo', true)
-      .limit(1);
-      
-    if (error) throw error;
-    
-    if (!webhookData || webhookData.length === 0) return false;
-    
-    const webhook = webhookData[0];
-    
-    // Check if webhook is configured for this event
-    if (!webhook.eventos.includes(event)) return false;
-    
-    // Extract the POST URL (first part of the URL before | character)
-    const postUrl = webhook.url.split('|')[0];
-    
-    if (!postUrl) return false;
-    
-    // Log the event
-    await logWebhookEvent(event, data, webhook.id);
-    
-    // In a real production environment, you would make an HTTP request here
-    // This is simulated for this implementation
-    console.log(`Webhook notification sent to ${postUrl} for event ${event}`);
-    console.log("Data:", data);
-    
-    return true;
-  } catch (error) {
-    console.error("Error sending webhook notification:", error);
-    return false;
-  }
-};
-
-// Function to check if Evolution API should be notified for an event
 export const shouldNotifyEvolutionApi = async (event: string) => {
   try {
     const { data, error } = await supabase
@@ -94,7 +117,6 @@ export const shouldNotifyEvolutionApi = async (event: string) => {
   }
 };
 
-// Function to send Evolution API notification
 export const sendEvolutionApiNotification = async (event: string, data: any, telefone?: string) => {
   try {
     // Check if Evolution API should be notified

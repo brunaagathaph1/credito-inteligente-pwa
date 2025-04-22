@@ -1,329 +1,149 @@
-
-import { useState, useEffect } from "react";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
+import React, { useState, useEffect } from "react";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
-const configSchema = z.object({
-  nome: z.string().min(2, "Nome deve ter pelo menos 2 caracteres"),
-  taxa_padrao_juros: z.coerce.number().min(0, "Taxa deve ser positiva"),
-  tipo_juros_padrao: z.string(),
-  taxa_multa_atraso: z.coerce.number().min(0, "Taxa deve ser positiva"),
-  taxa_juros_atraso: z.coerce.number().min(0, "Taxa deve ser positiva"),
-  prazo_maximo_dias: z.coerce.number().int().min(1, "Prazo deve ser pelo menos 1 dia"),
-  observacoes: z.string().optional(),
-});
-
-type ConfigFormValues = z.infer<typeof configSchema>;
-
 const ConfiguracoesFinanceiras = () => {
   const { user } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isFetching, setIsFetching] = useState(true);
-  const [configId, setConfigId] = useState<string | null>(null);
-  
-  const form = useForm<ConfigFormValues>({
-    resolver: zodResolver(configSchema),
-    defaultValues: {
-      nome: "Configuração Padrão",
-      taxa_padrao_juros: 2.5,
-      tipo_juros_padrao: "composto",
-      taxa_multa_atraso: 2.0,
-      taxa_juros_atraso: 1.0,
-      prazo_maximo_dias: 30,
-      observacoes: ""
+  const [config, setConfig] = useState({
+    prazo_maximo_dias: 0,
+    taxa_padrao_juros: 0,
+    tipo_juros_padrao: '',
+    taxa_juros_atraso: 0,
+    taxa_multa_atraso: 0,
+    observacoes: '',
+    eventos: {
+      novoEmprestimo: false,
+      novoPagamento: false,
+      novoCliente: false,
+      emprestimoAtrasado: false
     }
   });
-  
+
   useEffect(() => {
     const fetchConfig = async () => {
-      if (!user) return;
-      
-      try {
-        setIsFetching(true);
-        const { data, error } = await supabase
-          .from('configuracoes_financeiras')
-          .select('*')
-          .eq('created_by', user.id)
-          .eq('ativo', true)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-        
-        if (error && error.code !== 'PGRST116') {
-          throw error;
-        }
-        
-        if (data) {
-          setConfigId(data.id);
-          form.reset({
-            nome: data.nome,
-            taxa_padrao_juros: Number(data.taxa_padrao_juros),
+      const { data, error } = await supabase
+        .from('configuracoes_financeiras')
+        .select('*')
+        .eq('nome', 'evolution_api')
+        .maybeSingle();
+
+      if (data) {
+        try {
+          const parsedConfig = JSON.parse(data.observacoes || '{}');
+          setConfig(prev => ({
+            ...prev,
+            ...parsedConfig,
+            prazo_maximo_dias: data.prazo_maximo_dias,
+            taxa_padrao_juros: data.taxa_padrao_juros,
             tipo_juros_padrao: data.tipo_juros_padrao,
-            taxa_multa_atraso: Number(data.taxa_multa_atraso),
-            taxa_juros_atraso: Number(data.taxa_juros_atraso),
-            prazo_maximo_dias: Number(data.prazo_maximo_dias),
-            observacoes: data.observacoes || ""
-          });
+            taxa_juros_atraso: data.taxa_juros_atraso,
+            taxa_multa_atraso: data.taxa_multa_atraso
+          }));
+        } catch(e) {
+          console.error("Error parsing configuration:", e);
         }
-      } catch (error) {
-        console.error("Erro ao buscar configurações financeiras:", error);
-        toast.error("Erro ao carregar configurações financeiras");
-      } finally {
-        setIsFetching(false);
       }
     };
-    
     fetchConfig();
-  }, [user, form]);
-  
-  const onSubmit = async (values: ConfigFormValues) => {
+  }, []);
+
+  const handleSave = async () => {
     if (!user) return;
-    
-    setIsLoading(true);
+
     try {
-      if (configId) {
-        // Update existing config
-        const { error } = await supabase
-          .from('configuracoes_financeiras')
-          .update({
-            nome: values.nome,
-            taxa_padrao_juros: values.taxa_padrao_juros,
-            tipo_juros_padrao: values.tipo_juros_padrao,
-            taxa_multa_atraso: values.taxa_multa_atraso,
-            taxa_juros_atraso: values.taxa_juros_atraso,
-            prazo_maximo_dias: values.prazo_maximo_dias,
-            observacoes: values.observacoes,
-          })
-          .eq('id', configId);
-        
-        if (error) throw error;
-        
-        toast.success("Configurações atualizadas com sucesso!");
-      } else {
-        // Create new config
-        const { data, error } = await supabase
-          .from('configuracoes_financeiras')
-          .insert({
-            nome: values.nome,
-            taxa_padrao_juros: values.taxa_padrao_juros,
-            tipo_juros_padrao: values.tipo_juros_padrao,
-            taxa_multa_atraso: values.taxa_multa_atraso,
-            taxa_juros_atraso: values.taxa_juros_atraso,
-            prazo_maximo_dias: values.prazo_maximo_dias,
-            observacoes: values.observacoes,
-            created_by: user.id
-          })
-          .select()
-          .single();
-        
-        if (error) throw error;
-        
-        setConfigId(data.id);
-        toast.success("Configurações criadas com sucesso!");
-      }
+      const { error } = await supabase
+        .from('configuracoes_financeiras')
+        .upsert({
+          nome: 'evolution_api',
+          observacoes: JSON.stringify({
+            eventos: config.eventos
+          }),
+          prazo_maximo_dias: config.prazo_maximo_dias,
+          taxa_padrao_juros: config.taxa_padrao_juros,
+          tipo_juros_padrao: config.tipo_juros_padrao,
+          taxa_juros_atraso: config.taxa_juros_atraso,
+          taxa_multa_atraso: config.taxa_multa_atraso,
+          created_by: user.id
+        }, { onConflict: 'nome' });
+
+      if (error) throw error;
+      toast.success("Configurações salvas com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar configurações:", error);
-      toast.error("Erro ao salvar configurações financeiras");
-    } finally {
-      setIsLoading(false);
+      toast.error("Erro ao salvar configurações");
     }
   };
-  
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Configurações Financeiras</h1>
-        <p className="text-muted-foreground">
-          Gerencie as configurações financeiras padrão para empréstimos.
-        </p>
-      </div>
-      
+      <PageHeader 
+        title="Configurações Financeiras" 
+        description="Gerencie configurações padrão do sistema"
+      />
       <Card>
         <CardHeader>
-          <CardTitle>Configurações de Empréstimos</CardTitle>
-          <CardDescription>
-            Configure os valores padrão para novos empréstimos.
-          </CardDescription>
+          <CardTitle>Eventos da API Evolution</CardTitle>
         </CardHeader>
-        <CardContent>
-          {isFetching ? (
-            <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="novoEmprestimo"
+                checked={config.eventos.novoEmprestimo}
+                onCheckedChange={(checked) => setConfig(prev => ({
+                  ...prev,
+                  eventos: { ...prev.eventos, novoEmprestimo: !!checked }
+                }))}
+              />
+              <Label htmlFor="novoEmprestimo">Novo Empréstimo</Label>
             </div>
-          ) : (
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="nome"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Nome da Configuração</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Nome da configuração" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="taxa_padrao_juros"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Taxa de Juros Padrão (%)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            step="0.01" 
-                            placeholder="2.5" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="tipo_juros_padrao"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Tipo de Juros Padrão</FormLabel>
-                        <Select 
-                          value={field.value} 
-                          onValueChange={field.onChange}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Selecione o tipo de juros" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="simples">Juros Simples</SelectItem>
-                            <SelectItem value="composto">Juros Compostos</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <FormField
-                    control={form.control}
-                    name="taxa_multa_atraso"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Taxa de Multa por Atraso (%)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            step="0.01" 
-                            placeholder="2.0" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="taxa_juros_atraso"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Taxa de Juros por Atraso (%)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            step="0.01" 
-                            placeholder="1.0" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="prazo_maximo_dias"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Prazo Máximo (dias)</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="number" 
-                            placeholder="30" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                
-                <FormField
-                  control={form.control}
-                  name="observacoes"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Observações</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Observações sobre as configurações" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                
-                <Button type="submit" disabled={isLoading}>
-                  {isLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Salvando...
-                    </>
-                  ) : (
-                    'Salvar Configurações'
-                  )}
-                </Button>
-              </form>
-            </Form>
-          )}
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="novoPagamento"
+                checked={config.eventos.novoPagamento}
+                onCheckedChange={(checked) => setConfig(prev => ({
+                  ...prev,
+                  eventos: { ...prev.eventos, novoPagamento: !!checked }
+                }))}
+              />
+              <Label htmlFor="novoPagamento">Novo Pagamento</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="novoCliente"
+                checked={config.eventos.novoCliente}
+                onCheckedChange={(checked) => setConfig(prev => ({
+                  ...prev,
+                  eventos: { ...prev.eventos, novoCliente: !!checked }
+                }))}
+              />
+              <Label htmlFor="novoCliente">Novo Cliente</Label>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="emprestimoAtrasado"
+                checked={config.eventos.emprestimoAtrasado}
+                onCheckedChange={(checked) => setConfig(prev => ({
+                  ...prev,
+                  eventos: { ...prev.eventos, emprestimoAtrasado: !!checked }
+                }))}
+              />
+              <Label htmlFor="emprestimoAtrasado">Empréstimo Atrasado</Label>
+            </div>
+          </div>
+          <Button onClick={handleSave} className="mt-4">
+            Salvar Configurações
+          </Button>
         </CardContent>
       </Card>
+      
     </div>
   );
 };

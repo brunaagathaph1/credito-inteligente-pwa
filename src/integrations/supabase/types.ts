@@ -647,6 +647,21 @@ export type Database = {
         }
         Relationships: []
       }
+      telefones_usuarios: {
+        Row: {
+          id: string | null
+          telefone: string | null
+        }
+        Insert: {
+          id?: string | null
+          telefone?: string | null
+        }
+        Update: {
+          id?: string | null
+          telefone?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       [_ in never]: never
