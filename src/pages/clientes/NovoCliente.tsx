@@ -74,9 +74,14 @@ const NovoCliente = () => {
     setIsLoading(true);
     
     try {
-      // Ensure nome is included and required fields are correctly set
+      // Make sure nome is explicitly passed and treated as required
       const clienteData = {
-        ...data,
+        nome: data.nome, // Explicitly include nome as required field
+        cpf: data.cpf,
+        telefone: data.telefone,
+        email: data.email,
+        endereco: data.endereco,
+        observacoes: data.observacoes,
         created_by: user.id,
       };
       
