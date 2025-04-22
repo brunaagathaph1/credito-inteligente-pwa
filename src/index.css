@@ -1,181 +1,100 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
+ 
 @layer base {
   :root {
-    /* Sistema de cores para Crédito Inteligente */
-    --background: 210 40% 98%;
+    --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    /* Azul como cor primária - confiança e profissionalismo */
-    --primary: 210 100% 40%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
+ 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 100% 95%;
-    --accent-foreground: 210 100% 40%;
-
-    /* Vermelho para valores negativos/destrutivos */
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    /* Verde para valores positivos */
-    --success: 142 76% 36%;
-    --success-foreground: 210 40% 98%;
-
-    /* Amarelo para alertas */
-    --warning: 38 92% 50%;
-    --warning-foreground: 210 40% 98%;
-
+ 
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+ 
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+ 
     --border: 214.3 31.8% 91.4%;
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
-
+ 
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+ 
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+ 
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+ 
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+ 
+    --ring: 215 20.2% 65.1%;
+ 
     --radius: 0.5rem;
 
-    /* Configurações para sidebar */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 210 100% 40%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 210 100% 95%;
-    --sidebar-accent-foreground: 210 100% 40%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 221.2 83.2% 53.3%;
+    --sidebar: 0 0% 100%;
+    --sidebar-foreground: 222.2 84% 4.9%;
+    --sidebar-accent: 221.2 83.2% 53.3%;
+    --sidebar-accent-foreground: 210 40% 98%;
   }
-
+ 
   .dark {
-    --background: 222.2 47.4% 11.2%;
+    --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
-
-    --card: 222.2 47.4% 11.2%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 47.4% 11.2%;
-    --popover-foreground: 210 40% 98%;
-
-    /* Azul mais claro no modo escuro */
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-
+ 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
-
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-
-    --destructive: 0 62.8% 65.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --success: 142 76% 45%;
-    --success-foreground: 210 40% 98%;
-
-    --warning: 48 96% 58%;
-    --warning-foreground: 210 40% 98%;
-
+ 
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+ 
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+ 
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+ 
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+ 
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+ 
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+ 
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 85.7% 97.3%;
+ 
+    --ring: 217.2 32.6% 17.5%;
 
-    /* Configurações para sidebar no modo escuro */
-    --sidebar-background: 222.2 47.4% 10.2%;
+    --sidebar: 222.2 84% 4.9%;
     --sidebar-foreground: 210 40% 98%;
-    --sidebar-primary: 217.2 91.2% 59.8%;
-    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
-    --sidebar-accent: 217.2 32.6% 17.5%;
-    --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border: 217.2 32.6% 17.5%;
-    --sidebar-ring: 224.3 76.3% 48%;
+    --sidebar-accent: 217.2 91.2% 59.8%;
+    --sidebar-accent-foreground: 222.2 47.4% 11.2%;
   }
 }
-
+ 
 @layer base {
   * {
     @apply border-border;
   }
-
   body {
-    @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
-  }
-
-  /* Classes de utilidade para consistência em todo o app */
-  .success-text {
-    @apply text-success;
-  }
-
-  .destructive-text {
-    @apply text-destructive;
-  }
-
-  .warning-text {
-    @apply text-warning;
-  }
-
-  /* Animações suaves para transições e feedback */
-  .fade-in {
-    @apply transition-opacity duration-300 ease-in-out;
-  }
-
-  .scale-in {
-    @apply transition-transform duration-300 ease-in-out;
-  }
-
-  .slide-in {
-    @apply transition-all duration-300 ease-in-out;
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
 
-/* Classes específicas para UI mobile */
 @layer components {
-  .mobile-container {
-    @apply px-4 py-3 w-full max-w-md mx-auto;
-  }
-
-  .card-emprestimo {
-    @apply rounded-lg border bg-card shadow-sm hover:shadow-md transition-shadow;
-  }
-
-  .card-cliente {
-    @apply rounded-lg border bg-card shadow-sm hover:shadow-md transition-shadow;
-  }
-  
-  .form-section {
-    @apply space-y-4 py-4;
-  }
-
-  .dashboard-card {
-    @apply p-4 rounded-lg border bg-card flex flex-col;
-  }
-
-  /* Classes especiais para cabeçalhos e rodapés móveis */
   .mobile-header {
-    @apply sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-4;
+    @apply sticky top-0 z-30 flex h-16 w-full items-center gap-4 border-b bg-background px-4 sm:px-6;
   }
 
   .mobile-footer {
-    @apply sticky bottom-0 z-10 flex h-16 items-center justify-around border-t bg-background px-4;
-  }
-
-  /* Classes para ajustes específicos em dispositivos muito pequenos */
-  @media (max-width: 360px) {
-    .xs-adjust {
-      @apply text-sm;
-    }
+    @apply fixed bottom-0 left-0 z-30 flex h-16 w-full items-center justify-around border-t bg-background p-2;
   }
 }

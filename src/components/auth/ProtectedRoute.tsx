@@ -1,21 +1,27 @@
 
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { ReactNode } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProtectedRouteProps {
   children: ReactNode;
 }
 
-// Este é um componente de proteção de rota básico
-// Quando integrado com Supabase, será atualizado para usar o hook de autenticação real
 const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  // Temporariamente, vamos simular um usuário autenticado
-  const isAuthenticated = true; // Isso será alterado para verificar autenticação real
+  const { user, isLoading } = useAuth();
+  const location = useLocation();
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
+  // Se estiver carregando, pode mostrar um spinner ou tela de carregamento
+  if (isLoading) {
+    return <div className="flex h-screen items-center justify-center">Carregando...</div>;
   }
 
+  // Se não estiver autenticado, redireciona para o login
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Se estiver autenticado, renderiza o conteúdo protegido
   return <>{children}</>;
 };
 

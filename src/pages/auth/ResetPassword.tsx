@@ -14,20 +14,23 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ResetPassword = () => {
-  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState("");
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const { resetPassword, isLoading } = useAuth();
 
-  const handleResetPassword = (event: React.FormEvent) => {
+  const handleResetPassword = async (event: React.FormEvent) => {
     event.preventDefault();
-    setIsLoading(true);
     
-    // Simulação de envio de e-mail - será substituída pela integração com Supabase
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      await resetPassword(email);
       setIsSubmitted(true);
-    }, 1500);
+    } catch (error) {
+      // O erro já é tratado no contexto de autenticação
+      console.error("Erro ao recuperar senha:", error);
+    }
   };
 
   if (isSubmitted) {
@@ -83,6 +86,8 @@ const ResetPassword = () => {
                   placeholder="seu@email.com"
                   className="pl-10"
                   required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
             </div>

@@ -12,9 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "../theme-toggle";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Sidebar = () => {
   const location = useLocation();
+  const { signOut } = useAuth();
   
   const mainRoutes = [
     {
@@ -52,9 +54,12 @@ const Sidebar = () => {
     },
   ];
 
-  const handleLogout = () => {
-    // Implementar lógica de logout
-    console.log("Logout");
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
   };
 
   return (

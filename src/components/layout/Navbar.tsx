@@ -14,13 +14,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useTheme } from "@/components/theme-provider";
 import ThemeToggle from "../theme-toggle";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Navbar = () => {
-  const usuario = {
-    nome: "Usuário",
-    email: "usuario@email.com",
-    iniciais: "US",
-  };
+  const { user, signOut } = useAuth();
+  const userEmail = user?.email || "usuario@email.com";
+  const userName = user?.user_metadata?.nome || "Usuário";
+  const initials = userName
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .substring(0, 2);
 
   return (
     <div className="mobile-header">
@@ -36,7 +41,13 @@ const Navbar = () => {
 
         <div className="flex items-center gap-2">
           <ThemeToggle />
-          <UserMenu usuario={usuario} />
+          <UserMenu 
+            usuario={{ 
+              nome: userName, 
+              email: userEmail, 
+              iniciais: initials 
+            }} 
+          />
         </div>
       </div>
     </div>
@@ -52,9 +63,14 @@ interface UserMenuProps {
 }
 
 const UserMenu = ({ usuario }: UserMenuProps) => {
-  const handleLogout = () => {
-    // Implementar lógica de logout
-    console.log("Logout");
+  const { signOut } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Erro ao fazer logout:", error);
+    }
   };
 
   return (

@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,21 +13,27 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Login = () => {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { signIn, isLoading } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleLogin = (event: React.FormEvent) => {
+  const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
-    setIsLoading(true);
     
-    // Simulação de login - será substituída pela integração com Supabase
-    setTimeout(() => {
-      setIsLoading(false);
-      // Redirecionar para o dashboard após login
-      window.location.href = "/dashboard";
-    }, 1500);
+    try {
+      await signIn(email, password);
+      navigate("/dashboard");
+    } catch (error) {
+      // O erro já é tratado no contexto de autenticação
+      console.error("Erro de login:", error);
+    }
   };
 
   return (
@@ -53,6 +59,8 @@ const Login = () => {
                   placeholder="seu@email.com"
                   className="pl-10"
                   required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
             </div>
@@ -74,6 +82,8 @@ const Login = () => {
                   className="pl-10 pr-10"
                   placeholder="••••••••"
                   required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
                 <Button
                   type="button"

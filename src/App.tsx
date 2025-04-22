@@ -1,9 +1,11 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { ThemeProvider } from "@/components/theme-provider";
+import { AuthProvider } from "@/contexts/AuthContext";
 import Layout from "./components/layout/Layout";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 
@@ -30,42 +32,44 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <ThemeProvider defaultTheme="light" storageKey="credito-inteligente-theme">
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            {/* Rotas Públicas */}
-            <Route path="/login" element={<Login />} />
-            <Route path="/registro" element={<Register />} />
-            <Route path="/recuperar-senha" element={<ResetPassword />} />
-            
-            {/* Rotas Protegidas */}
-            <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<Dashboard />} />
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Rotas Públicas */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/registro" element={<Register />} />
+              <Route path="/recuperar-senha" element={<ResetPassword />} />
               
-              {/* Rotas de Clientes */}
-              <Route path="/clientes" element={<Clientes />} />
-              <Route path="/clientes/novo" element={<NovoCliente />} />
-              <Route path="/clientes/:id" element={<ClienteDetalhe />} />
+              {/* Rotas Protegidas */}
+              <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                
+                {/* Rotas de Clientes */}
+                <Route path="/clientes" element={<Clientes />} />
+                <Route path="/clientes/novo" element={<NovoCliente />} />
+                <Route path="/clientes/:id" element={<ClienteDetalhe />} />
+                
+                {/* Rotas de Empréstimos */}
+                <Route path="/emprestimos" element={<Emprestimos />} />
+                <Route path="/emprestimos/novo" element={<NovoEmprestimo />} />
+                <Route path="/emprestimos/:id" element={<EmprestimoDetalhe />} />
+                
+                {/* Outras Rotas */}
+                <Route path="/configuracoes/*" element={<Configuracoes />} />
+                <Route path="/relatorios" element={<RelatoriosEGraficos />} />
+                <Route path="/mensagens" element={<MensagensETemplates />} />
+              </Route>
               
-              {/* Rotas de Empréstimos */}
-              <Route path="/emprestimos" element={<Emprestimos />} />
-              <Route path="/emprestimos/novo" element={<NovoEmprestimo />} />
-              <Route path="/emprestimos/:id" element={<EmprestimoDetalhe />} />
-              
-              {/* Outras Rotas */}
-              <Route path="/configuracoes/*" element={<Configuracoes />} />
-              <Route path="/relatorios" element={<RelatoriosEGraficos />} />
-              <Route path="/mensagens" element={<MensagensETemplates />} />
-            </Route>
-            
-            {/* Rota 404 */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
+              {/* Rota 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
     </ThemeProvider>
   </QueryClientProvider>
 );

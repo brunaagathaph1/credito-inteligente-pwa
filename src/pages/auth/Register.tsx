@@ -1,6 +1,6 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,21 +13,32 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Register = () => {
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { signUp, isLoading } = useAuth();
+  const { toast } = useToast();
+  const navigate = useNavigate();
 
-  const handleRegister = (event: React.FormEvent) => {
+  const handleRegister = async (event: React.FormEvent) => {
     event.preventDefault();
-    setIsLoading(true);
     
-    // Simulação de registro - será substituída pela integração com Supabase
-    setTimeout(() => {
-      setIsLoading(false);
-      // Redirecionar para o dashboard após registro
-      window.location.href = "/dashboard";
-    }, 1500);
+    try {
+      await signUp(email, password, nome);
+      toast({
+        title: "Conta criada com sucesso",
+        description: "Você será redirecionado para a página de login.",
+      });
+      navigate("/login");
+    } catch (error) {
+      // O erro já é tratado no contexto de autenticação
+      console.error("Erro de registro:", error);
+    }
   };
 
   return (
@@ -52,6 +63,8 @@ const Register = () => {
                   placeholder="Seu nome completo"
                   className="pl-10"
                   required
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
                 />
               </div>
             </div>
@@ -65,6 +78,8 @@ const Register = () => {
                   placeholder="seu@email.com"
                   className="pl-10"
                   required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
             </div>
@@ -78,6 +93,8 @@ const Register = () => {
                   className="pl-10 pr-10"
                   placeholder="••••••••"
                   required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                 />
                 <Button
                   type="button"
