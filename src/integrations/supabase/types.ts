@@ -9,7 +9,175 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      clientes: {
+        Row: {
+          cpf: string | null
+          created_at: string
+          created_by: string
+          email: string | null
+          endereco: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          score: number | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          cpf?: string | null
+          created_at?: string
+          created_by: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          score?: number | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cpf?: string | null
+          created_at?: string
+          created_by?: string
+          email?: string | null
+          endereco?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          score?: number | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      emprestimos: {
+        Row: {
+          cliente_id: string
+          created_at: string
+          created_by: string
+          data_emprestimo: string
+          data_vencimento: string
+          id: string
+          observacoes: string | null
+          status: string
+          taxa_juros: number
+          tipo_juros: string
+          updated_at: string
+          valor_principal: number
+        }
+        Insert: {
+          cliente_id: string
+          created_at?: string
+          created_by: string
+          data_emprestimo?: string
+          data_vencimento: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          taxa_juros: number
+          tipo_juros: string
+          updated_at?: string
+          valor_principal: number
+        }
+        Update: {
+          cliente_id?: string
+          created_at?: string
+          created_by?: string
+          data_emprestimo?: string
+          data_vencimento?: string
+          id?: string
+          observacoes?: string | null
+          status?: string
+          taxa_juros?: number
+          tipo_juros?: string
+          updated_at?: string
+          valor_principal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "emprestimos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pagamentos: {
+        Row: {
+          created_at: string
+          created_by: string
+          data_pagamento: string
+          emprestimo_id: string
+          id: string
+          observacoes: string | null
+          tipo: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          data_pagamento?: string
+          emprestimo_id: string
+          id?: string
+          observacoes?: string | null
+          tipo: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          data_pagamento?: string
+          emprestimo_id?: string
+          id?: string
+          observacoes?: string | null
+          tipo?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pagamentos_emprestimo_id_fkey"
+            columns: ["emprestimo_id"]
+            isOneToOne: false
+            referencedRelation: "emprestimos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          nome: string | null
+          role: Database["public"]["Enums"]["app_role"] | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id: string
+          nome?: string | null
+          role?: Database["public"]["Enums"]["app_role"] | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          nome?: string | null
+          role?: Database["public"]["Enums"]["app_role"] | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +186,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +301,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+    },
   },
 } as const
