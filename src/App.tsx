@@ -60,9 +60,9 @@ const App = () => (
   <ErrorBoundary FallbackComponent={ErrorFallback}>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider defaultTheme="light" storageKey="credito-inteligente-theme">
-        <AuthProvider>
-          <TooltipProvider>
-            <BrowserRouter>
+        <BrowserRouter>
+          <AuthProvider>
+            <TooltipProvider>
               <Routes>
                 {/* Rota da Página Inicial */}
                 <Route path="/" element={<Index />} />
@@ -91,7 +91,11 @@ const App = () => (
                   <Route path="/emprestimos/:id" element={<EmprestimoDetalhe />} />
                   
                   {/* Rotas de Configurações */}
-                  <Route path="/configuracoes/*" element={<Configuracoes />} />
+                  <Route path="/configuracoes" element={<Configuracoes />} />
+                  <Route path="/configuracoes/categorias" element={<Configuracoes />} />
+                  <Route path="/configuracoes/metodos-pagamento" element={<Configuracoes />} />
+                  <Route path="/configuracoes/contas-bancarias" element={<Configuracoes />} />
+                  <Route path="/configuracoes/financeiras" element={<Configuracoes />} />
                   
                   {/* Outras Rotas */}
                   <Route path="/relatorios" element={<RelatoriosEGraficos />} />
@@ -101,12 +105,12 @@ const App = () => (
                 {/* Rota 404 */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </BrowserRouter>
-            <Toaster />
-            <Sonner />
-            <OfflineIndicator />
-          </TooltipProvider>
-        </AuthProvider>
+              <Toaster />
+              <Sonner />
+              <OfflineIndicator />
+            </TooltipProvider>
+          </AuthProvider>
+        </BrowserRouter>
       </ThemeProvider>
     </QueryClientProvider>
   </ErrorBoundary>

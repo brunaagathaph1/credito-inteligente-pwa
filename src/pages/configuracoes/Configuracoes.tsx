@@ -1,19 +1,34 @@
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { 
   Tabs, 
   TabsContent, 
   TabsList, 
   TabsTrigger 
 } from "@/components/ui/tabs";
+import { useLocation, useNavigate } from "react-router-dom";
 import Categorias from "./Categorias";
 import MetodosPagamento from "./MetodosPagamento";
 import ContasBancarias from "./ContasBancarias";
 
 const Configuracoes = () => {
-  const [activeTab, setActiveTab] = useState("geral");
+  const location = useLocation();
   const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState("geral");
+
+  // Definir a aba ativa com base na URL atual quando o componente for montado
+  useEffect(() => {
+    const path = location.pathname;
+    if (path.includes("/configuracoes/categorias")) {
+      setActiveTab("categorias");
+    } else if (path.includes("/configuracoes/metodos-pagamento")) {
+      setActiveTab("pagamentos");
+    } else if (path.includes("/configuracoes/contas-bancarias")) {
+      setActiveTab("contas");
+    } else {
+      setActiveTab("geral");
+    }
+  }, [location.pathname]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -28,6 +43,9 @@ const Configuracoes = () => {
         break;
       case "contas":
         navigate("/configuracoes/contas-bancarias");
+        break;
+      case "financeiras":
+        navigate("/configuracoes/financeiras");
         break;
       default:
         navigate("/configuracoes");
