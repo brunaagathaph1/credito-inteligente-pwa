@@ -2,6 +2,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientesApi } from '@/integrations/supabase/helpers';
 import { toast } from 'sonner';
+import type { Database } from '@/integrations/supabase/types';
+
+type Cliente = Database['public']['Tables']['clientes']['Row'];
 
 export function useClients() {
   const queryClient = useQueryClient();
@@ -16,7 +19,8 @@ export function useClients() {
   });
 
   const createClient = useMutation({
-    mutationFn: clientesApi.create,
+    mutationFn: (data: Omit<Cliente, 'id' | 'created_at' | 'updated_at'>) => 
+      clientesApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast.success('Cliente cadastrado com sucesso!');
@@ -27,7 +31,8 @@ export function useClients() {
   });
 
   const updateClient = useMutation({
-    mutationFn: ({ id, ...data }) => clientesApi.update(id, data),
+    mutationFn: ({ id, ...data }: Partial<Cliente> & { id: string }) => 
+      clientesApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast.success('Cliente atualizado com sucesso!');
@@ -38,7 +43,7 @@ export function useClients() {
   });
 
   const deleteClient = useMutation({
-    mutationFn: clientesApi.delete,
+    mutationFn: (id: string) => clientesApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast.success('Cliente removido com sucesso!');

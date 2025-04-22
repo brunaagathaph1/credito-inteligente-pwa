@@ -1,0 +1,32 @@
+
+import { Button } from "@/components/ui/button";
+import { ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+
+interface PageHeaderProps {
+  title: string;
+  description?: string;
+  children?: React.ReactNode;
+  showBackButton?: boolean;
+}
+
+export function PageHeader({ title, description, children, showBackButton }: PageHeaderProps) {
+  const navigate = useNavigate();
+
+  return (
+    <div className="flex items-center gap-4 mb-6">
+      {showBackButton && (
+        <Button variant="outline" size="icon" onClick={() => navigate(-1)}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+      )}
+      <div className="flex-1">
+        <h1 className="text-3xl font-bold">{title}</h1>
+        {description && (
+          <p className="text-muted-foreground">{description}</p>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}

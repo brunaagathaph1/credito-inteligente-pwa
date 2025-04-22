@@ -2,6 +2,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { emprestimosApi } from '@/integrations/supabase/helpers';
 import { toast } from 'sonner';
+import type { Database } from '@/integrations/supabase/types';
+
+type Emprestimo = Database['public']['Tables']['emprestimos']['Row'];
 
 export function useLoans() {
   const queryClient = useQueryClient();
@@ -16,7 +19,8 @@ export function useLoans() {
   });
 
   const createLoan = useMutation({
-    mutationFn: emprestimosApi.create,
+    mutationFn: (data: Omit<Emprestimo, 'id' | 'created_at' | 'updated_at'>) => 
+      emprestimosApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       toast.success('Empréstimo cadastrado com sucesso!');
@@ -27,7 +31,8 @@ export function useLoans() {
   });
 
   const updateLoan = useMutation({
-    mutationFn: ({ id, ...data }) => emprestimosApi.update(id, data),
+    mutationFn: ({ id, ...data }: Partial<Emprestimo> & { id: string }) => 
+      emprestimosApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       toast.success('Empréstimo atualizado com sucesso!');
@@ -38,7 +43,7 @@ export function useLoans() {
   });
 
   const deleteLoan = useMutation({
-    mutationFn: emprestimosApi.delete,
+    mutationFn: (id: string) => emprestimosApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
       toast.success('Empréstimo removido com sucesso!');

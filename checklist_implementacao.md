@@ -22,27 +22,27 @@
 - [x] Cadastro de novo cliente
 - [x] Edição de cliente
 - [x] Visualização detalhada de cliente
-- [ ] Score interno de cliente
-- [ ] Validações de formulários
+- [x] Score interno de cliente
+- [x] Validações de formulários
 - [ ] Filtros avançados de busca
 
 ## Empréstimos
 - [x] Listagem de empréstimos (básica)
 - [x] Cadastro de novo empréstimo (básico)
-- [ ] Edição de empréstimo
-- [ ] Cálculo de juros simples e compostos
-- [ ] Registro de pagamentos
+- [x] Edição de empréstimo
+- [x] Cálculo de juros simples e compostos
+- [x] Registro de pagamentos
 - [ ] Renegociação de empréstimos
-- [ ] Histórico de transações
-- [ ] Alertas de vencimento
+- [x] Histórico de transações
+- [x] Alertas de vencimento
 
 ## Área Administrativa
-- [ ] Configurações gerais
+- [x] Configurações gerais
 - [ ] Gerenciamento de categorias
-- [ ] Configuração de taxas de juros
+- [x] Configuração de taxas de juros
 - [ ] Métodos de pagamento
 - [ ] Contas bancárias
-- [ ] Logs de atividades
+- [x] Logs de atividades
 
 ## Mensagens e Templates
 - [ ] Editor visual de templates
@@ -52,11 +52,11 @@
 - [ ] Histórico de mensagens
 
 ## Relatórios e Gráficos
-- [ ] Dashboard principal
-- [ ] Gráficos de projeção financeira
-- [ ] Relatórios por cliente
-- [ ] Estatísticas de pagamentos
-- [ ] Exportação de dados
+- [x] Dashboard principal
+- [x] Gráficos de projeção financeira
+- [x] Relatórios por cliente
+- [x] Estatísticas de pagamentos
+- [x] Exportação de dados
 
 ## PWA e Mobile
 - [ ] Manifest e service worker
@@ -66,21 +66,21 @@
 - [ ] Notificações push
 
 ## Otimizações
-- [ ] Cache de dados
-- [ ] Lazy loading de componentes
-- [ ] Otimização de imagens
-- [ ] Compressão de assets
-- [ ] SEO básico
+- [x] Cache de dados
+- [x] Lazy loading de componentes
+- [x] Otimização de imagens
+- [x] Compressão de assets
+- [x] SEO básico
 
 ## Segurança
 - [x] Políticas de RLS
 - [x] Validação de inputs
-- [ ] Rate limiting
-- [ ] Logs de segurança
-- [ ] Backup automático
+- [x] Rate limiting
+- [x] Logs de segurança
+- [x] Backup automático
 
 ## Documentação
 - [x] Documentação inicial
-- [ ] Guia de instalação
-- [ ] Documentação da API
-- [ ] Guia de contribuição
+- [x] Guia de instalação
+- [x] Documentação da API
+- [x] Guia de contribuição
