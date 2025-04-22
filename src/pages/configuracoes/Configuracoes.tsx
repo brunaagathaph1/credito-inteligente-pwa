@@ -1,105 +1,126 @@
 
-import { useState, useEffect } from "react";
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from "@/components/ui/tabs";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Settings, Users, CreditCard, Building, Database, Activity } from "lucide-react";
+import { PageHeader } from "@/components/common/PageHeader";
 import Categorias from "./Categorias";
 import MetodosPagamento from "./MetodosPagamento";
 import ContasBancarias from "./ContasBancarias";
+import LogsAtividades from "./LogsAtividades";
 
-const Configuracoes = () => {
-  const location = useLocation();
+const configuracoes = [
+  {
+    id: "categorias",
+    title: "Categorias",
+    icon: <Database className="h-6 w-6 text-primary" />,
+    description: "Gerenciar categorias de empréstimos",
+    path: "/configuracoes/categorias",
+  },
+  {
+    id: "metodos-pagamento",
+    title: "Métodos de Pagamento",
+    icon: <CreditCard className="h-6 w-6 text-primary" />,
+    description: "Gerenciar formas de pagamento",
+    path: "/configuracoes/metodos-pagamento",
+  },
+  {
+    id: "contas-bancarias",
+    title: "Contas Bancárias",
+    icon: <Building className="h-6 w-6 text-primary" />,
+    description: "Gerenciar contas bancárias",
+    path: "/configuracoes/contas-bancarias",
+  },
+  {
+    id: "financeiras",
+    title: "Financeiras",
+    icon: <Settings className="h-6 w-6 text-primary" />,
+    description: "Gerenciar taxas e configurações financeiras",
+    path: "/configuracoes/financeiras",
+  },
+  {
+    id: "logs-atividades",
+    title: "Logs de Atividades",
+    icon: <Activity className="h-6 w-6 text-primary" />,
+    description: "Histórico de atividades no sistema",
+    path: "/configuracoes/logs-atividades",
+  },
+  {
+    id: "usuarios",
+    title: "Usuários",
+    icon: <Users className="h-6 w-6 text-primary" />,
+    description: "Gerenciar usuários e permissões",
+    path: "/configuracoes/usuarios",
+    disabled: true,
+  },
+];
+
+export default function Configuracoes() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState("geral");
-
-  // Definir a aba ativa com base na URL atual quando o componente for montado
-  useEffect(() => {
-    const path = location.pathname;
-    if (path.includes("/configuracoes/categorias")) {
-      setActiveTab("categorias");
-    } else if (path.includes("/configuracoes/metodos-pagamento")) {
-      setActiveTab("pagamentos");
-    } else if (path.includes("/configuracoes/contas-bancarias")) {
-      setActiveTab("contas");
-    } else {
-      setActiveTab("geral");
-    }
-  }, [location.pathname]);
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    
-    // Navegação para URL específica com base na aba
-    switch(value) {
-      case "categorias":
-        navigate("/configuracoes/categorias");
-        break;
-      case "pagamentos":
-        navigate("/configuracoes/metodos-pagamento");
-        break;
-      case "contas":
-        navigate("/configuracoes/contas-bancarias");
-        break;
-      case "financeiras":
-        navigate("/configuracoes/financeiras");
-        break;
+  const { pathname } = useLocation();
+  
+  // Determinar qual componente exibir com base na rota
+  const renderConfiguracaoComponent = () => {
+    switch (pathname) {
+      case "/configuracoes/categorias":
+        return <Categorias />;
+      case "/configuracoes/metodos-pagamento":
+        return <MetodosPagamento />;
+      case "/configuracoes/contas-bancarias":
+        return <ContasBancarias />;
+      case "/configuracoes/logs-atividades":
+        return <LogsAtividades />;
+      // Outros casos conforme criados
       default:
-        navigate("/configuracoes");
+        return null;
     }
   };
 
+  // Se estivermos em uma rota específica, mostrar o componente correspondente
+  if (pathname !== "/configuracoes") {
+    return renderConfiguracaoComponent();
+  }
+
+  // Caso contrário, mostrar o menu de configurações
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Configurações</h1>
-        <p className="text-muted-foreground">
-          Gerencie as configurações do sistema.
-        </p>
+      <PageHeader
+        title="Configurações"
+        description="Gerencie as configurações do sistema"
+      />
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {configuracoes.map((config) => (
+          <Card
+            key={config.id}
+            className={`cursor-pointer hover:bg-muted/50 transition-colors ${
+              config.disabled ? "opacity-60 cursor-not-allowed" : ""
+            }`}
+            onClick={() => {
+              if (!config.disabled) {
+                navigate(config.path);
+              }
+            }}
+          >
+            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
+              <CardTitle className="text-sm font-medium">
+                {config.title}
+              </CardTitle>
+              {config.icon}
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                {config.description}
+              </p>
+              {config.disabled && (
+                <div className="text-xs mt-2 text-yellow-600 dark:text-yellow-400">
+                  Disponível em breve
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ))}
       </div>
-
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid grid-cols-5">
-          <TabsTrigger value="geral">Geral</TabsTrigger>
-          <TabsTrigger value="financeiras">Configurações Financeiras</TabsTrigger>
-          <TabsTrigger value="categorias">Categorias</TabsTrigger>
-          <TabsTrigger value="pagamentos">Métodos de Pagamento</TabsTrigger>
-          <TabsTrigger value="contas">Contas Bancárias</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="geral">
-          <div className="rounded-md border p-8 text-center">
-            <p className="text-muted-foreground">
-              Configurações gerais serão implementadas em breve.
-            </p>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="financeiras">
-          <div className="rounded-md border p-8 text-center">
-            <p className="text-muted-foreground">
-              Configurações de taxas e regras de juros serão implementadas em breve.
-            </p>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="categorias">
-          <Categorias />
-        </TabsContent>
-        
-        <TabsContent value="pagamentos">
-          <MetodosPagamento />
-        </TabsContent>
-
-        <TabsContent value="contas">
-          <ContasBancarias />
-        </TabsContent>
-      </Tabs>
     </div>
   );
-};
-
-export default Configuracoes;
+}

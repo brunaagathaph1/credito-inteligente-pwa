@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash, AlertTriangle } from "lucide-react";
@@ -30,38 +31,47 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { EmptyState } from "@/components/common/EmptyState";
+import { categoriasApi } from "@/integrations/supabase/helpers";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Tipo para a categoria
 type Categoria = {
   id: string;
-  nome: string;
-  descricao: string;
-  createdAt: Date;
+  name: string;
+  description: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 const Categorias = () => {
-  const { toast } = useToast();
-  const [categorias, setCategorias] = useState<Categoria[]>([
-    {
-      id: "1",
-      nome: "Pessoal",
-      descricao: "Empréstimos para uso pessoal",
-      createdAt: new Date(),
-    },
-    {
-      id: "2",
-      nome: "Empresarial",
-      descricao: "Empréstimos para empresas",
-      createdAt: new Date(),
-    },
-  ]);
-  
+  const { user } = useAuth();
+  const [categorias, setCategorias] = useState<Categoria[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentCategoria, setCurrentCategoria] = useState<Categoria | null>(null);
   const [formData, setFormData] = useState({ nome: "", descricao: "" });
+
+  // Buscar categorias
+  useEffect(() => {
+    if (user) {
+      fetchCategorias();
+    }
+  }, [user]);
+
+  async function fetchCategorias() {
+    setIsLoading(true);
+    const { data, error } = await categoriasApi.getAll();
+    if (error) {
+      toast.error("Erro ao buscar categorias");
+      console.error("Erro:", error);
+    } else {
+      setCategorias(data || []);
+    }
+    setIsLoading(false);
+  }
 
   const handleOpenNewDialog = () => {
     setCurrentCategoria(null);
@@ -71,7 +81,10 @@ const Categorias = () => {
 
   const handleOpenEditDialog = (categoria: Categoria) => {
     setCurrentCategoria(categoria);
-    setFormData({ nome: categoria.nome, descricao: categoria.descricao });
+    setFormData({ 
+      nome: categoria.name, 
+      descricao: categoria.description || "" 
+    });
     setIsDialogOpen(true);
   };
 
@@ -85,51 +98,54 @@ const Categorias = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.nome.trim()) {
-      toast({
-        title: "Erro de validação",
-        description: "O nome da categoria é obrigatório",
-        variant: "destructive",
-      });
+      toast.error("O nome da categoria é obrigatório");
       return;
     }
 
-    if (currentCategoria) {
-      setCategorias((prev) =>
-        prev.map((cat) =>
-          cat.id === currentCategoria.id ? { ...cat, ...formData } : cat
-        )
-      );
-      toast({
-        title: "Categoria atualizada",
-        description: `A categoria "${formData.nome}" foi atualizada com sucesso`,
-      });
-    } else {
-      const newCategoria: Categoria = {
-        id: Date.now().toString(),
-        nome: formData.nome,
-        descricao: formData.descricao,
-        createdAt: new Date(),
-      };
-      setCategorias((prev) => [...prev, newCategoria]);
-      toast({
-        title: "Categoria criada",
-        description: `A categoria "${formData.nome}" foi criada com sucesso`,
-      });
+    try {
+      if (currentCategoria) {
+        // Atualizar categoria
+        const { error } = await categoriasApi.update(currentCategoria.id, {
+          name: formData.nome,
+          description: formData.descricao || null
+        });
+        
+        if (error) throw error;
+        toast.success("Categoria atualizada com sucesso");
+      } else {
+        // Criar nova categoria
+        const { error } = await categoriasApi.create({
+          name: formData.nome,
+          description: formData.descricao || null
+        });
+        
+        if (error) throw error;
+        toast.success("Categoria criada com sucesso");
+      }
+      
+      fetchCategorias();
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Erro ao salvar categoria:", error);
+      toast.error("Erro ao salvar categoria");
     }
-
-    setIsDialogOpen(false);
   };
 
-  const handleDelete = () => {
+  const handleDelete = async () => {
     if (currentCategoria) {
-      setCategorias((prev) => prev.filter((cat) => cat.id !== currentCategoria.id));
-      toast({
-        title: "Categoria excluída",
-        description: `A categoria "${currentCategoria.nome}" foi excluída com sucesso`,
-      });
-      setIsDeleteDialogOpen(false);
+      try {
+        const { error } = await categoriasApi.delete(currentCategoria.id);
+        
+        if (error) throw error;
+        toast.success("Categoria excluída com sucesso");
+        fetchCategorias();
+        setIsDeleteDialogOpen(false);
+      } catch (error) {
+        console.error("Erro ao excluir categoria:", error);
+        toast.error("Erro ao excluir categoria");
+      }
     }
   };
 
@@ -146,7 +162,9 @@ const Categorias = () => {
         }
       />
 
-      {categorias.length > 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center py-10">Carregando...</div>
+      ) : categorias.length > 0 ? (
         <Table>
           <TableHeader>
             <TableRow>
@@ -159,10 +177,10 @@ const Categorias = () => {
           <TableBody>
             {categorias.map((categoria) => (
               <TableRow key={categoria.id}>
-                <TableCell className="font-medium">{categoria.nome}</TableCell>
-                <TableCell>{categoria.descricao}</TableCell>
+                <TableCell className="font-medium">{categoria.name}</TableCell>
+                <TableCell>{categoria.description}</TableCell>
                 <TableCell>
-                  {new Date(categoria.createdAt).toLocaleDateString("pt-BR")}
+                  {new Date(categoria.created_at).toLocaleDateString("pt-BR")}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
@@ -252,7 +270,7 @@ const Categorias = () => {
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir a categoria "
-              {currentCategoria?.nome}"? Esta ação não pode ser desfeita.
+              {currentCategoria?.name}"? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

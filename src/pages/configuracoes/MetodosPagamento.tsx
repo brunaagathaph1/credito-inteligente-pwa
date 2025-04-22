@@ -1,4 +1,5 @@
-import { useState } from "react";
+
+import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
 import { Plus, Edit, Trash, AlertTriangle, CreditCard } from "lucide-react";
@@ -31,48 +32,48 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { EmptyState } from "@/components/common/EmptyState";
+import { metodosApi } from "@/integrations/supabase/helpers";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Tipo para método de pagamento
 type MetodoPagamento = {
   id: string;
-  nome: string;
-  descricao: string;
-  ativo: boolean;
-  createdAt: Date;
+  name: string;
+  description: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
 };
 
 const MetodosPagamento = () => {
-  const { toast } = useToast();
-  const [metodos, setMetodos] = useState<MetodoPagamento[]>([
-    {
-      id: "1",
-      nome: "Dinheiro",
-      descricao: "Pagamento em espécie",
-      ativo: true,
-      createdAt: new Date(),
-    },
-    {
-      id: "2",
-      nome: "PIX",
-      descricao: "Transferência via PIX",
-      ativo: true,
-      createdAt: new Date(),
-    },
-    {
-      id: "3",
-      nome: "Cartão de Crédito",
-      descricao: "Pagamento via cartão de crédito",
-      ativo: false,
-      createdAt: new Date(),
-    },
-  ]);
-  
+  const { user } = useAuth();
+  const [metodos, setMetodos] = useState<MetodoPagamento[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentMetodo, setCurrentMetodo] = useState<MetodoPagamento | null>(null);
   const [formData, setFormData] = useState({ nome: "", descricao: "", ativo: true });
+
+  // Buscar métodos de pagamento
+  useEffect(() => {
+    if (user) {
+      fetchMetodos();
+    }
+  }, [user]);
+
+  async function fetchMetodos() {
+    setIsLoading(true);
+    const { data, error } = await metodosApi.getAll();
+    if (error) {
+      toast.error("Erro ao buscar métodos de pagamento");
+      console.error("Erro:", error);
+    } else {
+      setMetodos(data || []);
+    }
+    setIsLoading(false);
+  }
 
   const handleOpenNewDialog = () => {
     setCurrentMetodo(null);
@@ -82,7 +83,11 @@ const MetodosPagamento = () => {
 
   const handleOpenEditDialog = (metodo: MetodoPagamento) => {
     setCurrentMetodo(metodo);
-    setFormData({ nome: metodo.nome, descricao: metodo.descricao, ativo: metodo.ativo });
+    setFormData({ 
+      nome: metodo.name, 
+      descricao: metodo.description || "", 
+      ativo: metodo.is_active 
+    });
     setIsDialogOpen(true);
   };
 
@@ -100,63 +105,72 @@ const MetodosPagamento = () => {
     setFormData((prev) => ({ ...prev, ativo: checked }));
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!formData.nome.trim()) {
-      toast({
-        title: "Erro de validação",
-        description: "O nome do método de pagamento é obrigatório",
-        variant: "destructive",
-      });
+      toast.error("O nome do método de pagamento é obrigatório");
       return;
     }
 
-    if (currentMetodo) {
-      // Editar método existente
-      setMetodos((prev) =>
-        prev.map((metodo) =>
-          metodo.id === currentMetodo.id ? { ...metodo, ...formData } : metodo
-        )
-      );
-      toast({
-        title: "Método de pagamento atualizado",
-        description: `O método "${formData.nome}" foi atualizado com sucesso`,
-      });
-    } else {
-      // Adicionar novo método
-      const newMetodo: MetodoPagamento = {
-        id: Date.now().toString(),
-        nome: formData.nome,
-        descricao: formData.descricao,
-        ativo: formData.ativo,
-        createdAt: new Date(),
-      };
-      setMetodos((prev) => [...prev, newMetodo]);
-      toast({
-        title: "Método de pagamento criado",
-        description: `O método "${formData.nome}" foi criado com sucesso`,
-      });
-    }
-
-    setIsDialogOpen(false);
-  };
-
-  const handleDelete = () => {
-    if (currentMetodo) {
-      setMetodos((prev) => prev.filter((metodo) => metodo.id !== currentMetodo.id));
-      toast({
-        title: "Método de pagamento excluído",
-        description: `O método "${currentMetodo.nome}" foi excluído com sucesso`,
-      });
-      setIsDeleteDialogOpen(false);
+    try {
+      if (currentMetodo) {
+        // Atualizar método
+        const { error } = await metodosApi.update(currentMetodo.id, {
+          name: formData.nome,
+          description: formData.descricao || null,
+          is_active: formData.ativo
+        });
+        
+        if (error) throw error;
+        toast.success("Método de pagamento atualizado com sucesso");
+      } else {
+        // Criar novo método
+        const { error } = await metodosApi.create({
+          name: formData.nome,
+          description: formData.descricao || null,
+          is_active: formData.ativo
+        });
+        
+        if (error) throw error;
+        toast.success("Método de pagamento criado com sucesso");
+      }
+      
+      fetchMetodos();
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Erro ao salvar método de pagamento:", error);
+      toast.error("Erro ao salvar método de pagamento");
     }
   };
 
-  const toggleStatus = (id: string) => {
-    setMetodos((prev) =>
-      prev.map((metodo) =>
-        metodo.id === id ? { ...metodo, ativo: !metodo.ativo } : metodo
-      )
-    );
+  const handleDelete = async () => {
+    if (currentMetodo) {
+      try {
+        const { error } = await metodosApi.delete(currentMetodo.id);
+        
+        if (error) throw error;
+        toast.success("Método de pagamento excluído com sucesso");
+        fetchMetodos();
+        setIsDeleteDialogOpen(false);
+      } catch (error) {
+        console.error("Erro ao excluir método de pagamento:", error);
+        toast.error("Erro ao excluir método de pagamento");
+      }
+    }
+  };
+
+  const toggleStatus = async (id: string, currentStatus: boolean) => {
+    try {
+      const { error } = await metodosApi.update(id, {
+        is_active: !currentStatus
+      });
+      
+      if (error) throw error;
+      toast.success(`Status do método de pagamento ${currentStatus ? 'desativado' : 'ativado'} com sucesso`);
+      fetchMetodos();
+    } catch (error) {
+      console.error("Erro ao alterar status:", error);
+      toast.error("Erro ao alterar status do método de pagamento");
+    }
   };
 
   return (
@@ -172,7 +186,9 @@ const MetodosPagamento = () => {
         }
       />
 
-      {metodos.length > 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center py-10">Carregando...</div>
+      ) : metodos.length > 0 ? (
         <Table>
           <TableHeader>
             <TableRow>
@@ -186,21 +202,21 @@ const MetodosPagamento = () => {
           <TableBody>
             {metodos.map((metodo) => (
               <TableRow key={metodo.id}>
-                <TableCell className="font-medium">{metodo.nome}</TableCell>
-                <TableCell>{metodo.descricao}</TableCell>
+                <TableCell className="font-medium">{metodo.name}</TableCell>
+                <TableCell>{metodo.description}</TableCell>
                 <TableCell>
                   <div className="flex items-center">
                     <Switch
-                      checked={metodo.ativo}
-                      onCheckedChange={() => toggleStatus(metodo.id)}
+                      checked={metodo.is_active}
+                      onCheckedChange={() => toggleStatus(metodo.id, metodo.is_active)}
                     />
                     <span className="ml-2">
-                      {metodo.ativo ? "Ativo" : "Inativo"}
+                      {metodo.is_active ? "Ativo" : "Inativo"}
                     </span>
                   </div>
                 </TableCell>
                 <TableCell>
-                  {new Date(metodo.createdAt).toLocaleDateString("pt-BR")}
+                  {new Date(metodo.created_at).toLocaleDateString("pt-BR")}
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
@@ -238,7 +254,6 @@ const MetodosPagamento = () => {
         />
       )}
 
-      {/* Dialog para criar/editar método */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -294,14 +309,13 @@ const MetodosPagamento = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog de confirmação para exclusão */}
       <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
               Tem certeza que deseja excluir o método de pagamento "
-              {currentMetodo?.nome}"? Esta ação não pode ser desfeita.
+              {currentMetodo?.name}"? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

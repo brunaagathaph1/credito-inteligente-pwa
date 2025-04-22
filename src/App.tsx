@@ -29,6 +29,10 @@ import Emprestimos from "./pages/emprestimos/Emprestimos";
 import EmprestimoDetalhe from "./pages/emprestimos/EmprestimoDetalhe";
 import NovoEmprestimo from "./pages/emprestimos/NovoEmprestimo";
 import Configuracoes from "./pages/configuracoes/Configuracoes";
+import Categorias from "./pages/configuracoes/Categorias";
+import MetodosPagamento from "./pages/configuracoes/MetodosPagamento";
+import ContasBancarias from "./pages/configuracoes/ContasBancarias";
+import LogsAtividades from "./pages/configuracoes/LogsAtividades";
 import RelatoriosEGraficos from "./pages/relatorios/RelatoriosEGraficos";
 import MensagensETemplates from "./pages/mensagens/MensagensETemplates";
 
@@ -95,6 +99,7 @@ const App = () => (
                   <Route path="/configuracoes/categorias" element={<Configuracoes />} />
                   <Route path="/configuracoes/metodos-pagamento" element={<Configuracoes />} />
                   <Route path="/configuracoes/contas-bancarias" element={<Configuracoes />} />
+                  <Route path="/configuracoes/logs-atividades" element={<Configuracoes />} />
                   <Route path="/configuracoes/financeiras" element={<Configuracoes />} />
                   
                   {/* Outras Rotas */}

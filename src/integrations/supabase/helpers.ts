@@ -1,4 +1,3 @@
-
 import { supabase } from './client';
 import type { Database } from './types';
 
@@ -179,3 +178,128 @@ export const pagamentosApi = {
   }
 };
 
+// Categorias helper functions
+export const categoriasApi = {
+  async getAll() {
+    const { data, error } = await supabase
+      .from('categories')
+      .select('*')
+      .order('name');
+    return { data, error };
+  },
+
+  async create(categoria: Omit<Database['public']['Tables']['categories']['Insert'], 'id' | 'created_at' | 'updated_at'>) {
+    const { data, error } = await supabase
+      .from('categories')
+      .insert(categoria)
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  async update(id: string, categoria: Partial<Database['public']['Tables']['categories']['Update']>) {
+    const { data, error } = await supabase
+      .from('categories')
+      .update(categoria)
+      .eq('id', id)
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  async delete(id: string) {
+    const { error } = await supabase
+      .from('categories')
+      .delete()
+      .eq('id', id);
+    return { error };
+  }
+};
+
+// Métodos de Pagamento helper functions
+export const metodosApi = {
+  async getAll() {
+    const { data, error } = await supabase
+      .from('payment_methods')
+      .select('*')
+      .order('name');
+    return { data, error };
+  },
+
+  async create(metodo: Omit<Database['public']['Tables']['payment_methods']['Insert'], 'id' | 'created_at' | 'updated_at'>) {
+    const { data, error } = await supabase
+      .from('payment_methods')
+      .insert(metodo)
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  async update(id: string, metodo: Partial<Database['public']['Tables']['payment_methods']['Update']>) {
+    const { data, error } = await supabase
+      .from('payment_methods')
+      .update(metodo)
+      .eq('id', id)
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  async delete(id: string) {
+    const { error } = await supabase
+      .from('payment_methods')
+      .delete()
+      .eq('id', id);
+    return { error };
+  }
+};
+
+// Contas Bancárias helper functions
+export const contasBancariasApi = {
+  async getAll() {
+    const { data, error } = await supabase
+      .from('contas_bancarias')
+      .select('*')
+      .order('criada_em', { ascending: false });
+    return { data, error };
+  },
+
+  async getById(id: string) {
+    const { data, error } = await supabase
+      .from('contas_bancarias')
+      .select('*')
+      .eq('id', id)
+      .single();
+    return { data, error };
+  },
+
+  async create(conta: Omit<Database['public']['Tables']['contas_bancarias']['Insert'], 'id' | 'criada_em' | 'atualizada_em'>) {
+    const { data, error } = await supabase
+      .from('contas_bancarias')
+      .insert(conta)
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  async update(id: string, conta: Partial<Database['public']['Tables']['contas_bancarias']['Update']>) {
+    const { data, error } = await supabase
+      .from('contas_bancarias')
+      .update({
+        ...conta,
+        atualizada_em: new Date().toISOString()
+      })
+      .eq('id', id)
+      .select()
+      .single();
+    return { data, error };
+  },
+
+  async delete(id: string) {
+    const { error } = await supabase
+      .from('contas_bancarias')
+      .delete()
+      .eq('id', id);
+    return { error };
+  }
+};
