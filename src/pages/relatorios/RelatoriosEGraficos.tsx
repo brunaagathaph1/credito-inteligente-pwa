@@ -25,11 +25,23 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useActivityLogs } from "@/hooks/useActivityLogs";
 
+// Define types for the data
+interface MesData {
+  mes: string;
+  emprestimos: number;
+  recebimentos: number;
+}
+
+interface StatusData {
+  name: string;
+  value: number;
+}
+
 const RelatoriosEGraficos = () => {
   const { loans, isLoadingLoans } = useLoans();
   const { logActivity } = useActivityLogs();
-  const [dadosMensais, setDadosMensais] = useState([]);
-  const [dadosStatus, setDadosStatus] = useState([]);
+  const [dadosMensais, setDadosMensais] = useState<MesData[]>([]);
+  const [dadosStatus, setDadosStatus] = useState<StatusData[]>([]);
 
   useEffect(() => {
     logActivity("Acessou página de relatórios e gráficos");
@@ -39,7 +51,7 @@ const RelatoriosEGraficos = () => {
   useEffect(() => {
     if (loans) {
       // Dados para o gráfico de barras mensal
-      const mesesData = {};
+      const mesesData: Record<string, MesData> = {};
       
       // Processar loans para o gráfico mensal
       loans.forEach(emprestimo => {
@@ -59,7 +71,7 @@ const RelatoriosEGraficos = () => {
         mesesData[mesAno].emprestimos += Number(emprestimo.valor_principal) || 0;
         
         // Se há pagamentos, somar para o mês correspondente
-        if (emprestimo.pagamentos) {
+        if (emprestimo.pagamentos && Array.isArray(emprestimo.pagamentos)) {
           emprestimo.pagamentos.forEach(pagamento => {
             if (!pagamento.data_pagamento) return;
             
@@ -82,15 +94,15 @@ const RelatoriosEGraficos = () => {
       // Converter para array e ordenar por mês
       const mesesArray = Object.values(mesesData);
       mesesArray.sort((a, b) => {
-        const dataA = new Date(a.mes.split('/')[0] + ' ' + '20' + a.mes.split('/')[1]);
-        const dataB = new Date(b.mes.split('/')[0] + ' ' + '20' + b.mes.split('/')[1]);
-        return dataA - dataB;
+        const dataA = new Date(`${a.mes.split('/')[0]} 20${a.mes.split('/')[1]}`);
+        const dataB = new Date(`${b.mes.split('/')[0]} 20${b.mes.split('/')[1]}`);
+        return dataA.getTime() - dataB.getTime();
       });
       
       setDadosMensais(mesesArray);
       
       // Processar status dos empréstimos para o gráfico de pizza
-      const statusCount = {
+      const statusCount: Record<string, number> = {
         "em-dia": 0,
         "atrasado": 0,
         "quitado": 0,

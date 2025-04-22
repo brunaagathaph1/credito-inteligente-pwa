@@ -1,63 +1,95 @@
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { emprestimosApi } from '@/integrations/supabase/helpers';
-import { toast } from 'sonner';
-import type { Database } from '@/integrations/supabase/types';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { emprestimosApi, pagamentosApi } from "@/integrations/supabase/helpers";
+import { toast } from "sonner";
 
-type Emprestimo = Database['public']['Tables']['emprestimos']['Row'];
-
-export function useLoans() {
+export const useLoans = () => {
   const queryClient = useQueryClient();
 
+  // Get all loans
   const { data: loans, isLoading: isLoadingLoans } = useQuery({
     queryKey: ['loans'],
     queryFn: async () => {
-      const { data, error } = await emprestimosApi.getAll();
+      try {
+        const { data, error } = await emprestimosApi.getAll();
+        
+        if (error) throw error;
+        
+        // Fetch pagamentos for each loan
+        const loansWithPayments = await Promise.all(
+          data.map(async (loan) => {
+            const { data: pagamentos } = await pagamentosApi.getByEmprestimoId(loan.id);
+            return {
+              ...loan,
+              pagamentos: pagamentos || []
+            };
+          })
+        );
+        
+        return loansWithPayments;
+      } catch (error) {
+        console.error("Error fetching loans:", error);
+        toast.error("Erro ao carregar empréstimos");
+        return [];
+      }
+    }
+  });
+
+  // Get loan by ID
+  const getLoanById = async (id: string) => {
+    try {
+      const { data, error } = await emprestimosApi.getById(id);
+      if (error) throw error;
+      return data;
+    } catch (error) {
+      console.error("Error fetching loan:", error);
+      toast.error("Erro ao carregar dados do empréstimo");
+      throw error;
+    }
+  };
+
+  // Create new loan
+  const createLoan = useMutation({
+    mutationFn: async (loanData: any) => {
+      const { data, error } = await emprestimosApi.create(loanData);
       if (error) throw error;
       return data;
     },
-  });
-
-  const createLoan = useMutation({
-    mutationFn: (data: Omit<Emprestimo, 'id' | 'created_at' | 'updated_at'>) => 
-      emprestimosApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
-      toast.success('Empréstimo cadastrado com sucesso!');
-    },
-    onError: (error) => {
-      toast.error('Erro ao cadastrar empréstimo: ' + error.message);
-    },
+    }
   });
 
+  // Update loan
   const updateLoan = useMutation({
-    mutationFn: ({ id, ...data }: Partial<Emprestimo> & { id: string }) => 
-      emprestimosApi.update(id, data),
+    mutationFn: async ({ id, loanData }: { id: string; loanData: any }) => {
+      const { data, error } = await emprestimosApi.update(id, loanData);
+      if (error) throw error;
+      return data;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
-      toast.success('Empréstimo atualizado com sucesso!');
-    },
-    onError: (error) => {
-      toast.error('Erro ao atualizar empréstimo: ' + error.message);
-    },
+    }
   });
 
+  // Delete loan
   const deleteLoan = useMutation({
-    mutationFn: (id: string) => emprestimosApi.delete(id),
+    mutationFn: async (id: string) => {
+      const { error } = await emprestimosApi.delete(id);
+      if (error) throw error;
+      return id;
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
-      toast.success('Empréstimo removido com sucesso!');
-    },
-    onError: (error) => {
-      toast.error('Erro ao remover empréstimo: ' + error.message);
-    },
+    }
   });
 
   return {
     loans,
     isLoadingLoans,
+    getLoanById,
     createLoan,
     updateLoan,
-    deleteLoan,
+    deleteLoan
   };
-}
+};

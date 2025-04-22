@@ -1,5 +1,6 @@
 
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { 
   Card, 
   CardContent, 
@@ -36,6 +37,7 @@ import { toast } from "sonner";
 import { useClients } from "@/hooks/useClients";
 
 const MensagensETemplates = () => {
+  const navigate = useNavigate();
   const { logActivity } = useActivityLogs();
   const { clients, isLoadingClients } = useClients();
   const [webhookUrl, setWebhookUrl] = useState("");

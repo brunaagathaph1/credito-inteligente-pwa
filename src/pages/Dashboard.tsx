@@ -20,14 +20,37 @@ import { format, addDays, compareAsc, isAfter, isBefore, parseISO } from "date-f
 import { ptBR } from "date-fns/locale";
 import { useActivityLogs } from "@/hooks/useActivityLogs";
 
+// Define interfaces for type safety
+interface ResumoCard {
+  titulo: string;
+  valor: string;
+  descricao: string;
+  icone: JSX.Element;
+  cor: string;
+}
+
+interface RecebimentoMensal {
+  mes: string;
+  date: Date;
+  valor: number;
+}
+
+interface Vencimento {
+  id: string;
+  clienteNome: string;
+  valor: number;
+  diasParaVencimento: number;
+  dataVencimento: string;
+}
+
 const Dashboard = () => {
   const { loans, isLoadingLoans } = useLoans();
   const { clients, isLoadingClients } = useClients();
   const { logActivity } = useActivityLogs();
   const navigate = useNavigate();
-  const [resumoCards, setResumoCards] = useState([]);
-  const [recebimentosMensais, setRecebimentosMensais] = useState([]);
-  const [proximosVencimentos, setProximosVencimentos] = useState([]);
+  const [resumoCards, setResumoCards] = useState<ResumoCard[]>([]);
+  const [recebimentosMensais, setRecebimentosMensais] = useState<{ mes: string; valor: number }[]>([]);
+  const [proximosVencimentos, setProximosVencimentos] = useState<Vencimento[]>([]);
   
   useEffect(() => {
     logActivity("Acessou o Dashboard");
@@ -63,9 +86,9 @@ const Dashboard = () => {
       
       // Calcula recebimentos do mês atual
       const recebimentosMesAtual = loans
-        .flatMap(emp => emp.pagamentos || [])
+        .flatMap(emp => emp.pagamentos && Array.isArray(emp.pagamentos) ? emp.pagamentos : [])
         .filter(pag => {
-          if (!pag.data_pagamento) return false;
+          if (!pag || !pag.data_pagamento) return false;
           const dataPagamento = new Date(pag.data_pagamento);
           return (isAfter(dataPagamento, startOfMonth) || dataPagamento.getTime() === startOfMonth.getTime()) 
                  && isBefore(dataPagamento, today);
@@ -74,9 +97,9 @@ const Dashboard = () => {
       
       // Calcula recebimentos do mês anterior
       const recebimentosMesAnterior = loans
-        .flatMap(emp => emp.pagamentos || [])
+        .flatMap(emp => emp.pagamentos && Array.isArray(emp.pagamentos) ? emp.pagamentos : [])
         .filter(pag => {
-          if (!pag.data_pagamento) return false;
+          if (!pag || !pag.data_pagamento) return false;
           const dataPagamento = new Date(pag.data_pagamento);
           return isAfter(dataPagamento, startOfPrevMonth) && isBefore(dataPagamento, endOfPrevMonth);
         })
@@ -133,7 +156,7 @@ const Dashboard = () => {
       ]);
       
       // Processa dados para o gráfico de recebimentos mensais
-      const ultimosMeses = Array.from({ length: 6 }, (_, i) => {
+      const ultimosMeses: RecebimentoMensal[] = Array.from({ length: 6 }, (_, i) => {
         const data = new Date();
         data.setMonth(data.getMonth() - i);
         return {
@@ -145,10 +168,10 @@ const Dashboard = () => {
       
       // Mapeia pagamentos para os respectivos meses
       loans.forEach(emp => {
-        if (!emp.pagamentos) return;
+        if (!emp.pagamentos || !Array.isArray(emp.pagamentos)) return;
         
         emp.pagamentos.forEach(pag => {
-          if (!pag.data_pagamento) return;
+          if (!pag || !pag.data_pagamento) return;
           
           const dataPagamento = new Date(pag.data_pagamento);
           

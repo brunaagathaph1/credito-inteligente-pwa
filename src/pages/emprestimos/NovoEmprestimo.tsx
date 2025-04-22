@@ -128,6 +128,9 @@ const NovoEmprestimo = () => {
         data_vencimento: formData.dataVencimento,
         status: "pendente",
         created_by: "system", // Idealmente seria o ID do usuário logado
+        observacoes: null,
+        renegociacao_id: null,
+        renegociado: false
       };
 
       await createLoan.mutateAsync(emprestimoData);
