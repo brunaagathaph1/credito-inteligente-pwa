@@ -30,6 +30,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { useActivityLogs } from "@/hooks/useActivityLogs";
+import { useClients } from "@/hooks/useClients";
 
 // Schema de validação
 const formSchema = z.object({
@@ -50,6 +51,7 @@ const NovoCliente = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { user } = useAuth();
   const { logActivity } = useActivityLogs();
+  const { createClient } = useClients();
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -72,20 +74,18 @@ const NovoCliente = () => {
     setIsLoading(true);
     
     try {
-      // Cadastrar no Supabase
-      const { data: newClient, error } = await supabase
-        .from("clientes")
-        .insert({
-          ...data,
-          created_by: user.id,
-        })
-        .select("*")
-        .single();
-        
-      if (error) throw error;
+      // Ensure nome is included and required fields are correctly set
+      const clienteData = {
+        ...data,
+        created_by: user.id,
+      };
+      
+      const result = await createClient.mutateAsync(clienteData);
+      
+      if (result.error) throw result.error;
       
       // Registrar atividade
-      await logActivity("Cadastrou novo cliente", { cliente_id: newClient.id, nome: newClient.nome });
+      await logActivity("Cadastrou novo cliente", { cliente_id: result.data.id, nome: data.nome });
       
       toast.success("Cliente cadastrado com sucesso!");
       navigate("/clientes");

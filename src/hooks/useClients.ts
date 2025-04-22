@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 
 type Cliente = Database['public']['Tables']['clientes']['Row'];
+type ClienteInsert = Database['public']['Tables']['clientes']['Insert'];
 
 export function useClients() {
   const queryClient = useQueryClient();
@@ -19,13 +20,13 @@ export function useClients() {
   });
 
   const createClient = useMutation({
-    mutationFn: (data: Omit<Cliente, 'id' | 'created_at' | 'updated_at'>) => 
+    mutationFn: (data: Omit<ClienteInsert, 'id' | 'created_at' | 'updated_at'>) => 
       clientesApi.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast.success('Cliente cadastrado com sucesso!');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Erro ao cadastrar cliente: ' + error.message);
     },
   });
@@ -37,7 +38,7 @@ export function useClients() {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast.success('Cliente atualizado com sucesso!');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Erro ao atualizar cliente: ' + error.message);
     },
   });
@@ -48,7 +49,7 @@ export function useClients() {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
       toast.success('Cliente removido com sucesso!');
     },
-    onError: (error) => {
+    onError: (error: any) => {
       toast.error('Erro ao remover cliente: ' + error.message);
     },
   });
