@@ -48,9 +48,7 @@ const Emprestimos = () => {
   const emprestimosFiltrados = (loans || []).filter(emprestimo => {
     const clienteNome = emprestimo.cliente?.nome || "";
     const matchesSearch = clienteNome.toLowerCase().includes(searchTerm.toLowerCase());
-    
     const matchesStatus = statusFilter === "todos" || emprestimo.status === statusFilter;
-    
     return matchesSearch && matchesStatus;
   });
 
@@ -101,17 +99,19 @@ const Emprestimos = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex-1 min-w-0">
           <h1 className="text-3xl font-bold mb-2">Empréstimos</h1>
           <p className="text-muted-foreground">
             Gerencie todos os empréstimos ativos e quitados.
           </p>
         </div>
-        <Button onClick={() => navigate("/emprestimos/novo")}>
-          <PlusCircle className="mr-2 h-4 w-4" />
-          Novo Empréstimo
-        </Button>
+        <div className="mt-2 sm:mt-0 flex-shrink-0 w-full sm:w-auto">
+          <Button onClick={() => navigate("/emprestimos/novo")} className="w-full sm:w-auto">
+            <PlusCircle className="mr-2 h-4 w-4" />
+            Novo Empréstimo
+          </Button>
+        </div>
       </div>
 
       <Card>
@@ -233,3 +233,4 @@ const Emprestimos = () => {
 };
 
 export default Emprestimos;
+
