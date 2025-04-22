@@ -26,7 +26,7 @@
 - [x] Visualização detalhada de cliente
 - [x] Score interno de cliente
 - [x] Validações de formulários
-- [ ] Filtros avançados de busca
+- [x] Filtros avançados de busca
 
 ## Empréstimos
 - [x] Listagem de empréstimos (básica)
@@ -88,3 +88,10 @@
 - [x] Guia de instalação
 - [x] Documentação da API
 - [x] Guia de contribuição
+
+## Próximas Implementações
+- [ ] Módulo de contas bancárias
+- [ ] Renegociação de empréstimos
+- [ ] Sistema de notificações avançado
+- [ ] Integração com serviços de cobrança
+- [ ] Módulo de análise de crédito avançado

@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/tabs";
 import Categorias from "./Categorias";
 import MetodosPagamento from "./MetodosPagamento";
+import ContasBancarias from "./ContasBancarias";
 
 const Configuracoes = () => {
   const [activeTab, setActiveTab] = useState("geral");
@@ -25,6 +26,9 @@ const Configuracoes = () => {
       case "pagamentos":
         navigate("/configuracoes/metodos-pagamento");
         break;
+      case "contas":
+        navigate("/configuracoes/contas-bancarias");
+        break;
       default:
         navigate("/configuracoes");
     }
@@ -40,11 +44,12 @@ const Configuracoes = () => {
       </div>
 
       <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid grid-cols-4">
+        <TabsList className="grid grid-cols-5">
           <TabsTrigger value="geral">Geral</TabsTrigger>
           <TabsTrigger value="financeiras">Configurações Financeiras</TabsTrigger>
           <TabsTrigger value="categorias">Categorias</TabsTrigger>
           <TabsTrigger value="pagamentos">Métodos de Pagamento</TabsTrigger>
+          <TabsTrigger value="contas">Contas Bancárias</TabsTrigger>
         </TabsList>
         
         <TabsContent value="geral">
@@ -69,6 +74,10 @@ const Configuracoes = () => {
         
         <TabsContent value="pagamentos">
           <MetodosPagamento />
+        </TabsContent>
+
+        <TabsContent value="contas">
+          <ContasBancarias />
         </TabsContent>
       </Tabs>
     </div>
