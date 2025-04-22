@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
@@ -976,4 +977,427 @@ const MensagensETemplates = () => {
                   <Label htmlFor="messageType">Tipo de Mensagem</Label>
                   <Select value={messageType} onValueChange={setMessageType}>
                     <SelectTrigger id="messageType">
-                      <SelectValue placeholder="Selecione o tipo
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="email">E-mail</SelectItem>
+                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="templateSelect">Template (opcional)</Label>
+                <Select value={selectedTemplate} onValueChange={handleTemplateChange}>
+                  <SelectTrigger id="templateSelect">
+                    <SelectValue placeholder="Selecione um template ou deixe em branco" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Personalizado (sem template)</SelectItem>
+                    {templateList
+                      .filter(template => template.tipo === messageType)
+                      .map(template => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.nome}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {messageType === "email" && (
+                <div className="space-y-2">
+                  <Label htmlFor="messageSubject">Assunto</Label>
+                  <Input
+                    id="messageSubject"
+                    placeholder="Assunto da mensagem"
+                    value={messageSubject}
+                    onChange={(e) => setMessageSubject(e.target.value)}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="messageContent">Conteúdo</Label>
+                <TextEditor
+                  value={messageContent}
+                  onChange={setMessageContent}
+                  placeholder="Digite ou cole o conteúdo da mensagem aqui..."
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-end">
+              <Button onClick={enviarMensagem} disabled={isSendingMessage}>
+                {isSendingMessage ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Enviando...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Enviar Mensagem
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="agendamento" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Agendar Mensagem</CardTitle>
+              <CardDescription>
+                Agende mensagens para serem enviadas em uma data futura.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="clientSelectSchedule">Cliente</Label>
+                  {isLoadingClients ? (
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                      <span className="text-sm text-muted-foreground">Carregando clientes...</span>
+                    </div>
+                  ) : (
+                    <Select value={selectedClient} onValueChange={setSelectedClient}>
+                      <SelectTrigger id="clientSelectSchedule">
+                        <SelectValue placeholder="Selecione um cliente" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {clients && clients.map(cliente => (
+                          <SelectItem key={cliente.id} value={cliente.id}>
+                            {cliente.nome}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="scheduleDate">Data de Envio</Label>
+                  <Input
+                    id="scheduleDate"
+                    type="datetime-local"
+                    value={scheduleDate}
+                    onChange={(e) => setScheduleDate(e.target.value)}
+                    min={new Date().toISOString().slice(0, 16)}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="messageTypeSchedule">Tipo de Mensagem</Label>
+                <Select value={messageType} onValueChange={setMessageType}>
+                  <SelectTrigger id="messageTypeSchedule">
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="email">E-mail</SelectItem>
+                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="templateSelectSchedule">Template (opcional)</Label>
+                <Select value={selectedTemplate} onValueChange={handleTemplateChange}>
+                  <SelectTrigger id="templateSelectSchedule">
+                    <SelectValue placeholder="Selecione um template ou deixe em branco" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Personalizado (sem template)</SelectItem>
+                    {templateList
+                      .filter(template => template.tipo === messageType)
+                      .map(template => (
+                        <SelectItem key={template.id} value={template.id}>
+                          {template.nome}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {messageType === "email" && (
+                <div className="space-y-2">
+                  <Label htmlFor="messageSubjectSchedule">Assunto</Label>
+                  <Input
+                    id="messageSubjectSchedule"
+                    placeholder="Assunto da mensagem"
+                    value={messageSubject}
+                    onChange={(e) => setMessageSubject(e.target.value)}
+                  />
+                </div>
+              )}
+
+              <div className="space-y-2">
+                <Label htmlFor="messageContentSchedule">Conteúdo</Label>
+                <TextEditor
+                  value={messageContent}
+                  onChange={setMessageContent}
+                  placeholder="Digite ou cole o conteúdo da mensagem aqui..."
+                />
+              </div>
+            </CardContent>
+            <CardFooter className="flex justify-end">
+              <Button onClick={enviarMensagem} disabled={isSendingMessage || !scheduleDate}>
+                {isSendingMessage ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Agendando...
+                  </>
+                ) : (
+                  <>
+                    <Calendar className="mr-2 h-4 w-4" />
+                    Agendar Mensagem
+                  </>
+                )}
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="integracoes" className="space-y-6">
+          {isAdmin ? (
+            <>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Integração com Webhook</CardTitle>
+                  <CardDescription>
+                    Configure webhooks para integrar com outros sistemas.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="postUrl">URL para POST Automático</Label>
+                    <Input
+                      id="postUrl"
+                      placeholder="https://seu-sistema.com/webhook"
+                      value={webhookConfig.postUrl}
+                      onChange={(e) => setWebhookConfig(prev => ({ ...prev, postUrl: e.target.value }))}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Esta URL receberá POST automático quando ocorrerem os eventos selecionados.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="apiUrl">URL para API (GET externo)</Label>
+                    <Input
+                      id="apiUrl"
+                      placeholder="https://seu-sistema.com/api"
+                      value={webhookConfig.apiUrl}
+                      onChange={(e) => setWebhookConfig(prev => ({ ...prev, apiUrl: e.target.value }))}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Esta URL será disponibilizada para outros sistemas consultarem dados.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="block mb-2">Eventos que acionam o webhook</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="novoEmprestimo"
+                          checked={webhookConfig.events.novoEmprestimo}
+                          onChange={(e) => setWebhookConfig(prev => ({
+                            ...prev,
+                            events: { ...prev.events, novoEmprestimo: e.target.checked }
+                          }))}
+                          className="rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <Label htmlFor="novoEmprestimo" className="cursor-pointer">Novo Empréstimo</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="novoPagamento"
+                          checked={webhookConfig.events.novoPagamento}
+                          onChange={(e) => setWebhookConfig(prev => ({
+                            ...prev,
+                            events: { ...prev.events, novoPagamento: e.target.checked }
+                          }))}
+                          className="rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <Label htmlFor="novoPagamento" className="cursor-pointer">Novo Pagamento</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="novoCliente"
+                          checked={webhookConfig.events.novoCliente}
+                          onChange={(e) => setWebhookConfig(prev => ({
+                            ...prev,
+                            events: { ...prev.events, novoCliente: e.target.checked }
+                          }))}
+                          className="rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <Label htmlFor="novoCliente" className="cursor-pointer">Novo Cliente</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="emprestimoAtrasado"
+                          checked={webhookConfig.events.emprestimoAtrasado}
+                          onChange={(e) => setWebhookConfig(prev => ({
+                            ...prev,
+                            events: { ...prev.events, emprestimoAtrasado: e.target.checked }
+                          }))}
+                          className="rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <Label htmlFor="emprestimoAtrasado" className="cursor-pointer">Empréstimo Atrasado</Label>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-4">
+                    <Button
+                      variant="outline"
+                      className="w-full md:w-auto"
+                      onClick={testarWebhook}
+                    >
+                      <Link className="mr-2 h-4 w-4" />
+                      Testar Webhook
+                    </Button>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                  <Button onClick={salvarWebhookConfig} disabled={isSavingWebhook}>
+                    {isSavingWebhook ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="mr-2 h-4 w-4" />
+                        Salvar Configuração
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+              
+              <Card>
+                <CardHeader>
+                  <CardTitle>Integração com Evolution API</CardTitle>
+                  <CardDescription>
+                    Configure a integração com a Evolution API para WhatsApp.
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="evolutionUrl">URL da Evolution API</Label>
+                    <Input
+                      id="evolutionUrl"
+                      placeholder="https://sua-evolution-api.com/webhook"
+                      value={evolutionConfig.url}
+                      onChange={(e) => setEvolutionConfig(prev => ({ ...prev, url: e.target.value }))}
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Esta URL receberá POST automático quando ocorrerem os eventos selecionados.
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label className="block mb-2">Eventos que acionam a Evolution API</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="novoEmprestimoEvo"
+                          checked={evolutionConfig.events.novoEmprestimo}
+                          onChange={(e) => setEvolutionConfig(prev => ({
+                            ...prev,
+                            events: { ...prev.events, novoEmprestimo: e.target.checked }
+                          }))}
+                          className="rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <Label htmlFor="novoEmprestimoEvo" className="cursor-pointer">Novo Empréstimo</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="novoPagamentoEvo"
+                          checked={evolutionConfig.events.novoPagamento}
+                          onChange={(e) => setEvolutionConfig(prev => ({
+                            ...prev,
+                            events: { ...prev.events, novoPagamento: e.target.checked }
+                          }))}
+                          className="rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <Label htmlFor="novoPagamentoEvo" className="cursor-pointer">Novo Pagamento</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="novoClienteEvo"
+                          checked={evolutionConfig.events.novoCliente}
+                          onChange={(e) => setEvolutionConfig(prev => ({
+                            ...prev,
+                            events: { ...prev.events, novoCliente: e.target.checked }
+                          }))}
+                          className="rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <Label htmlFor="novoClienteEvo" className="cursor-pointer">Novo Cliente</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="emprestimoAtrasadoEvo"
+                          checked={evolutionConfig.events.emprestimoAtrasado}
+                          onChange={(e) => setEvolutionConfig(prev => ({
+                            ...prev,
+                            events: { ...prev.events, emprestimoAtrasado: e.target.checked }
+                          }))}
+                          className="rounded border-gray-300 text-primary focus:ring-primary"
+                        />
+                        <Label htmlFor="emprestimoAtrasadoEvo" className="cursor-pointer">Empréstimo Atrasado</Label>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-end">
+                  <Button onClick={salvarEvolutionConfig} disabled={isSavingEvolution}>
+                    {isSavingEvolution ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Salvando...
+                      </>
+                    ) : (
+                      <>
+                        <Check className="mr-2 h-4 w-4" />
+                        Salvar Configuração
+                      </>
+                    )}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Acesso Restrito</CardTitle>
+                <CardDescription>
+                  Apenas administradores podem acessar as configurações de integrações.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="text-center py-8">
+                <p className="text-muted-foreground">
+                  Você não tem permissões suficientes para visualizar essa seção.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default MensagensETemplates;
