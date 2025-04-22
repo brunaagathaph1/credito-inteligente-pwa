@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -33,19 +33,25 @@ import {
 } from "@/components/ui/dialog";
 import { EmptyState } from "@/components/common/EmptyState";
 import { PageHeader } from "@/components/common/PageHeader";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
-// Esquema de validação para contas bancárias
+// Esquema de validação para contas bancárias (com campos do banco real)
 const contaBancariaSchema = z.object({
   nome: z.string().min(3, "Nome deve ter pelo menos 3 caracteres"),
   banco: z.string().min(1, "Selecione um banco"),
-  agencia: z.string().min(1, "Agência é obrigatória"),
-  conta: z.string().min(1, "Conta é obrigatória"),
+  numero_agencia: z.string().min(1, "Agência é obrigatória"),
+  numero_conta: z.string().min(1, "Conta é obrigatória"),
   tipo: z.enum(["corrente", "poupanca"]),
+  titular: z.string().optional(),
+  cpf_cnpj: z.string().optional(),
+  status: z.string().optional(),
+  observacoes: z.string().optional(),
 });
 
 type ContaBancariaForm = z.infer<typeof contaBancariaSchema>;
 
-// Lista de bancos comuns no Brasil
+// Bancos comuns
 const bancosBrasileiros = [
   { codigo: "001", nome: "Banco do Brasil" },
   { codigo: "104", nome: "Caixa Econômica Federal" },
@@ -62,18 +68,25 @@ const bancosBrasileiros = [
   { codigo: "000", nome: "Outro" },
 ];
 
-// Interface para o tipo de conta bancária
+// Interface para os dados vindo do banco (compatível com Supabase)
 interface ContaBancaria {
   id: string;
   nome: string;
   banco: string;
-  agencia: string;
-  conta: string;
+  numero_agencia: string;
+  numero_conta: string;
   tipo: "corrente" | "poupanca";
+  titular?: string | null;
+  cpf_cnpj?: string | null;
+  status: string;
+  observacoes?: string | null;
 }
 
+// Hooks principais
 const ContasBancarias = () => {
+  const { user } = useAuth();
   const [contas, setContas] = useState<ContaBancaria[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingConta, setEditingConta] = useState<ContaBancaria | null>(null);
 
@@ -83,69 +96,117 @@ const ContasBancarias = () => {
     defaultValues: {
       nome: "",
       banco: "",
-      agencia: "",
-      conta: "",
+      numero_agencia: "",
+      numero_conta: "",
       tipo: "corrente",
+      titular: "",
+      cpf_cnpj: "",
+      status: "ativo",
+      observacoes: "",
     },
   });
 
-  // Função para lidar com o envio do formulário
-  const onSubmit = (values: ContaBancariaForm) => {
-    if (editingConta) {
-      // Atualizar conta existente
-      const updatedContas = contas.map((conta) =>
-        conta.id === editingConta.id
-          ? { ...values, id: editingConta.id } as ContaBancaria
-          : conta
-      );
-      setContas(updatedContas);
-      toast.success("Conta bancária atualizada com sucesso!");
+  // Buscar as contas do usuário
+  async function fetchContas() {
+    setIsLoading(true);
+    const { data, error } = await supabase
+      .from("contas_bancarias")
+      .select("*")
+      .order("criada_em", { ascending: false });
+    if (error) {
+      toast.error("Erro ao buscar contas bancárias");
     } else {
-      // Adicionar nova conta - Fix: Ensure all required properties are provided
-      const novaConta: ContaBancaria = {
-        id: Math.random().toString(36).substr(2, 9),
-        nome: values.nome,
-        banco: values.banco,
-        agencia: values.agencia,
-        conta: values.conta,
-        tipo: values.tipo,
-      };
-      setContas([...contas, novaConta]);
-      toast.success("Conta bancária adicionada com sucesso!");
+      setContas(data ?? []);
     }
+    setIsLoading(false);
+  }
 
-    // Resetar formulário e fechar diálogo
+  useEffect(() => {
+    if (user) {
+      fetchContas();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
+
+  // Criar ou atualizar conta
+  const onSubmit = async (values: ContaBancariaForm) => {
+    if (!user) return;
+    if (editingConta) {
+      const { error } = await supabase
+        .from("contas_bancarias")
+        .update({
+          ...values,
+          atualizada_em: new Date().toISOString(),
+        })
+        .eq("id", editingConta.id)
+        .select();
+      if (error) {
+        toast.error("Erro ao atualizar conta bancária");
+      } else {
+        toast.success("Conta bancária atualizada com sucesso!");
+        fetchContas();
+      }
+    } else {
+      const { error } = await supabase
+        .from("contas_bancarias")
+        .insert({
+          ...values,
+          status: values.status ?? "ativo",
+          criada_por: user.id,
+        });
+      if (error) {
+        toast.error("Erro ao adicionar conta bancária");
+      } else {
+        toast.success("Conta bancária adicionada com sucesso!");
+        fetchContas();
+      }
+    }
     form.reset();
     setIsDialogOpen(false);
     setEditingConta(null);
   };
 
-  // Função para abrir o diálogo de edição
+  // Editar
   const handleEdit = (conta: ContaBancaria) => {
     setEditingConta(conta);
-    form.reset(conta);
+    form.reset({
+      ...conta,
+    });
     setIsDialogOpen(true);
   };
 
-  // Função para excluir uma conta
-  const handleDelete = (id: string) => {
-    setContas(contas.filter((conta) => conta.id !== id));
-    toast.success("Conta bancária removida com sucesso!");
+  // Excluir
+  const handleDelete = async (id: string) => {
+    const { error } = await supabase
+      .from("contas_bancarias")
+      .delete()
+      .eq("id", id);
+    if (error) {
+      toast.error("Erro ao remover conta bancária");
+    } else {
+      toast.success("Conta bancária removida com sucesso!");
+      fetchContas();
+    }
   };
 
-  // Função para abrir diálogo de nova conta
+  // Abrir diálogo de nova conta
   const handleOpenDialog = () => {
     form.reset({
       nome: "",
       banco: "",
-      agencia: "",
-      conta: "",
+      numero_agencia: "",
+      numero_conta: "",
       tipo: "corrente",
+      titular: "",
+      cpf_cnpj: "",
+      status: "ativo",
+      observacoes: "",
     });
     setEditingConta(null);
     setIsDialogOpen(true);
   };
 
+  // Renderização principal
   return (
     <div className="space-y-6">
       <PageHeader
@@ -218,7 +279,7 @@ const ContasBancarias = () => {
                   <div className="grid grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="agencia"
+                      name="numero_agencia"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Agência</FormLabel>
@@ -232,7 +293,7 @@ const ContasBancarias = () => {
 
                     <FormField
                       control={form.control}
-                      name="conta"
+                      name="numero_conta"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Conta</FormLabel>
@@ -274,6 +335,48 @@ const ContasBancarias = () => {
                     )}
                   />
 
+                  <FormField
+                    control={form.control}
+                    name="titular"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Titular</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Ex: Fulano de Tal" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="cpf_cnpj"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>CPF/CNPJ</FormLabel>
+                        <FormControl>
+                          <Input placeholder="000.000.000-00" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="observacoes"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Observações</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Observações, se houver" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
                   <div className="flex justify-end space-x-2 pt-4">
                     <Button
                       type="button"
@@ -293,7 +396,9 @@ const ContasBancarias = () => {
         }
       />
 
-      {contas.length === 0 ? (
+      {isLoading ? (
+        <div className="flex justify-center py-10">Carregando...</div>
+      ) : contas.length === 0 ? (
         <EmptyState
           title="Sem contas bancárias"
           description="Você ainda não cadastrou nenhuma conta bancária."
@@ -337,17 +442,17 @@ const ContasBancarias = () => {
                     <span>
                       {
                         bancosBrasileiros.find((b) => b.codigo === conta.banco)
-                          ?.nome
+                          ?.nome || conta.banco
                       }
                     </span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Agência:</span>
-                    <span>{conta.agencia}</span>
+                    <span>{conta.numero_agencia}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Conta:</span>
-                    <span>{conta.conta}</span>
+                    <span>{conta.numero_conta}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Tipo:</span>
@@ -356,6 +461,18 @@ const ContasBancarias = () => {
                         ? "Conta Corrente"
                         : "Conta Poupança"}
                     </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Titular:</span>
+                    <span>{conta.titular}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">CPF/CNPJ:</span>
+                    <span>{conta.cpf_cnpj}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Status:</span>
+                    <span>{conta.status}</span>
                   </div>
                 </div>
               </CardContent>
@@ -368,3 +485,4 @@ const ContasBancarias = () => {
 };
 
 export default ContasBancarias;
+
