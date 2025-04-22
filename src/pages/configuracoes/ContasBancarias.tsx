@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { PlusCircle, Bank, Trash2, Pencil } from "lucide-react";
+import { PlusCircle, Building, Trash2, Pencil } from "lucide-react";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
@@ -102,7 +102,7 @@ const ContasBancarias = () => {
       toast.success("Conta bancária atualizada com sucesso!");
     } else {
       // Adicionar nova conta
-      const novaConta = {
+      const novaConta: ContaBancaria = {
         ...values,
         id: Math.random().toString(36).substr(2, 9),
       };
@@ -293,7 +293,7 @@ const ContasBancarias = () => {
         <EmptyState
           title="Sem contas bancárias"
           description="Você ainda não cadastrou nenhuma conta bancária."
-          icon={<Bank className="h-8 w-8" />}
+          icon={<Building className="h-8 w-8" />}
           action={
             <Button onClick={handleOpenDialog}>
               <PlusCircle className="mr-2 h-4 w-4" />

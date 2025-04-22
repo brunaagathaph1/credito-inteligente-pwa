@@ -43,7 +43,7 @@
 - [x] Gerenciamento de categorias
 - [x] Configuração de taxas de juros
 - [x] Métodos de pagamento
-- [ ] Contas bancárias
+- [x] Contas bancárias
 - [x] Logs de atividades
 
 ## Mensagens e Templates
