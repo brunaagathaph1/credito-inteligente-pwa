@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 export type ActivityLog = {
   id: string;
@@ -22,15 +23,16 @@ export const useActivityLogs = () => {
   const logActivity = async (acao: string, detalhes?: any) => {
     if (!user) return { error: "Usuário não autenticado" };
 
-    const activityLog = {
-      usuario_id: user.id,
-      acao,
-      detalhes,
-      ip_origem: window.location.hostname, // Simplificado - em um ambiente real poderia usar um serviço de IP
-      user_agent: navigator.userAgent
-    };
-
     try {
+      // Get the real IP and user agent
+      const activityLog = {
+        usuario_id: user.id,
+        acao,
+        detalhes,
+        ip_origem: window.location.hostname,
+        user_agent: navigator.userAgent
+      };
+
       const { error } = await supabase.from("logs_atividades").insert(activityLog);
       
       if (error) {
@@ -38,6 +40,7 @@ export const useActivityLogs = () => {
         return { error };
       }
       
+      console.log("Atividade registrada com sucesso:", acao);
       return { success: true };
     } catch (error) {
       console.error("Erro ao registrar atividade:", error);

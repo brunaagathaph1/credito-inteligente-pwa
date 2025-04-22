@@ -1,10 +1,10 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Edit, Trash2, UserMinus, DollarSign, Phone } from "lucide-react";
+import { ArrowLeft, Edit, Trash2, UserMinus, DollarSign, Phone, Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,133 +16,149 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-
-// Dados simulados de cliente
-const clienteMock = {
-  id: "1",
-  nome: "João da Silva",
-  documento: "123.456.789-00",
-  telefone: "(11) 98765-4321",
-  email: "joao.silva@email.com",
-  endereco: {
-    logradouro: "Rua das Flores",
-    numero: "123",
-    complemento: "Apto 101",
-    bairro: "Centro",
-    cidade: "São Paulo",
-    estado: "SP",
-    cep: "01234-567"
-  },
-  score: 95,
-  status: "ativo",
-  observacoes: "Cliente de longa data, bom pagador. Prefere ser contactado por WhatsApp.",
-  dataCadastro: "10/05/2023"
-};
-
-// Dados simulados de empréstimos deste cliente
-const emprestimosMock = [
-  {
-    id: "1",
-    valor: 5000,
-    dataInicio: "15/05/2023",
-    juros: 2.5,
-    tipoJuros: "composto",
-    parcelas: 10,
-    status: "ativo",
-    valorPago: 3000,
-    valorRestante: 2500,
-    proximoPagamento: "15/06/2023"
-  },
-  {
-    id: "2",
-    valor: 2000,
-    dataInicio: "20/01/2023",
-    juros: 2.0,
-    tipoJuros: "simples",
-    parcelas: 5,
-    status: "quitado",
-    valorPago: 2200,
-    valorRestante: 0,
-    proximoPagamento: null
-  }
-];
-
-// Dados simulados de pagamentos
-const pagamentosMock = [
-  {
-    id: "1",
-    data: "15/05/2023",
-    valor: 550,
-    emprestimo: "1",
-    parcela: 1
-  },
-  {
-    id: "2",
-    data: "15/06/2023",
-    valor: 550,
-    emprestimo: "1",
-    parcela: 2
-  },
-  {
-    id: "3",
-    data: "15/07/2023",
-    valor: 550,
-    emprestimo: "1",
-    parcela: 3
-  },
-  {
-    id: "4",
-    data: "15/08/2023",
-    valor: 550,
-    emprestimo: "1",
-    parcela: 4
-  },
-  {
-    id: "5",
-    data: "15/09/2023",
-    valor: 550,
-    emprestimo: "1",
-    parcela: 5
-  },
-  {
-    id: "6",
-    data: "15/10/2023",
-    valor: 250,
-    emprestimo: "1",
-    parcela: 6
-  }
-];
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useActivityLogs } from "@/hooks/useActivityLogs";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { EmptyState } from "@/components/common/EmptyState";
 
 const ClienteDetalhe = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { logActivity } = useActivityLogs();
   const [activeTab, setActiveTab] = useState("dados");
+  const [cliente, setCliente] = useState<any>(null);
+  const [emprestimos, setEmprestimos] = useState<any[]>([]);
+  const [pagamentos, setPagamentos] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Aqui seria feita a busca dos dados do cliente com o ID fornecido
-  // Por enquanto, usamos os dados simulados
-  const cliente = clienteMock;
-  const emprestimos = emprestimosMock;
-  const pagamentos = pagamentosMock;
+  useEffect(() => {
+    const fetchClienteDetails = async () => {
+      if (!id) return;
+      
+      try {
+        setLoading(true);
+        
+        // Buscar dados do cliente
+        const { data: clienteData, error: clienteError } = await supabase
+          .from("clientes")
+          .select("*")
+          .eq("id", id)
+          .single();
+          
+        if (clienteError) throw clienteError;
+        
+        setCliente(clienteData);
+        
+        // Buscar empréstimos do cliente
+        const { data: emprestimosData, error: emprestimosError } = await supabase
+          .from("emprestimos")
+          .select("*")
+          .eq("cliente_id", id)
+          .order("data_emprestimo", { ascending: false });
+          
+        if (emprestimosError) throw emprestimosError;
+        
+        setEmprestimos(emprestimosData || []);
+        
+        // Buscar pagamentos relacionados a este cliente
+        if (emprestimosData && emprestimosData.length > 0) {
+          const emprestimosIds = emprestimosData.map(emp => emp.id);
+          
+          const { data: pagamentosData, error: pagamentosError } = await supabase
+            .from("pagamentos")
+            .select("*")
+            .in("emprestimo_id", emprestimosIds)
+            .order("data_pagamento", { ascending: false });
+            
+          if (pagamentosError) throw pagamentosError;
+          
+          setPagamentos(pagamentosData || []);
+        }
+        
+        // Registrar atividade
+        await logActivity("Visualizou detalhes do cliente", { cliente_id: id });
+        
+      } catch (error: any) {
+        console.error("Erro ao buscar detalhes do cliente:", error);
+        toast.error(`Erro ao carregar dados: ${error.message || "Erro desconhecido"}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchClienteDetails();
+  }, [id, logActivity]);
 
-  const handleScoreClass = (score: number) => {
+  const handleScoreClass = (score?: number) => {
+    if (!score) return "text-muted-foreground";
     if (score >= 90) return "text-success";
     if (score >= 70) return "text-warning";
     return "text-destructive";
   };
 
-  const handleInactivateClient = () => {
-    console.log("Inativar cliente:", id);
-    // Aqui seria feita a chamada para inativar o cliente
-    // Após a inativação, redirecionar para a lista de clientes
-    navigate("/clientes");
+  const handleInactivateClient = async () => {
+    if (!id || !user) return;
+    
+    try {
+      // Aqui seria feita a chamada para inativar o cliente
+      // Por enquanto, apenas registramos a atividade
+      await logActivity("Inativou cliente", { cliente_id: id });
+      
+      toast.success("Cliente inativado com sucesso!");
+      navigate("/clientes");
+    } catch (error: any) {
+      console.error("Erro ao inativar cliente:", error);
+      toast.error(`Erro ao inativar cliente: ${error.message || "Erro desconhecido"}`);
+    }
   };
 
-  const handleDeleteClient = () => {
-    console.log("Excluir cliente:", id);
-    // Aqui seria feita a chamada para excluir o cliente
-    // Após a exclusão, redirecionar para a lista de clientes
-    navigate("/clientes");
+  const handleDeleteClient = async () => {
+    if (!id || !user) return;
+    
+    try {
+      const { error } = await supabase
+        .from("clientes")
+        .delete()
+        .eq("id", id);
+        
+      if (error) throw error;
+      
+      await logActivity("Excluiu cliente", { cliente_id: id });
+      
+      toast.success("Cliente excluído com sucesso!");
+      navigate("/clientes");
+    } catch (error: any) {
+      console.error("Erro ao excluir cliente:", error);
+      toast.error(`Erro ao excluir cliente: ${error.message || "Erro desconhecido"}`);
+    }
   };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-[50vh]">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  if (!cliente) {
+    return (
+      <EmptyState
+        title="Cliente não encontrado"
+        description="O cliente que você está procurando não existe ou foi removido"
+        icon={<UserMinus className="h-10 w-10" />}
+        action={
+          <Button onClick={() => navigate("/clientes")}>
+            Voltar para Lista
+          </Button>
+        }
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -152,7 +168,7 @@ const ClienteDetalhe = () => {
         </Button>
         <div>
           <h1 className="text-3xl font-bold">{cliente.nome}</h1>
-          <p className="text-muted-foreground">{cliente.documento}</p>
+          <p className="text-muted-foreground">{cliente.cpf || "Sem CPF"}</p>
         </div>
       </div>
 
@@ -219,12 +235,14 @@ const ClienteDetalhe = () => {
               Novo Empréstimo
             </Link>
           </Button>
-          <Button variant="outline" asChild>
-            <a href={`tel:${cliente.telefone.replace(/\D/g, '')}`}>
-              <Phone className="mr-2 h-4 w-4" />
-              Ligar
-            </a>
-          </Button>
+          {cliente.telefone && (
+            <Button variant="outline" asChild>
+              <a href={`tel:${cliente.telefone.replace(/\D/g, '')}`}>
+                <Phone className="mr-2 h-4 w-4" />
+                Ligar
+              </a>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -248,32 +266,32 @@ const ClienteDetalhe = () => {
                     <p>{cliente.nome}</p>
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-muted-foreground">Documento</p>
-                    <p>{cliente.documento}</p>
+                    <p className="text-sm font-medium text-muted-foreground">CPF</p>
+                    <p>{cliente.cpf || "-"}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Telefone</p>
-                    <p>{cliente.telefone}</p>
+                    <p>{cliente.telefone || "-"}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">E-mail</p>
-                    <p>{cliente.email}</p>
+                    <p>{cliente.email || "-"}</p>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Status</p>
                     <span
                       className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                        cliente.status === "ativo"
+                        cliente.status !== "inativo"
                           ? "bg-success/10 text-success"
                           : "bg-muted text-muted-foreground"
                       }`}
                     >
-                      {cliente.status === "ativo" ? "Ativo" : "Inativo"}
+                      {cliente.status === "inativo" ? "Inativo" : "Ativo"}
                     </span>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-muted-foreground">Score</p>
-                    <p className={handleScoreClass(cliente.score)}>{cliente.score}</p>
+                    <p className={handleScoreClass(cliente.score)}>{cliente.score || "-"}</p>
                   </div>
                 </div>
               </CardContent>
@@ -285,14 +303,11 @@ const ClienteDetalhe = () => {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <p>
-                    {cliente.endereco.logradouro}, {cliente.endereco.numero}
-                    {cliente.endereco.complemento && `, ${cliente.endereco.complemento}`}
-                  </p>
-                  <p>
-                    {cliente.endereco.bairro}, {cliente.endereco.cidade} - {cliente.endereco.estado}
-                  </p>
-                  <p>CEP: {cliente.endereco.cep}</p>
+                  {cliente.endereco ? (
+                    <p>{cliente.endereco}</p>
+                  ) : (
+                    <p className="text-muted-foreground">Endereço não cadastrado</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -302,7 +317,11 @@ const ClienteDetalhe = () => {
                 <CardTitle>Observações</CardTitle>
               </CardHeader>
               <CardContent>
-                <p>{cliente.observacoes}</p>
+                {cliente.observacoes ? (
+                  <p>{cliente.observacoes}</p>
+                ) : (
+                  <p className="text-muted-foreground">Nenhuma observação cadastrada</p>
+                )}
               </CardContent>
             </Card>
           </div>
@@ -334,32 +353,28 @@ const ClienteDetalhe = () => {
                           <div className="flex items-center gap-2">
                             <span
                               className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                emprestimo.status === "ativo"
+                                emprestimo.status === "quitado"
                                   ? "bg-success/10 text-success"
+                                  : emprestimo.status === "pendente"
+                                  ? "bg-warning/10 text-warning"
                                   : "bg-muted text-muted-foreground"
                               }`}
                             >
-                              {emprestimo.status === "ativo" ? "Ativo" : "Quitado"}
+                              {emprestimo.status === "quitado" 
+                                ? "Quitado" 
+                                : emprestimo.status === "pendente"
+                                ? "Pendente"
+                                : emprestimo.status}
                             </span>
                             <p className="font-medium">
-                              R$ {emprestimo.valor.toLocaleString("pt-BR")}
+                              R$ {Number(emprestimo.valor_principal).toLocaleString("pt-BR", {minimumFractionDigits: 2})}
                             </p>
                           </div>
                           <p className="text-sm text-muted-foreground">
-                            Iniciado em {emprestimo.dataInicio} • {emprestimo.parcelas} parcelas • Juros de {emprestimo.juros}% ({emprestimo.tipoJuros})
+                            Empréstimo em {format(new Date(emprestimo.data_emprestimo), "dd/MM/yyyy", { locale: ptBR })} 
+                            • Vencimento em {format(new Date(emprestimo.data_vencimento), "dd/MM/yyyy", { locale: ptBR })}
+                            • Juros de {Number(emprestimo.taxa_juros).toLocaleString("pt-BR")}% ({emprestimo.tipo_juros})
                           </p>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-medium">
-                            {emprestimo.status === "ativo"
-                              ? `Restante: R$ ${emprestimo.valorRestante.toLocaleString("pt-BR")}`
-                              : "Quitado"}
-                          </p>
-                          {emprestimo.proximoPagamento && (
-                            <p className="text-sm text-muted-foreground">
-                              Próximo pagamento: {emprestimo.proximoPagamento}
-                            </p>
-                          )}
                         </div>
                       </div>
                     </div>
@@ -390,15 +405,18 @@ const ClienteDetalhe = () => {
                       <div className="flex justify-between items-center">
                         <div>
                           <p className="font-medium">
-                            Parcela {pagamento.parcela} • Empréstimo #{pagamento.emprestimo}
+                            Pagamento • Empréstimo #{pagamento.emprestimo_id.substring(0, 8)}...
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            Pago em {pagamento.data}
+                            Pago em {format(new Date(pagamento.data_pagamento), "dd/MM/yyyy", { locale: ptBR })}
                           </p>
                         </div>
                         <div className="text-right">
                           <p className="font-medium text-success">
-                            R$ {pagamento.valor.toLocaleString("pt-BR")}
+                            R$ {Number(pagamento.valor).toLocaleString("pt-BR", {minimumFractionDigits: 2})}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {pagamento.tipo}
                           </p>
                         </div>
                       </div>

@@ -24,54 +24,77 @@ import {
 } from "@/components/ui/form";
 import { ArrowLeft, Save } from "lucide-react";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useActivityLogs } from "@/hooks/useActivityLogs";
 
-interface FormData {
-  nome: string;
-  documento: string;
-  telefone: string;
-  email: string;
-  logradouro: string;
-  numero: string;
-  complemento: string;
-  bairro: string;
-  cidade: string;
-  estado: string;
-  cep: string;
-  observacoes: string;
-}
+// Schema de validação
+const formSchema = z.object({
+  nome: z.string()
+    .min(3, "Nome precisa ter pelo menos 3 caracteres")
+    .max(100, "Nome não pode ter mais de 100 caracteres"),
+  cpf: z.string().optional(),
+  telefone: z.string().optional(),
+  email: z.string().email("E-mail inválido").optional().or(z.literal("")),
+  endereco: z.string().optional(),
+  observacoes: z.string().optional(),
+});
+
+type FormData = z.infer<typeof formSchema>;
 
 const NovoCliente = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
+  const { logActivity } = useActivityLogs();
 
   const form = useForm<FormData>({
+    resolver: zodResolver(formSchema),
     defaultValues: {
       nome: "",
-      documento: "",
+      cpf: "",
       telefone: "",
       email: "",
-      logradouro: "",
-      numero: "",
-      complemento: "",
-      bairro: "",
-      cidade: "",
-      estado: "",
-      cep: "",
+      endereco: "",
       observacoes: "",
     },
   });
 
-  const onSubmit = (data: FormData) => {
+  const onSubmit = async (data: FormData) => {
+    if (!user) {
+      toast.error("Você precisa estar autenticado para cadastrar um cliente");
+      return;
+    }
+    
     setIsLoading(true);
     
-    console.log("Dados do novo cliente:", data);
-    
-    // Simulação de envio para API
-    setTimeout(() => {
-      setIsLoading(false);
-      // Após cadastro bem-sucedido, redirecionar para lista de clientes
+    try {
+      // Cadastrar no Supabase
+      const { data: newClient, error } = await supabase
+        .from("clientes")
+        .insert({
+          ...data,
+          created_by: user.id,
+        })
+        .select("*")
+        .single();
+        
+      if (error) throw error;
+      
+      // Registrar atividade
+      await logActivity("Cadastrou novo cliente", { cliente_id: newClient.id, nome: newClient.nome });
+      
+      toast.success("Cliente cadastrado com sucesso!");
       navigate("/clientes");
-    }, 1500);
+    } catch (error: any) {
+      console.error("Erro ao cadastrar cliente:", error);
+      toast.error(`Erro ao cadastrar cliente: ${error.message || "Erro desconhecido"}`);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -115,10 +138,10 @@ const NovoCliente = () => {
 
                 <FormField
                   control={form.control}
-                  name="documento"
+                  name="cpf"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>CPF ou RG</FormLabel>
+                      <FormLabel>CPF</FormLabel>
                       <FormControl>
                         <Input placeholder="000.000.000-00" {...field} />
                       </FormControl>
@@ -162,108 +185,21 @@ const NovoCliente = () => {
             <CardHeader>
               <CardTitle>Endereço</CardTitle>
               <CardDescription>
-                Informe o endereço completo do cliente.
+                Informe o endereço do cliente.
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="md:col-span-2">
-                  <FormField
-                    control={form.control}
-                    name="logradouro"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Logradouro</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Rua, Avenida, etc." {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-
-                <FormField
-                  control={form.control}
-                  name="numero"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Número</FormLabel>
-                      <FormControl>
-                        <Input placeholder="123" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
+            <CardContent>
               <FormField
                 control={form.control}
-                name="complemento"
+                name="endereco"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Complemento</FormLabel>
                     <FormControl>
-                      <Input placeholder="Apartamento, sala, conjunto, etc." {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="bairro"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Bairro</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Bairro" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="cidade"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Cidade</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Cidade" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="estado"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Estado</FormLabel>
-                      <FormControl>
-                        <Input placeholder="UF" maxLength={2} {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name="cep"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>CEP</FormLabel>
-                    <FormControl>
-                      <Input placeholder="00000-000" {...field} />
+                      <Textarea
+                        placeholder="Endereço completo do cliente"
+                        className="min-h-[100px]"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -288,7 +224,7 @@ const NovoCliente = () => {
                     <FormControl>
                       <Textarea
                         placeholder="Observações sobre o cliente, preferências de contato, etc."
-                        className="min-h-[120px] resize-none"
+                        className="min-h-[120px]"
                         {...field}
                       />
                     </FormControl>

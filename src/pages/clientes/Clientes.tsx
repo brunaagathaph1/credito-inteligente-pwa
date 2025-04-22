@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,68 +24,70 @@ import {
   CardHeader, 
   CardTitle 
 } from "@/components/ui/card";
-import { Search, UserPlus, Eye } from "lucide-react";
+import { Search, UserPlus, Eye, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useActivityLogs } from "@/hooks/useActivityLogs";
+import { EmptyState } from "@/components/common/EmptyState";
 
-// Dados simulados de clientes
-const clientesMock = [
-  { 
-    id: "1", 
-    nome: "João da Silva", 
-    documento: "123.456.789-00", 
-    telefone: "(11) 98765-4321", 
-    score: 95, 
-    status: "ativo" 
-  },
-  { 
-    id: "2", 
-    nome: "Maria Oliveira", 
-    documento: "987.654.321-00", 
-    telefone: "(11) 91234-5678", 
-    score: 85, 
-    status: "ativo" 
-  },
-  { 
-    id: "3", 
-    nome: "Carlos Santos", 
-    documento: "456.789.123-00", 
-    telefone: "(11) 95555-1234", 
-    score: 75, 
-    status: "inativo" 
-  },
-  { 
-    id: "4", 
-    nome: "Ana Souza", 
-    documento: "789.123.456-00", 
-    telefone: "(11) 94444-5678", 
-    score: 90, 
-    status: "ativo" 
-  },
-  { 
-    id: "5", 
-    nome: "Roberto Ferreira", 
-    documento: "321.654.987-00", 
-    telefone: "(11) 93333-7890", 
-    score: 65, 
-    status: "ativo" 
-  },
-];
+type Cliente = {
+  id: string;
+  nome: string;
+  cpf?: string;
+  telefone?: string;
+  email?: string;
+  score?: number;
+  status?: string;
+};
 
 const Clientes = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
+  const [clientes, setClientes] = useState<Cliente[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { logActivity } = useActivityLogs();
+  
+  useEffect(() => {
+    const fetchClientes = async () => {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from('clientes')
+          .select('*')
+          .order('nome');
+          
+        if (error) {
+          throw error;
+        }
+        
+        setClientes(data || []);
+        // Log activity after successful fetch
+        logActivity("Visualizou lista de clientes");
+      } catch (error) {
+        console.error("Erro ao buscar clientes:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchClientes();
+  }, [logActivity]);
   
   // Filtrar clientes com base na busca e no filtro de status
-  const clientesFiltrados = clientesMock.filter(cliente => {
-    const matchesSearch = cliente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          cliente.documento.includes(searchTerm);
+  const clientesFiltrados = clientes.filter(cliente => {
+    const matchesSearch = cliente.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          cliente.cpf?.includes(searchTerm) ||
+                          cliente.email?.toLowerCase().includes(searchTerm.toLowerCase());
                           
     const matchesStatus = statusFilter === "todos" || cliente.status === statusFilter;
     
-    return matchesSearch && matchesStatus;
+    return matchesSearch && (statusFilter === "todos" || true); // Temporário até implementar status
   });
 
-  const handleScoreClass = (score: number) => {
+  const handleScoreClass = (score?: number) => {
+    if (!score) return "text-muted-foreground";
     if (score >= 90) return "text-success";
     if (score >= 70) return "text-warning";
     return "text-destructive";
@@ -115,7 +117,7 @@ const Clientes = () => {
             <div className="relative flex-1">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder="Buscar por nome ou documento..."
+                placeholder="Buscar por nome, CPF ou email..."
                 className="pl-9"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -136,44 +138,32 @@ const Clientes = () => {
             </Select>
           </div>
 
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead className="hidden md:table-cell">Documento</TableHead>
-                  <TableHead className="hidden md:table-cell">Telefone</TableHead>
-                  <TableHead>Score</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {clientesFiltrados.length === 0 ? (
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+            </div>
+          ) : clientesFiltrados.length > 0 ? (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center h-24 text-muted-foreground">
-                      Nenhum cliente encontrado.
-                    </TableCell>
+                    <TableHead>Nome</TableHead>
+                    <TableHead className="hidden md:table-cell">CPF</TableHead>
+                    <TableHead className="hidden md:table-cell">Telefone</TableHead>
+                    <TableHead className="hidden md:table-cell">Email</TableHead>
+                    <TableHead>Score</TableHead>
+                    <TableHead className="text-right">Ações</TableHead>
                   </TableRow>
-                ) : (
-                  clientesFiltrados.map((cliente) => (
+                </TableHeader>
+                <TableBody>
+                  {clientesFiltrados.map((cliente) => (
                     <TableRow key={cliente.id}>
                       <TableCell className="font-medium">{cliente.nome}</TableCell>
-                      <TableCell className="hidden md:table-cell">{cliente.documento}</TableCell>
-                      <TableCell className="hidden md:table-cell">{cliente.telefone}</TableCell>
+                      <TableCell className="hidden md:table-cell">{cliente.cpf || '-'}</TableCell>
+                      <TableCell className="hidden md:table-cell">{cliente.telefone || '-'}</TableCell>
+                      <TableCell className="hidden md:table-cell">{cliente.email || '-'}</TableCell>
                       <TableCell className={handleScoreClass(cliente.score)}>
-                        {cliente.score}
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            cliente.status === "ativo"
-                              ? "bg-success/10 text-success"
-                              : "bg-muted text-muted-foreground"
-                          }`}
-                        >
-                          {cliente.status === "ativo" ? "Ativo" : "Inativo"}
-                        </span>
+                        {cliente.score || '-'}
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
@@ -188,11 +178,24 @@ const Clientes = () => {
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <EmptyState
+              title="Nenhum cliente encontrado"
+              description={searchTerm || statusFilter !== "todos" 
+                ? "Tente ajustar os filtros de busca" 
+                : "Comece a cadastrar seus clientes para visualizá-los aqui"}
+              icon={<UserPlus className="h-10 w-10" />}
+              action={
+                <Button onClick={() => navigate("/clientes/novo")}>
+                  Cadastrar Cliente
+                </Button>
+              }
+            />
+          )}
         </CardContent>
       </Card>
     </div>
