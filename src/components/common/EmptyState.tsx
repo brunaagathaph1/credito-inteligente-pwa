@@ -8,6 +8,7 @@ interface EmptyStateProps {
   actionLabel?: string;
   actionHref?: string;
   icon?: React.ReactNode;
+  action?: React.ReactNode;
 }
 
 export function EmptyState({ 
@@ -15,7 +16,8 @@ export function EmptyState({
   description, 
   actionLabel, 
   actionHref,
-  icon 
+  icon,
+  action
 }: EmptyStateProps) {
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center">
@@ -30,6 +32,11 @@ export function EmptyState({
         <Button asChild className="mt-4">
           <Link to={actionHref}>{actionLabel}</Link>
         </Button>
+      )}
+      {action && (
+        <div className="mt-4">
+          {action}
+        </div>
       )}
     </div>
   );
