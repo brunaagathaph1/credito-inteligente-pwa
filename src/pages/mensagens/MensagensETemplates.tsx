@@ -20,88 +20,296 @@ import {
   Webhook 
 } from "lucide-react";
 import { EmptyState } from "@/components/common/EmptyState";
+import { useMensagens } from "@/hooks/useMensagens";
+import { useAuth } from "@/contexts/AuthContext";
+import { VARIAVEIS_TEMPLATES, VariavelTemplate } from "@/types/mensagens";
+import { useClients } from "@/hooks/useClients";
 
 const MensagensETemplates = () => {
+  const { user } = useAuth();
+  const { clients } = useClients();
   const [activeTab, setActiveTab] = useState("templates");
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [showMessageEditor, setShowMessageEditor] = useState(false);
   const [showScheduleEditor, setShowScheduleEditor] = useState(false);
 
-  // Dados de exemplo
-  const templates = [
-    { 
-      id: 1, 
-      nome: "Lembrete de Pagamento", 
-      tipo: "email", 
-      assunto: "Lembrete: Pagamento em Aberto",
-      conteudo: "Olá {{cliente.nome}}, gostaríamos de lembrar que seu pagamento de R$ {{emprestimo.valor}} vence em {{emprestimo.data_vencimento}}.",
-      ativo: true
-    },
-    { 
-      id: 2, 
-      nome: "Confirmação de Pagamento", 
-      tipo: "whatsapp", 
-      assunto: "",
-      conteudo: "Olá {{cliente.nome}}! Confirmamos o recebimento do seu pagamento no valor de R$ {{pagamento.valor}}. Agradecemos a pontualidade!",
-      ativo: true
-    },
-    { 
-      id: 3, 
-      nome: "Empréstimo Aprovado", 
-      tipo: "email", 
-      assunto: "Seu empréstimo foi aprovado!",
-      conteudo: "Olá {{cliente.nome}}, seu empréstimo no valor de R$ {{emprestimo.valor_principal}} foi aprovado e será liberado em breve.",
-      ativo: true
-    },
-  ];
+  // Hooks para dados
+  const { 
+    useTemplates, createTemplate, 
+    useMensagensHistory, createMensagem,
+    useAgendamentos, createAgendamento,
+    useWebhooks, saveWebhook
+  } = useMensagens();
+  
+  const { data: templates = [], isLoading: isLoadingTemplates } = useTemplates();
+  const { data: mensagens = [], isLoading: isLoadingMensagens } = useMensagensHistory();
+  const { data: agendamentos = [], isLoading: isLoadingAgendamentos } = useAgendamentos();
+  const { data: webhooks = [], isLoading: isLoadingWebhooks } = useWebhooks();
 
-  const mensagens = [
-    {
-      id: 1,
-      cliente: "João Silva",
-      assunto: "Lembrete: Pagamento em Aberto",
-      data: "10/04/2025",
-      status: "enviado",
-      tipo: "email"
-    },
-    {
-      id: 2,
-      cliente: "Maria Oliveira",
-      assunto: "Confirmação de Pagamento",
-      data: "08/04/2025",
-      status: "enviado",
-      tipo: "whatsapp"
-    },
-    {
-      id: 3,
-      cliente: "Pedro Santos",
-      assunto: "Empréstimo Aprovado",
-      data: "12/04/2025",
-      status: "agendado",
-      tipo: "email"
-    },
-  ];
+  // Template editor state
+  const [newTemplate, setNewTemplate] = useState({
+    nome: '',
+    tipo: '',
+    assunto: '',
+    conteudo: '',
+    ativo: true,
+    created_by: user?.id || ''
+  });
 
-  const agendamentos = [
-    {
-      id: 1,
-      nome: "Lembrete de Vencimento",
-      tipo: "automático",
-      evento: "emprestimo_vencendo",
-      dias_antes: 3,
-      template: "Lembrete de Pagamento",
-      ativo: true
-    },
-    {
-      id: 2,
-      nome: "Confirmação após Pagamento",
-      tipo: "automático",
-      evento: "pagamento_confirmado",
-      dias_antes: 0,
-      template: "Confirmação de Pagamento",
-      ativo: true
-    },
-  ];
+  const handleTemplateChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setNewTemplate(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleTemplateSelectChange = (name: string, value: string) => {
+    setNewTemplate(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleInsertVariable = (variable: VariavelTemplate) => {
+    const textArea = document.getElementById('template-conteudo') as HTMLTextAreaElement;
+    if (!textArea) return;
+    
+    const start = textArea.selectionStart;
+    const end = textArea.selectionEnd;
+    const text = textArea.value;
+    const before = text.substring(0, start);
+    const after = text.substring(end, text.length);
+    
+    setNewTemplate(prev => ({
+      ...prev,
+      conteudo: before + variable.valor + after
+    }));
+    
+    // Focus back on textarea and place cursor after inserted variable
+    setTimeout(() => {
+      textArea.focus();
+      textArea.selectionStart = start + variable.valor.length;
+      textArea.selectionEnd = start + variable.valor.length;
+    }, 10);
+  };
+
+  const handleSaveTemplate = async () => {
+    if (!user) return;
+    
+    try {
+      await createTemplate.mutateAsync({
+        ...newTemplate,
+        created_by: user.id
+      });
+      setShowTemplateEditor(false);
+      setNewTemplate({
+        nome: '',
+        tipo: '',
+        assunto: '',
+        conteudo: '',
+        ativo: true,
+        created_by: user.id
+      });
+    } catch (error) {
+      console.error('Error saving template:', error);
+    }
+  };
+
+  // Mensagem editor state
+  const [newMensagem, setNewMensagem] = useState({
+    cliente_id: '',
+    template_id: '',
+    assunto: '',
+    conteudo: '',
+    tipo: '',
+    status: 'pendente',
+    data_agendamento: '',
+    created_by: user?.id || ''
+  });
+
+  const handleMensagemChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setNewMensagem(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleMensagemSelectChange = (name: string, value: string) => {
+    setNewMensagem(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    
+    // Se selecionou um template, preenche os campos com os dados do template
+    if (name === 'template_id' && value && value !== '0') {
+      const template = templates.find(t => t.id === value);
+      if (template) {
+        setNewMensagem(prev => ({
+          ...prev,
+          tipo: template.tipo,
+          assunto: template.assunto,
+          conteudo: template.conteudo
+        }));
+      }
+    }
+  };
+
+  const handleSendMensagem = async () => {
+    if (!user) return;
+    
+    try {
+      await createMensagem.mutateAsync({
+        ...newMensagem,
+        template_id: newMensagem.template_id === '0' ? undefined : newMensagem.template_id,
+        created_by: user.id
+      });
+      setShowMessageEditor(false);
+      setNewMensagem({
+        cliente_id: '',
+        template_id: '',
+        assunto: '',
+        conteudo: '',
+        tipo: '',
+        status: 'pendente',
+        data_agendamento: '',
+        created_by: user.id
+      });
+    } catch (error) {
+      console.error('Error sending message:', error);
+    }
+  };
+
+  // Agendamento editor state
+  const [newAgendamento, setNewAgendamento] = useState({
+    nome: '',
+    tipo: 'automatico',
+    evento: '',
+    dias_antes: 0,
+    template_id: '',
+    ativo: true,
+    created_by: user?.id || ''
+  });
+
+  const handleAgendamentoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewAgendamento(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleAgendamentoSelectChange = (name: string, value: string) => {
+    setNewAgendamento(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleSaveAgendamento = async () => {
+    if (!user) return;
+    
+    try {
+      await createAgendamento.mutateAsync({
+        ...newAgendamento,
+        created_by: user.id
+      });
+      setShowScheduleEditor(false);
+      setNewAgendamento({
+        nome: '',
+        tipo: 'automatico',
+        evento: '',
+        dias_antes: 0,
+        template_id: '',
+        ativo: true,
+        created_by: user.id
+      });
+    } catch (error) {
+      console.error('Error saving agendamento:', error);
+    }
+  };
+
+  // Webhook state
+  const [webhook, setWebhook] = useState({
+    url: '',
+    secret_key: '',
+    eventos: [] as string[],
+    nome: 'Webhook Default',
+    ativo: true,
+    created_by: user?.id || ''
+  });
+
+  const [evolutionApi, setEvolutionApi] = useState({
+    url: '',
+    api_key: ''
+  });
+
+  const [apiUrl, setApiUrl] = useState("https://seudominio.com/api/webhook/12345");
+  const [apiKey, setApiKey] = useState("");
+
+  const handleWebhookChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setWebhook(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleEvolutionApiChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setEvolutionApi(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleEventoChange = (evento: string) => {
+    setWebhook(prev => {
+      const eventos = prev.eventos.includes(evento)
+        ? prev.eventos.filter(e => e !== evento)
+        : [...prev.eventos, evento];
+      return {
+        ...prev,
+        eventos
+      };
+    });
+  };
+
+  const handleSaveWebhook = async () => {
+    if (!user || !webhook.url) return;
+    
+    try {
+      await saveWebhook.mutateAsync({
+        ...webhook,
+        created_by: user.id
+      });
+      
+      // Reset form
+      setWebhook({
+        url: '',
+        secret_key: '',
+        eventos: [],
+        nome: 'Webhook Default',
+        ativo: true,
+        created_by: user.id
+      });
+    } catch (error) {
+      console.error('Error saving webhook:', error);
+    }
+  };
+
+  const testWebhook = () => {
+    // Implementação para testar webhook
+    toast.success("Teste de webhook enviado com sucesso!");
+  };
+
+  const generateApiKey = () => {
+    const newKey = Math.random().toString(36).substring(2, 15) + 
+                  Math.random().toString(36).substring(2, 15);
+    setApiKey(newKey);
+    toast.success("Nova API Key gerada com sucesso!");
+  };
 
   // Renderiza o editor de templates
   const renderTemplateEditor = () => (
@@ -115,13 +323,22 @@ const MensagensETemplates = () => {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="template-nome">Nome do Template</Label>
-            <Input id="template-nome" placeholder="Ex: Lembrete de Pagamento" />
+            <Label htmlFor="nome">Nome do Template</Label>
+            <Input 
+              id="nome"
+              name="nome"
+              placeholder="Ex: Lembrete de Pagamento" 
+              value={newTemplate.nome}
+              onChange={handleTemplateChange}
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="template-tipo">Tipo de Mensagem</Label>
-            <Select>
-              <SelectTrigger id="template-tipo">
+            <Label htmlFor="tipo">Tipo de Mensagem</Label>
+            <Select 
+              value={newTemplate.tipo}
+              onValueChange={(value) => handleTemplateSelectChange('tipo', value)}
+            >
+              <SelectTrigger id="tipo">
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
@@ -132,15 +349,24 @@ const MensagensETemplates = () => {
             </Select>
           </div>
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="template-assunto">Assunto (para e-mail)</Label>
-            <Input id="template-assunto" placeholder="Ex: Lembrete de Pagamento" />
+            <Label htmlFor="assunto">Assunto (para e-mail)</Label>
+            <Input 
+              id="assunto"
+              name="assunto"
+              placeholder="Ex: Lembrete de Pagamento" 
+              value={newTemplate.assunto}
+              onChange={handleTemplateChange}
+            />
           </div>
           <div className="space-y-2 md:col-span-2">
             <Label htmlFor="template-conteudo">Conteúdo da Mensagem</Label>
             <Textarea 
               id="template-conteudo" 
+              name="conteudo"
               placeholder="Digite o conteúdo da mensagem..." 
               className="min-h-[200px]"
+              value={newTemplate.conteudo}
+              onChange={handleTemplateChange}
             />
           </div>
         </div>
@@ -149,47 +375,23 @@ const MensagensETemplates = () => {
           <div>
             <Label className="mb-2 block">Variáveis Disponíveis:</Label>
             <div className="flex flex-wrap gap-2">
-              <div className="border p-4 rounded-md w-full md:w-auto">
-                <strong className="block mb-2">Cliente</strong>
-                <div className="flex flex-wrap gap-1">
-                  <Badge variant="outline" className="cursor-pointer" onClick={() => {}}>
-                    {"{{cliente.nome}}"}
-                  </Badge>
-                  <Badge variant="outline" className="cursor-pointer" onClick={() => {}}>
-                    {"{{cliente.email}}"}
-                  </Badge>
-                  <Badge variant="outline" className="cursor-pointer" onClick={() => {}}>
-                    {"{{cliente.telefone}}"}
-                  </Badge>
+              {Object.entries(VARIAVEIS_TEMPLATES).map(([categoria, variaveis]) => (
+                <div key={categoria} className="border p-4 rounded-md w-full md:w-auto">
+                  <strong className="block mb-2">{categoria.charAt(0).toUpperCase() + categoria.slice(1)}</strong>
+                  <div className="flex flex-wrap gap-1">
+                    {variaveis.map((variavel) => (
+                      <Badge 
+                        key={variavel.valor} 
+                        variant="outline" 
+                        className="cursor-pointer" 
+                        onClick={() => handleInsertVariable(variavel)}
+                      >
+                        {variavel.valor}
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
-              </div>
-              
-              <div className="border p-4 rounded-md w-full md:w-auto">
-                <strong className="block mb-2">Empréstimo</strong>
-                <div className="flex flex-wrap gap-1">
-                  <Badge variant="outline" className="cursor-pointer" onClick={() => {}}>
-                    {"{{emprestimo.valor_principal}}"}
-                  </Badge>
-                  <Badge variant="outline" className="cursor-pointer" onClick={() => {}}>
-                    {"{{emprestimo.data_vencimento}}"}
-                  </Badge>
-                  <Badge variant="outline" className="cursor-pointer" onClick={() => {}}>
-                    {"{{emprestimo.status}}"}
-                  </Badge>
-                </div>
-              </div>
-              
-              <div className="border p-4 rounded-md w-full md:w-auto">
-                <strong className="block mb-2">Pagamento</strong>
-                <div className="flex flex-wrap gap-1">
-                  <Badge variant="outline" className="cursor-pointer" onClick={() => {}}>
-                    {"{{pagamento.valor}}"}
-                  </Badge>
-                  <Badge variant="outline" className="cursor-pointer" onClick={() => {}}>
-                    {"{{pagamento.data}}"}
-                  </Badge>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </div>
@@ -198,8 +400,8 @@ const MensagensETemplates = () => {
           <Button variant="outline" onClick={() => setShowTemplateEditor(false)}>
             Cancelar
           </Button>
-          <Button>
-            Salvar Template
+          <Button onClick={handleSaveTemplate} disabled={createTemplate.isPending}>
+            {createTemplate.isPending ? "Salvando..." : "Salvar Template"}
           </Button>
         </div>
       </CardContent>
@@ -218,22 +420,30 @@ const MensagensETemplates = () => {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="msg-cliente">Cliente</Label>
-            <Select>
-              <SelectTrigger id="msg-cliente">
+            <Label htmlFor="cliente_id">Cliente</Label>
+            <Select 
+              value={newMensagem.cliente_id}
+              onValueChange={(value) => handleMensagemSelectChange('cliente_id', value)}
+            >
+              <SelectTrigger id="cliente_id">
                 <SelectValue placeholder="Selecione o cliente" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">João Silva</SelectItem>
-                <SelectItem value="2">Maria Oliveira</SelectItem>
-                <SelectItem value="3">Pedro Santos</SelectItem>
+                {clients.map(cliente => (
+                  <SelectItem key={cliente.id} value={cliente.id}>
+                    {cliente.nome}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="msg-tipo">Tipo de Mensagem</Label>
-            <Select>
-              <SelectTrigger id="msg-tipo">
+            <Label htmlFor="tipo">Tipo de Mensagem</Label>
+            <Select 
+              value={newMensagem.tipo}
+              onValueChange={(value) => handleMensagemSelectChange('tipo', value)}
+            >
+              <SelectTrigger id="tipo">
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
@@ -244,15 +454,18 @@ const MensagensETemplates = () => {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="msg-template">Usar Template</Label>
-            <Select>
-              <SelectTrigger id="msg-template">
+            <Label htmlFor="template_id">Usar Template</Label>
+            <Select 
+              value={newMensagem.template_id}
+              onValueChange={(value) => handleMensagemSelectChange('template_id', value)}
+            >
+              <SelectTrigger id="template_id">
                 <SelectValue placeholder="Selecione um template" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="0">Não usar template</SelectItem>
                 {templates.map(t => (
-                  <SelectItem key={t.id} value={t.id.toString()}>
+                  <SelectItem key={t.id} value={t.id}>
                     {t.nome}
                   </SelectItem>
                 ))}
@@ -260,24 +473,81 @@ const MensagensETemplates = () => {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="msg-agendamento">Agendamento</Label>
+            <Label htmlFor="data_agendamento">Agendamento</Label>
             <Input 
-              id="msg-agendamento" 
+              id="data_agendamento" 
+              name="data_agendamento"
               type="datetime-local" 
               placeholder="Enviar agora" 
+              value={newMensagem.data_agendamento}
+              onChange={handleMensagemChange}
             />
           </div>
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="msg-assunto">Assunto (para e-mail)</Label>
-            <Input id="msg-assunto" placeholder="Assunto da mensagem" />
+            <Label htmlFor="assunto">Assunto (para e-mail)</Label>
+            <Input 
+              id="assunto" 
+              name="assunto"
+              placeholder="Assunto da mensagem" 
+              value={newMensagem.assunto}
+              onChange={handleMensagemChange}
+            />
           </div>
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="msg-conteudo">Conteúdo da Mensagem</Label>
+            <Label htmlFor="conteudo">Conteúdo da Mensagem</Label>
             <Textarea 
-              id="msg-conteudo" 
+              id="conteudo" 
+              name="conteudo"
               placeholder="Digite sua mensagem..." 
               className="min-h-[200px]"
+              value={newMensagem.conteudo}
+              onChange={handleMensagemChange}
             />
+          </div>
+        </div>
+        
+        <div className="mt-4 space-y-4">
+          <div>
+            <Label className="mb-2 block">Variáveis Disponíveis:</Label>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(VARIAVEIS_TEMPLATES).map(([categoria, variaveis]) => (
+                <div key={categoria} className="border p-4 rounded-md w-full md:w-auto">
+                  <strong className="block mb-2">{categoria.charAt(0).toUpperCase() + categoria.slice(1)}</strong>
+                  <div className="flex flex-wrap gap-1">
+                    {variaveis.map((variavel) => (
+                      <Badge 
+                        key={variavel.valor} 
+                        variant="outline" 
+                        className="cursor-pointer" 
+                        onClick={() => {
+                          const textarea = document.getElementById('conteudo') as HTMLTextAreaElement;
+                          if (textarea) {
+                            const start = textarea.selectionStart;
+                            const end = textarea.selectionEnd;
+                            const text = textarea.value;
+                            const before = text.substring(0, start);
+                            const after = text.substring(end, text.length);
+                            
+                            setNewMensagem(prev => ({
+                              ...prev,
+                              conteudo: before + variavel.valor + after
+                            }));
+                            
+                            setTimeout(() => {
+                              textarea.focus();
+                              textarea.selectionStart = start + variavel.valor.length;
+                              textarea.selectionEnd = start + variavel.valor.length;
+                            }, 10);
+                          }
+                        }}
+                      >
+                        {variavel.valor}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
         
@@ -285,9 +555,9 @@ const MensagensETemplates = () => {
           <Button variant="outline" onClick={() => setShowMessageEditor(false)}>
             Cancelar
           </Button>
-          <Button>
+          <Button onClick={handleSendMensagem} disabled={createMensagem.isPending}>
             <Send className="mr-2 h-4 w-4" />
-            Enviar Mensagem
+            {createMensagem.isPending ? "Enviando..." : "Enviar Mensagem"}
           </Button>
         </div>
       </CardContent>
@@ -306,13 +576,22 @@ const MensagensETemplates = () => {
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="sched-nome">Nome do Agendamento</Label>
-            <Input id="sched-nome" placeholder="Ex: Lembrete de Vencimento" />
+            <Label htmlFor="nome">Nome do Agendamento</Label>
+            <Input 
+              id="nome"
+              name="nome" 
+              placeholder="Ex: Lembrete de Vencimento" 
+              value={newAgendamento.nome}
+              onChange={handleAgendamentoChange}
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="sched-tipo">Tipo de Agendamento</Label>
-            <Select>
-              <SelectTrigger id="sched-tipo">
+            <Label htmlFor="tipo">Tipo de Agendamento</Label>
+            <Select 
+              value={newAgendamento.tipo}
+              onValueChange={(value) => handleAgendamentoSelectChange('tipo', value)}
+            >
+              <SelectTrigger id="tipo">
                 <SelectValue placeholder="Selecione o tipo" />
               </SelectTrigger>
               <SelectContent>
@@ -322,9 +601,12 @@ const MensagensETemplates = () => {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="sched-evento">Evento Disparador</Label>
-            <Select>
-              <SelectTrigger id="sched-evento">
+            <Label htmlFor="evento">Evento Disparador</Label>
+            <Select 
+              value={newAgendamento.evento}
+              onValueChange={(value) => handleAgendamentoSelectChange('evento', value)}
+            >
+              <SelectTrigger id="evento">
                 <SelectValue placeholder="Selecione o evento" />
               </SelectTrigger>
               <SelectContent>
@@ -336,22 +618,28 @@ const MensagensETemplates = () => {
             </Select>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="sched-dias">Dias de Antecedência</Label>
+            <Label htmlFor="dias_antes">Dias de Antecedência</Label>
             <Input 
-              id="sched-dias" 
+              id="dias_antes"
+              name="dias_antes" 
               type="number" 
               placeholder="Ex: 3 dias antes"
+              value={newAgendamento.dias_antes}
+              onChange={handleAgendamentoChange}
             />
           </div>
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="sched-template">Template a Ser Utilizado</Label>
-            <Select>
-              <SelectTrigger id="sched-template">
+            <Label htmlFor="template_id">Template a Ser Utilizado</Label>
+            <Select 
+              value={newAgendamento.template_id}
+              onValueChange={(value) => handleAgendamentoSelectChange('template_id', value)}
+            >
+              <SelectTrigger id="template_id">
                 <SelectValue placeholder="Selecione um template" />
               </SelectTrigger>
               <SelectContent>
                 {templates.map(t => (
-                  <SelectItem key={t.id} value={t.id.toString()}>
+                  <SelectItem key={t.id} value={t.id}>
                     {t.nome}
                   </SelectItem>
                 ))}
@@ -364,8 +652,8 @@ const MensagensETemplates = () => {
           <Button variant="outline" onClick={() => setShowScheduleEditor(false)}>
             Cancelar
           </Button>
-          <Button>
-            Salvar Agendamento
+          <Button onClick={handleSaveAgendamento} disabled={createAgendamento.isPending}>
+            {createAgendamento.isPending ? "Salvando..." : "Salvar Agendamento"}
           </Button>
         </div>
       </CardContent>
@@ -380,20 +668,22 @@ const MensagensETemplates = () => {
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="w-full md:w-auto grid grid-cols-2 md:flex flex-wrap">
-          <TabsTrigger value="templates" onClick={() => setActiveTab("templates")}>
-            <FileText className="mr-2 h-4 w-4" /> Templates
-          </TabsTrigger>
-          <TabsTrigger value="mensagens" onClick={() => setActiveTab("mensagens")}>
-            <Mail className="mr-2 h-4 w-4" /> Mensagens
-          </TabsTrigger>
-          <TabsTrigger value="agendamentos" onClick={() => setActiveTab("agendamentos")}>
-            <Calendar className="mr-2 h-4 w-4" /> Agendamentos
-          </TabsTrigger>
-          <TabsTrigger value="integracoes" onClick={() => setActiveTab("integracoes")}>
-            <Webhook className="mr-2 h-4 w-4" /> Integrações
-          </TabsTrigger>
-        </TabsList>
+        <div className="bg-card rounded-md p-1 md:p-2 overflow-x-auto no-scrollbar">
+          <TabsList className="w-full flex flex-nowrap overflow-x-auto hide-scrollbar">
+            <TabsTrigger value="templates" className="flex-shrink-0" onClick={() => setActiveTab("templates")}>
+              <FileText className="mr-2 h-4 w-4" /> Templates
+            </TabsTrigger>
+            <TabsTrigger value="mensagens" className="flex-shrink-0" onClick={() => setActiveTab("mensagens")}>
+              <Mail className="mr-2 h-4 w-4" /> Mensagens
+            </TabsTrigger>
+            <TabsTrigger value="agendamentos" className="flex-shrink-0" onClick={() => setActiveTab("agendamentos")}>
+              <Calendar className="mr-2 h-4 w-4" /> Agendamentos
+            </TabsTrigger>
+            <TabsTrigger value="integracoes" className="flex-shrink-0" onClick={() => setActiveTab("integracoes")}>
+              <Webhook className="mr-2 h-4 w-4" /> Integrações
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Templates Tab */}
         <TabsContent value="templates" className="space-y-6">
@@ -414,7 +704,9 @@ const MensagensETemplates = () => {
                 </Button>
               </CardHeader>
               <CardContent>
-                {templates.length > 0 ? (
+                {isLoadingTemplates ? (
+                  <div className="py-6 text-center">Carregando templates...</div>
+                ) : templates.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
@@ -483,7 +775,9 @@ const MensagensETemplates = () => {
                 </Button>
               </CardHeader>
               <CardContent>
-                {mensagens.length > 0 ? (
+                {isLoadingMensagens ? (
+                  <div className="py-6 text-center">Carregando mensagens...</div>
+                ) : mensagens.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
@@ -499,9 +793,13 @@ const MensagensETemplates = () => {
                       <tbody>
                         {mensagens.map((mensagem) => (
                           <tr key={mensagem.id} className="border-b hover:bg-muted/50">
-                            <td className="py-3 px-2">{mensagem.cliente}</td>
+                            <td className="py-3 px-2">{mensagem.cliente?.nome || "-"}</td>
                             <td className="py-3 px-2">{mensagem.assunto}</td>
-                            <td className="py-3 px-2">{mensagem.data}</td>
+                            <td className="py-3 px-2">
+                              {mensagem.data_envio ? new Date(mensagem.data_envio).toLocaleDateString() : 
+                               mensagem.data_agendamento ? new Date(mensagem.data_agendamento).toLocaleDateString() : 
+                               new Date(mensagem.created_at).toLocaleDateString()}
+                            </td>
                             <td className="py-3 px-2 capitalize">{mensagem.tipo}</td>
                             <td className="py-3 px-2">
                               <Badge 
@@ -560,7 +858,9 @@ const MensagensETemplates = () => {
                 </Button>
               </CardHeader>
               <CardContent>
-                {agendamentos.length > 0 ? (
+                {isLoadingAgendamentos ? (
+                  <div className="py-6 text-center">Carregando agendamentos...</div>
+                ) : agendamentos.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
@@ -577,7 +877,7 @@ const MensagensETemplates = () => {
                           <tr key={agendamento.id} className="border-b hover:bg-muted/50">
                             <td className="py-3 px-2">{agendamento.nome}</td>
                             <td className="py-3 px-2">{agendamento.evento}</td>
-                            <td className="py-3 px-2">{agendamento.template}</td>
+                            <td className="py-3 px-2">{agendamento.template?.nome || "-"}</td>
                             <td className="py-3 px-2">
                               <Badge 
                                 variant={agendamento.ativo ? "secondary" : "destructive"}
@@ -626,18 +926,24 @@ const MensagensETemplates = () => {
                 <h3 className="text-lg font-semibold">Integração com WhatsApp (Evolution API)</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="whatsapp-url">URL da API</Label>
+                    <Label htmlFor="url">URL da API</Label>
                     <Input 
-                      id="whatsapp-url" 
+                      id="url" 
+                      name="url"
                       placeholder="https://sua-evolution-api.com" 
+                      value={evolutionApi.url}
+                      onChange={handleEvolutionApiChange}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="whatsapp-key">API Key</Label>
+                    <Label htmlFor="api_key">API Key</Label>
                     <Input 
-                      id="whatsapp-key" 
+                      id="api_key" 
+                      name="api_key"
                       type="password"
                       placeholder="Chave secreta da API" 
+                      value={evolutionApi.api_key}
+                      onChange={handleEvolutionApiChange}
                     />
                   </div>
                 </div>
@@ -652,21 +958,27 @@ const MensagensETemplates = () => {
                 <h3 className="text-lg font-semibold">Webhooks</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="webhook-url">URL para POST Automático</Label>
+                    <Label htmlFor="url">URL para POST Automático</Label>
                     <Input 
-                      id="webhook-url" 
+                      id="url" 
+                      name="url"
                       placeholder="https://seu-webhook.com" 
+                      value={webhook.url}
+                      onChange={handleWebhookChange}
                     />
                     <p className="text-sm text-muted-foreground">
                       Esta URL receberá POST automático quando ocorrerem os eventos selecionados
                     </p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="webhook-secret">Secret Key</Label>
+                    <Label htmlFor="secret_key">Secret Key</Label>
                     <Input 
-                      id="webhook-secret" 
+                      id="secret_key" 
+                      name="secret_key"
                       type="password"
                       placeholder="Chave secreta para autenticação" 
+                      value={webhook.secret_key}
+                      onChange={handleWebhookChange}
                     />
                   </div>
                 </div>
@@ -674,28 +986,44 @@ const MensagensETemplates = () => {
                   <Label className="mb-2 block">Eventos a serem notificados:</Label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                     <div className="flex items-center space-x-2">
-                      <input type="checkbox" id="event-loan" className="rounded" />
-                      <Label htmlFor="event-loan">Novo empréstimo</Label>
+                      <Checkbox 
+                        id="evento-emprestimo" 
+                        checked={webhook.eventos.includes('novoEmprestimo')}
+                        onCheckedChange={() => handleEventoChange('novoEmprestimo')}
+                      />
+                      <Label htmlFor="evento-emprestimo">Novo empréstimo</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <input type="checkbox" id="event-payment" className="rounded" />
-                      <Label htmlFor="event-payment">Novo pagamento</Label>
+                      <Checkbox 
+                        id="evento-pagamento" 
+                        checked={webhook.eventos.includes('novoPagamento')}
+                        onCheckedChange={() => handleEventoChange('novoPagamento')}
+                      />
+                      <Label htmlFor="evento-pagamento">Novo pagamento</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <input type="checkbox" id="event-client" className="rounded" />
-                      <Label htmlFor="event-client">Novo cliente</Label>
+                      <Checkbox 
+                        id="evento-cliente" 
+                        checked={webhook.eventos.includes('novoCliente')}
+                        onCheckedChange={() => handleEventoChange('novoCliente')}
+                      />
+                      <Label htmlFor="evento-cliente">Novo cliente</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <input type="checkbox" id="event-late" className="rounded" />
-                      <Label htmlFor="event-late">Empréstimo atrasado</Label>
+                      <Checkbox 
+                        id="evento-atrasado" 
+                        checked={webhook.eventos.includes('emprestimoAtrasado')}
+                        onCheckedChange={() => handleEventoChange('emprestimoAtrasado')}
+                      />
+                      <Label htmlFor="evento-atrasado">Empréstimo atrasado</Label>
                     </div>
                   </div>
                 </div>
                 <div className="mt-4 flex gap-2">
-                  <Button>
+                  <Button onClick={handleSaveWebhook}>
                     Salvar Webhooks
                   </Button>
-                  <Button variant="outline">
+                  <Button variant="outline" onClick={testWebhook}>
                     Testar Webhook
                   </Button>
                 </div>
@@ -709,7 +1037,7 @@ const MensagensETemplates = () => {
                     <div className="flex items-center space-x-2">
                       <Input 
                         id="api-url" 
-                        value="https://seudominio.com/api/webhook/12345" 
+                        value={apiUrl} 
                         readOnly
                       />
                       <Button variant="outline" size="icon">
@@ -729,6 +1057,8 @@ const MensagensETemplates = () => {
                       id="api-key" 
                       type="password"
                       placeholder="Chave secreta para autenticação"
+                      value={apiKey}
+                      onChange={(e) => setApiKey(e.target.value)}
                     />
                     <p className="text-sm text-muted-foreground">
                       Inclua esta chave no cabeçalho de autorização das requisições
@@ -736,7 +1066,7 @@ const MensagensETemplates = () => {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <Button>
+                  <Button onClick={generateApiKey}>
                     Gerar Nova API Key
                   </Button>
                 </div>

@@ -76,7 +76,13 @@ export const useLoans = () => {
   const getLoanById = async (id: string) => {
     try {
       const { data, error } = await emprestimosApi.getById(id);
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching loan details:", error);
+        throw error;
+      }
+      if (!data) {
+        throw new Error("Empréstimo não encontrado");
+      }
       return data;
     } catch (error) {
       console.error("Error fetching loan:", error);

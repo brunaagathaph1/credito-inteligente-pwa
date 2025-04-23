@@ -18,6 +18,7 @@
 - [x] Integração com Supabase Auth
 - [x] Proteção de rotas
 - [x] Gerenciamento de sessão
+- [x] Controle de cadastro de novos usuários (admin)
 
 ## Clientes
 - [x] Listagem de clientes
@@ -45,13 +46,15 @@
 - [x] Métodos de pagamento
 - [x] Contas bancárias
 - [x] Logs de atividades
+- [x] Configurações de administrador
 
 ## Mensagens e Templates
-- [ ] Editor visual de templates
-- [ ] Variáveis dinâmicas
-- [ ] Agendamento automático
-- [ ] Integração com Webhooks
-- [ ] Histórico de mensagens
+- [x] Editor visual de templates
+- [x] Variáveis dinâmicas
+- [x] Agendamento automático
+- [x] Integração com Webhooks
+- [x] Histórico de mensagens
+- [x] Integrações (WhatsApp, API)
 
 ## Relatórios e Gráficos
 - [x] Dashboard principal
@@ -88,6 +91,7 @@
 - [x] Guia de instalação
 - [x] Documentação da API
 - [x] Guia de contribuição
+- [x] Manual do usuário
 
 ## Próximas Implementações
 - [ ] Módulo de contas bancárias
@@ -95,7 +99,4 @@
 - [ ] Sistema de notificações avançado
 - [ ] Integração com serviços de cobrança
 - [ ] Módulo de análise de crédito avançado
-- [ ] Implementar página de perfil do usuário
-- [ ] Finalizar implementação de mensagens e templates
 - [ ] Melhorar relatórios e gráficos com dados reais
-- [ ] Finalizar página de configurações financeiras

@@ -1,278 +1,291 @@
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash, AlertTriangle } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import { EmptyState } from "@/components/common/EmptyState";
-import { categoriasApi } from "@/integrations/supabase/helpers";
+import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { format } from "date-fns";
+import { List, Plus, Pencil, Trash2 } from "lucide-react";
+import { EmptyState } from "@/components/common/EmptyState";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
-// Tipo para a categoria
-type Categoria = {
+// Interface para as categorias
+interface Category {
   id: string;
   name: string;
-  description: string | null;
+  description?: string;
   created_at: string;
-  updated_at: string;
-};
+}
 
 const Categorias = () => {
   const { user } = useAuth();
-  const [categorias, setCategorias] = useState<Categoria[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [currentCategoria, setCurrentCategoria] = useState<Categoria | null>(null);
-  const [formData, setFormData] = useState({ nome: "", descricao: "" });
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
-  // Buscar categorias
+  // Fetch categorias
   useEffect(() => {
-    if (user) {
-      fetchCategorias();
+    fetchCategories();
+  }, []);
+
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("categories")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+
+      setCategories(data || []);
+    } catch (error) {
+      console.error("Error fetching categories:", error);
+      toast.error("Erro ao carregar categorias");
+    } finally {
+      setLoading(false);
     }
-  }, [user]);
-
-  async function fetchCategorias() {
-    setIsLoading(true);
-    const { data, error } = await categoriasApi.getAll();
-    if (error) {
-      toast.error("Erro ao buscar categorias");
-      console.error("Erro:", error);
-    } else {
-      setCategorias(data || []);
-    }
-    setIsLoading(false);
-  }
-
-  const handleOpenNewDialog = () => {
-    setCurrentCategoria(null);
-    setFormData({ nome: "", descricao: "" });
-    setIsDialogOpen(true);
   };
 
-  const handleOpenEditDialog = (categoria: Categoria) => {
-    setCurrentCategoria(categoria);
-    setFormData({ 
-      nome: categoria.name, 
-      descricao: categoria.description || "" 
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleOpenDeleteDialog = (categoria: Categoria) => {
-    setCurrentCategoria(categoria);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.nome.trim()) {
-      toast.error("O nome da categoria é obrigatório");
+  const handleCreate = async () => {
+    if (!user) return;
+    if (!name.trim()) {
+      toast.error("Nome da categoria é obrigatório");
       return;
     }
 
     try {
-      if (currentCategoria) {
-        // Atualizar categoria
-        const { error } = await categoriasApi.update(currentCategoria.id, {
-          name: formData.nome,
-          description: formData.descricao || null
-        });
-        
-        if (error) throw error;
-        toast.success("Categoria atualizada com sucesso");
-      } else {
-        // Criar nova categoria
-        const { error } = await categoriasApi.create({
-          name: formData.nome,
-          description: formData.descricao || null
-        });
-        
-        if (error) throw error;
-        toast.success("Categoria criada com sucesso");
-      }
-      
-      fetchCategorias();
-      setIsDialogOpen(false);
+      const newCategory = {
+        name,
+        description: description || null,
+      };
+
+      const { error } = await supabase.from("categories").insert(newCategory);
+
+      if (error) throw error;
+
+      toast.success("Categoria criada com sucesso!");
+      setOpenDialog(false);
+      setName("");
+      setDescription("");
+      fetchCategories();
     } catch (error) {
-      console.error("Erro ao salvar categoria:", error);
-      toast.error("Erro ao salvar categoria");
+      console.error("Error creating category:", error);
+      toast.error("Erro ao criar categoria");
     }
   };
 
-  const handleDelete = async () => {
-    if (currentCategoria) {
-      try {
-        const { error } = await categoriasApi.delete(currentCategoria.id);
-        
-        if (error) throw error;
-        toast.success("Categoria excluída com sucesso");
-        fetchCategorias();
-        setIsDeleteDialogOpen(false);
-      } catch (error) {
-        console.error("Erro ao excluir categoria:", error);
-        toast.error("Erro ao excluir categoria");
-      }
+  const handleEdit = (category: Category) => {
+    setEditingCategory(category);
+    setName(category.name);
+    setDescription(category.description || "");
+    setOpenDialog(true);
+  };
+
+  const handleUpdate = async () => {
+    if (!user || !editingCategory) return;
+    if (!name.trim()) {
+      toast.error("Nome da categoria é obrigatório");
+      return;
     }
+
+    try {
+      const { error } = await supabase
+        .from("categories")
+        .update({
+          name,
+          description: description || null,
+        })
+        .eq("id", editingCategory.id);
+
+      if (error) throw error;
+
+      toast.success("Categoria atualizada com sucesso!");
+      setOpenDialog(false);
+      setEditingCategory(null);
+      setName("");
+      setDescription("");
+      fetchCategories();
+    } catch (error) {
+      console.error("Error updating category:", error);
+      toast.error("Erro ao atualizar categoria");
+    }
+  };
+
+  const confirmDelete = (id: string) => {
+    setCategoryToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!categoryToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("categories")
+        .delete()
+        .eq("id", categoryToDelete);
+
+      if (error) throw error;
+
+      toast.success("Categoria excluída com sucesso!");
+      setDeleteDialogOpen(false);
+      setCategoryToDelete(null);
+      fetchCategories();
+    } catch (error) {
+      console.error("Error deleting category:", error);
+      toast.error("Erro ao excluir categoria");
+    }
+  };
+
+  const handleDialogClose = () => {
+    setOpenDialog(false);
+    setEditingCategory(null);
+    setName("");
+    setDescription("");
   };
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Gerenciamento de Categorias"
-        description="Gerencie as categorias de empréstimos do sistema"
-        actions={
-          <Button onClick={handleOpenNewDialog} className="w-full md:w-auto">
-            <Plus className="mr-2 h-4 w-4" />
-            Nova Categoria
-          </Button>
-        }
+      <PageHeader 
+        title="Categorias" 
+        description="Gerencie categorias para organizar suas transações"
+        icon={<List className="h-6 w-6" />}
       />
 
-      {isLoading ? (
-        <div className="flex justify-center py-10">Carregando...</div>
-      ) : categorias.length > 0 ? (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-1/3">Nome</TableHead>
-                <TableHead className="w-1/3">Descrição</TableHead>
-                <TableHead className="w-1/6">Data de Criação</TableHead>
-                <TableHead className="w-1/6 text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {categorias.map((categoria) => (
-                <TableRow key={categoria.id}>
-                  <TableCell className="font-medium">{categoria.name}</TableCell>
-                  <TableCell>{categoria.description}</TableCell>
-                  <TableCell>
-                    {new Date(categoria.created_at).toLocaleDateString("pt-BR")}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleOpenEditDialog(categoria)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleOpenDeleteDialog(categoria)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      ) : (
-        <EmptyState
-          title="Nenhuma categoria encontrada"
-          description="Crie uma nova categoria para começar"
-          icon={<AlertTriangle />}
-          action={
-            <Button onClick={handleOpenNewDialog}>
-              <Plus className="mr-2 h-4 w-4" />
-              Nova Categoria
-            </Button>
-          }
-        />
-      )}
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {currentCategoria ? "Editar Categoria" : "Nova Categoria"}
-            </DialogTitle>
-            <DialogDescription>
-              {currentCategoria
-                ? "Edite os detalhes da categoria existente"
-                : "Preencha os campos para criar uma nova categoria"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="nome">Nome</Label>
-              <Input
-                id="nome"
-                name="nome"
-                value={formData.nome}
-                onChange={handleInputChange}
-                placeholder="Nome da categoria"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="descricao">Descrição</Label>
-              <Input
-                id="descricao"
-                name="descricao"
-                value={formData.descricao}
-                onChange={handleInputChange}
-                placeholder="Descrição da categoria"
-              />
-            </div>
+      <Card>
+        <CardHeader className="flex flex-col sm:flex-row justify-between sm:items-center">
+          <div>
+            <CardTitle>Lista de Categorias</CardTitle>
+            <CardDescription>
+              Categorias para classificação de empréstimos e pagamentos
+            </CardDescription>
           </div>
+          <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+            <DialogTrigger asChild>
+              <Button className="mt-4 sm:mt-0 w-full sm:w-auto">
+                <Plus className="mr-2 h-4 w-4" /> Nova Categoria
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {editingCategory ? "Editar Categoria" : "Nova Categoria"}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingCategory
+                    ? "Atualize os dados da categoria existente"
+                    : "Adicione uma nova categoria para organizar suas transações"}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nome</Label>
+                  <Input
+                    id="name"
+                    placeholder="Ex: Empréstimo Pessoal"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Descrição (opcional)</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Descreva a finalidade desta categoria"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={handleDialogClose}>
+                  Cancelar
+                </Button>
+                <Button onClick={editingCategory ? handleUpdate : handleCreate}>
+                  {editingCategory ? "Salvar Alterações" : "Criar Categoria"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-6">Carregando categorias...</div>
+          ) : categories.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-2">Nome</th>
+                    <th className="text-left py-3 px-2 hidden md:table-cell">Descrição</th>
+                    <th className="text-left py-3 px-2 hidden md:table-cell">Data de Criação</th>
+                    <th className="text-right py-3 px-2">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {categories.map((category) => (
+                    <tr key={category.id} className="border-b hover:bg-muted/50">
+                      <td className="py-3 px-2">{category.name}</td>
+                      <td className="py-3 px-2 hidden md:table-cell">{category.description || "-"}</td>
+                      <td className="py-3 px-2 hidden md:table-cell">
+                        {format(new Date(category.created_at), "dd/MM/yyyy")}
+                      </td>
+                      <td className="py-3 px-2 text-right space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(category)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Editar</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => confirmDelete(category.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Excluir</span>
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState
+              title="Nenhuma categoria encontrada"
+              description="Crie categorias para organizar seus empréstimos e pagamentos"
+              icon={<List className="h-12 w-12" />}
+              action={
+                <Button onClick={() => setOpenDialog(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Criar Categoria
+                </Button>
+              }
+            />
+          )}
+        </CardContent>
+      </Card>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSubmit}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir a categoria "
-              {currentCategoria?.name}"? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir esta categoria? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

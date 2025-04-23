@@ -1,6 +1,6 @@
 
 import { Link, useLocation } from "react-router-dom";
-import { Home, Users, DollarSign, BarChart, Mail, Book } from "lucide-react";
+import { Home, Users, DollarSign, BarChart, Mail, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const BottomNav = () => {
@@ -33,9 +33,9 @@ const BottomNav = () => {
       icon: Mail,
     },
     {
-      href: "/manual",
-      label: "Manual",
-      icon: Book,
+      href: "/configuracoes",
+      label: "Config",
+      icon: Settings,
     },
   ];
 

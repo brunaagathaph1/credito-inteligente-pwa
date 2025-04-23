@@ -1,3 +1,4 @@
+
 import { Link, useLocation } from "react-router-dom";
 import { 
   Home, 
@@ -44,11 +45,6 @@ const Sidebar = () => {
       label: "Mensagens",
       icon: Mail,
     },
-    {
-      href: "/manual",
-      label: "Manual do Usuário",
-      icon: Book,
-    },
   ];
 
   const utilityRoutes = [
@@ -56,6 +52,11 @@ const Sidebar = () => {
       href: "/configuracoes",
       label: "Configurações",
       icon: Settings,
+    },
+    {
+      href: "/manual",
+      label: "Manual do Usuário",
+      icon: Book,
     },
   ];
 

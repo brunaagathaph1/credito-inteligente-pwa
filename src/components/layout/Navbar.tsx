@@ -1,7 +1,7 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, User, Settings, LogOut } from "lucide-react";
+import { Menu, User, Settings, LogOut, Book } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -102,6 +102,12 @@ const UserMenu = ({ usuario }: UserMenuProps) => {
           <Link to="/configuracoes" className="cursor-pointer">
             <Settings className="mr-2 h-4 w-4" />
             <span>Configurações</span>
+          </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <Link to="/manual" className="cursor-pointer">
+            <Book className="mr-2 h-4 w-4" />
+            <span>Manual do Usuário</span>
           </Link>
         </DropdownMenuItem>
         <DropdownMenuSeparator />

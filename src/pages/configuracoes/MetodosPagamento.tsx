@@ -1,322 +1,320 @@
 
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash, AlertTriangle } from "lucide-react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { CreditCard, Plus, Pencil, Trash2 } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { EmptyState } from "@/components/common/EmptyState";
-import { metodosApi } from "@/integrations/supabase/helpers";
-import { useAuth } from "@/contexts/AuthContext";
+import { format } from "date-fns";
 
-// Tipo para o método de pagamento
-type MetodoPagamento = {
+// Interface para métodos de pagamento
+interface PaymentMethod {
   id: string;
   name: string;
-  description: string | null;
+  description?: string;
   is_active: boolean;
   created_at: string;
-  updated_at: string;
-};
+}
 
 const MetodosPagamento = () => {
-  const { user } = useAuth();
-  const [metodos, setMetodos] = useState<MetodoPagamento[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [currentMetodo, setCurrentMetodo] = useState<MetodoPagamento | null>(null);
-  const [formData, setFormData] = useState({
-    nome: "",
-    descricao: "",
-    ativo: true,
-  });
+  const [methods, setMethods] = useState<PaymentMethod[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [openDialog, setOpenDialog] = useState(false);
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [isActive, setIsActive] = useState(true);
+  const [editingMethod, setEditingMethod] = useState<PaymentMethod | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen]= useState(false);
+  const [methodToDelete, setMethodToDelete] = useState<string | null>(null);
 
-  // Buscar métodos
+  // Carregar métodos de pagamento
   useEffect(() => {
-    if (user) {
-      fetchMetodos();
+    fetchPaymentMethods();
+  }, []);
+
+  const fetchPaymentMethods = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from("payment_methods")
+        .select("*")
+        .order("name");
+
+      if (error) throw error;
+
+      setMethods(data || []);
+    } catch (error) {
+      console.error("Error fetching payment methods:", error);
+      toast.error("Erro ao carregar métodos de pagamento");
+    } finally {
+      setLoading(false);
     }
-  }, [user]);
-
-  async function fetchMetodos() {
-    setIsLoading(true);
-    const { data, error } = await metodosApi.getAll();
-    if (error) {
-      toast.error("Erro ao buscar métodos de pagamento");
-      console.error("Erro:", error);
-    } else {
-      setMetodos(data || []);
-    }
-    setIsLoading(false);
-  }
-
-  const handleOpenNewDialog = () => {
-    setCurrentMetodo(null);
-    setFormData({ nome: "", descricao: "", ativo: true });
-    setIsDialogOpen(true);
   };
 
-  const handleOpenEditDialog = (metodo: MetodoPagamento) => {
-    setCurrentMetodo(metodo);
-    setFormData({
-      nome: metodo.name,
-      descricao: metodo.description || "",
-      ativo: metodo.is_active,
-    });
-    setIsDialogOpen(true);
-  };
-
-  const handleOpenDeleteDialog = (metodo: MetodoPagamento) => {
-    setCurrentMetodo(metodo);
-    setIsDeleteDialogOpen(true);
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleSwitchChange = (checked: boolean) => {
-    setFormData((prev) => ({ ...prev, ativo: checked }));
-  };
-
-  const handleSubmit = async () => {
-    if (!formData.nome.trim()) {
-      toast.error("O nome do método é obrigatório");
+  const handleCreate = async () => {
+    if (!name.trim()) {
+      toast.error("Nome do método de pagamento é obrigatório");
       return;
     }
 
     try {
-      if (currentMetodo) {
-        // Atualizar método
-        const { error } = await metodosApi.update(currentMetodo.id, {
-          name: formData.nome,
-          description: formData.descricao || null,
-          is_active: formData.ativo,
-        });
+      const newMethod = {
+        name,
+        description: description || null,
+        is_active: isActive
+      };
 
-        if (error) throw error;
-        toast.success("Método de pagamento atualizado com sucesso");
-      } else {
-        // Criar novo método
-        const { error } = await metodosApi.create({
-          name: formData.nome,
-          description: formData.descricao || null,
-          is_active: formData.ativo,
-        });
+      const { error } = await supabase.from("payment_methods").insert(newMethod);
 
-        if (error) throw error;
-        toast.success("Método de pagamento criado com sucesso");
-      }
+      if (error) throw error;
 
-      fetchMetodos();
-      setIsDialogOpen(false);
+      toast.success("Método de pagamento criado com sucesso!");
+      setOpenDialog(false);
+      resetForm();
+      fetchPaymentMethods();
     } catch (error) {
-      console.error("Erro ao salvar método de pagamento:", error);
-      toast.error("Erro ao salvar método de pagamento");
+      console.error("Error creating payment method:", error);
+      toast.error("Erro ao criar método de pagamento");
     }
   };
 
-  const handleDelete = async () => {
-    if (currentMetodo) {
-      try {
-        const { error } = await metodosApi.delete(currentMetodo.id);
+  const handleEdit = (method: PaymentMethod) => {
+    setEditingMethod(method);
+    setName(method.name);
+    setDescription(method.description || "");
+    setIsActive(method.is_active);
+    setOpenDialog(true);
+  };
 
-        if (error) throw error;
-        toast.success("Método de pagamento excluído com sucesso");
-        fetchMetodos();
-        setIsDeleteDialogOpen(false);
-      } catch (error) {
-        console.error("Erro ao excluir método de pagamento:", error);
-        toast.error("Erro ao excluir método de pagamento");
-      }
+  const handleUpdate = async () => {
+    if (!editingMethod) return;
+    if (!name.trim()) {
+      toast.error("Nome do método de pagamento é obrigatório");
+      return;
     }
+
+    try {
+      const { error } = await supabase
+        .from("payment_methods")
+        .update({
+          name,
+          description: description || null,
+          is_active: isActive
+        })
+        .eq("id", editingMethod.id);
+
+      if (error) throw error;
+
+      toast.success("Método de pagamento atualizado com sucesso!");
+      setOpenDialog(false);
+      resetForm();
+      fetchPaymentMethods();
+    } catch (error) {
+      console.error("Error updating payment method:", error);
+      toast.error("Erro ao atualizar método de pagamento");
+    }
+  };
+
+  const confirmDelete = (id: string) => {
+    setMethodToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!methodToDelete) return;
+
+    try {
+      const { error } = await supabase
+        .from("payment_methods")
+        .delete()
+        .eq("id", methodToDelete);
+
+      if (error) throw error;
+
+      toast.success("Método de pagamento excluído com sucesso!");
+      setDeleteDialogOpen(false);
+      setMethodToDelete(null);
+      fetchPaymentMethods();
+    } catch (error) {
+      console.error("Error deleting payment method:", error);
+      toast.error("Erro ao excluir método de pagamento");
+    }
+  };
+
+  const resetForm = () => {
+    setName("");
+    setDescription("");
+    setIsActive(true);
+    setEditingMethod(null);
+  };
+
+  const handleDialogClose = () => {
+    setOpenDialog(false);
+    resetForm();
   };
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Métodos de Pagamento"
-        description="Gerencie os métodos de pagamento disponíveis no sistema"
-        actions={
-          <Button onClick={handleOpenNewDialog} className="w-full md:w-auto">
-            <Plus className="mr-2 h-4 w-4" />
-            Novo Método
-          </Button>
-        }
+      <PageHeader 
+        title="Métodos de Pagamento" 
+        description="Gerencie formas de pagamento para transações"
+        icon={<CreditCard className="h-6 w-6" />}
       />
 
-      {isLoading ? (
-        <div className="flex justify-center py-10">Carregando...</div>
-      ) : metodos.length > 0 ? (
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-1/4">Nome</TableHead>
-                <TableHead className="w-1/3">Descrição</TableHead>
-                <TableHead className="w-1/6">Status</TableHead>
-                <TableHead className="w-1/6">Data de Criação</TableHead>
-                <TableHead className="w-1/6 text-right">Ações</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {metodos.map((metodo) => (
-                <TableRow key={metodo.id}>
-                  <TableCell className="font-medium">{metodo.name}</TableCell>
-                  <TableCell>{metodo.description}</TableCell>
-                  <TableCell>
-                    <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        metodo.is_active
-                          ? "bg-green-100 text-green-800"
-                          : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      {metodo.is_active ? "Ativo" : "Inativo"}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(metodo.created_at).toLocaleDateString("pt-BR")}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleOpenEditDialog(metodo)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleOpenDeleteDialog(metodo)}
-                      >
-                        <Trash className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      ) : (
-        <EmptyState
-          title="Nenhum método de pagamento encontrado"
-          description="Crie um novo método para começar"
-          icon={<AlertTriangle />}
-          action={
-            <Button onClick={handleOpenNewDialog}>
-              <Plus className="mr-2 h-4 w-4" />
-              Novo Método
-            </Button>
-          }
-        />
-      )}
-
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {currentMetodo ? "Editar Método" : "Novo Método"}
-            </DialogTitle>
-            <DialogDescription>
-              {currentMetodo
-                ? "Edite os detalhes do método de pagamento existente"
-                : "Preencha os campos para criar um novo método de pagamento"}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="nome">Nome</Label>
-              <Input
-                id="nome"
-                name="nome"
-                value={formData.nome}
-                onChange={handleInputChange}
-                placeholder="Nome do método"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="descricao">Descrição</Label>
-              <Input
-                id="descricao"
-                name="descricao"
-                value={formData.descricao}
-                onChange={handleInputChange}
-                placeholder="Descrição do método"
-              />
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="ativo"
-                checked={formData.ativo}
-                onCheckedChange={handleSwitchChange}
-              />
-              <Label htmlFor="ativo">Ativo</Label>
-            </div>
+      <Card>
+        <CardHeader className="flex flex-col sm:flex-row justify-between sm:items-center">
+          <div>
+            <CardTitle>Formas de Pagamento</CardTitle>
+            <CardDescription>
+              Métodos disponíveis para recebimento de pagamentos
+            </CardDescription>
           </div>
+          <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+            <DialogTrigger asChild>
+              <Button className="mt-4 sm:mt-0 w-full sm:w-auto">
+                <Plus className="mr-2 h-4 w-4" /> Novo Método
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>
+                  {editingMethod ? "Editar Método de Pagamento" : "Novo Método de Pagamento"}
+                </DialogTitle>
+                <DialogDescription>
+                  {editingMethod
+                    ? "Atualize os dados do método de pagamento existente"
+                    : "Adicione um novo método para recebimento de pagamentos"}
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">Nome</Label>
+                  <Input
+                    id="name"
+                    placeholder="Ex: Dinheiro, PIX, Transferência"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Descrição (opcional)</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Descreva detalhes sobre este método de pagamento"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                  />
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="is_active"
+                    checked={isActive}
+                    onCheckedChange={setIsActive}
+                  />
+                  <Label htmlFor="is_active">Ativo</Label>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={handleDialogClose}>
+                  Cancelar
+                </Button>
+                <Button onClick={editingMethod ? handleUpdate : handleCreate}>
+                  {editingMethod ? "Salvar Alterações" : "Criar Método"}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-6">Carregando métodos de pagamento...</div>
+          ) : methods.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-3 px-2">Nome</th>
+                    <th className="text-left py-3 px-2 hidden md:table-cell">Descrição</th>
+                    <th className="text-left py-3 px-2 hidden md:table-cell">Data de Criação</th>
+                    <th className="text-center py-3 px-2">Status</th>
+                    <th className="text-right py-3 px-2">Ações</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {methods.map((method) => (
+                    <tr key={method.id} className="border-b hover:bg-muted/50">
+                      <td className="py-3 px-2">{method.name}</td>
+                      <td className="py-3 px-2 hidden md:table-cell">{method.description || "-"}</td>
+                      <td className="py-3 px-2 hidden md:table-cell">
+                        {format(new Date(method.created_at), "dd/MM/yyyy")}
+                      </td>
+                      <td className="py-3 px-2 text-center">
+                        <span className={`px-2 py-1 rounded-full text-xs ${
+                          method.is_active 
+                            ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300" 
+                            : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"
+                          }`}
+                        >
+                          {method.is_active ? "Ativo" : "Inativo"}
+                        </span>
+                      </td>
+                      <td className="py-3 px-2 text-right space-x-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleEdit(method)}
+                        >
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Editar</span>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => confirmDelete(method.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Excluir</span>
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <EmptyState
+              title="Nenhum método de pagamento encontrado"
+              description="Crie métodos de pagamento para receber pagamentos de empréstimos"
+              icon={<CreditCard className="h-12 w-12" />}
+              action={
+                <Button onClick={() => setOpenDialog(true)}>
+                  <Plus className="mr-2 h-4 w-4" /> Criar Método
+                </Button>
+              }
+            />
+          )}
+        </CardContent>
+      </Card>
 
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleSubmit}>Salvar</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-      >
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
             <AlertDialogDescription>
-              Tem certeza que deseja excluir o método de pagamento "
-              {currentMetodo?.name}"? Esta ação não pode ser desfeita.
+              Tem certeza que deseja excluir este método de pagamento? Esta ação não pode ser desfeita.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>
-              Excluir
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -26,30 +26,38 @@ const ConfiguracoesFinanceiras = () => {
       emprestimoAtrasado: false
     }
   });
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const fetchConfig = async () => {
-      const { data, error } = await supabase
-        .from('configuracoes_financeiras')
-        .select('*')
-        .eq('nome', 'default')
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from('configuracoes_financeiras')
+          .select('*')
+          .eq('nome', 'default')
+          .maybeSingle();
 
-      if (data) {
-        try {
-          const eventos = data.observacoes ? JSON.parse(data.observacoes).eventos || {} : {};
-          setConfig(prev => ({
-            ...prev,
-            prazo_maximo_dias: data.prazo_maximo_dias,
-            taxa_padrao_juros: data.taxa_padrao_juros,
-            tipo_juros_padrao: data.tipo_juros_padrao,
-            taxa_juros_atraso: data.taxa_juros_atraso,
-            taxa_multa_atraso: data.taxa_multa_atraso,
-            eventos: eventos
-          }));
-        } catch(e) {
-          console.error("Error parsing configuration:", e);
+        if (error) throw error;
+
+        if (data) {
+          try {
+            const eventos = data.observacoes ? JSON.parse(data.observacoes).eventos || {} : {};
+            setConfig(prev => ({
+              ...prev,
+              prazo_maximo_dias: data.prazo_maximo_dias || 0,
+              taxa_padrao_juros: data.taxa_padrao_juros || 0,
+              tipo_juros_padrao: data.tipo_juros_padrao || '',
+              taxa_juros_atraso: data.taxa_juros_atraso || 0,
+              taxa_multa_atraso: data.taxa_multa_atraso || 0,
+              eventos: eventos
+            }));
+          } catch(e) {
+            console.error("Error parsing configuration:", e);
+          }
         }
+      } catch (error) {
+        console.error("Error fetching configuration:", error);
+        toast.error("Erro ao carregar configurações financeiras");
       }
     };
     fetchConfig();
@@ -57,48 +65,84 @@ const ConfiguracoesFinanceiras = () => {
 
   const handleSave = async () => {
     if (!user) return;
+    setIsLoading(true);
 
     try {
-      // Salvar configurações principais
-      const { error: mainError } = await supabase
+      // Primeiro verifica se existe o registro default
+      const { data: existingData } = await supabase
         .from('configuracoes_financeiras')
-        .upsert({
-          nome: 'default',
-          prazo_maximo_dias: config.prazo_maximo_dias,
-          taxa_padrao_juros: config.taxa_padrao_juros,
-          tipo_juros_padrao: config.tipo_juros_padrao,
-          taxa_juros_atraso: config.taxa_juros_atraso,
-          taxa_multa_atraso: config.taxa_multa_atraso,
-          observacoes: JSON.stringify({
-            eventos: config.eventos
-          }),
-          created_by: user.id
-        }, { onConflict: 'nome' });
+        .select('id')
+        .eq('nome', 'default')
+        .maybeSingle();
+      
+      // Preparar dados completos para salvamento
+      const configData = {
+        nome: 'default',
+        prazo_maximo_dias: Number(config.prazo_maximo_dias),
+        taxa_padrao_juros: Number(config.taxa_padrao_juros),
+        tipo_juros_padrao: config.tipo_juros_padrao,
+        taxa_juros_atraso: Number(config.taxa_juros_atraso),
+        taxa_multa_atraso: Number(config.taxa_multa_atraso),
+        observacoes: JSON.stringify({
+          eventos: config.eventos
+        }),
+        created_by: user.id
+      };
 
-      if (mainError) throw mainError;
+      let result;
+      
+      if (existingData) {
+        // Se existe, usa update ao invés de upsert
+        result = await supabase
+          .from('configuracoes_financeiras')
+          .update(configData)
+          .eq('id', existingData.id);
+      } else {
+        // Se não existe, insere novo
+        result = await supabase
+          .from('configuracoes_financeiras')
+          .insert(configData);
+      }
+
+      if (result.error) throw result.error;
 
       // Salvar configurações da Evolution API separadamente
-      const { error: apiError } = await supabase
+      const { data: apiData } = await supabase
         .from('configuracoes_financeiras')
-        .upsert({
-          nome: 'evolution_api',
-          prazo_maximo_dias: 0, // Default values for required fields
-          taxa_padrao_juros: 0,
-          tipo_juros_padrao: 'simples',
-          taxa_juros_atraso: 0,
-          taxa_multa_atraso: 0,
-          observacoes: JSON.stringify({
-            eventos: config.eventos
-          }),
-          created_by: user.id
-        }, { onConflict: 'nome' });
+        .select('id')
+        .eq('nome', 'evolution_api')
+        .maybeSingle();
+      
+      const apiConfig = {
+        nome: 'evolution_api',
+        prazo_maximo_dias: 0,
+        taxa_padrao_juros: 0,
+        tipo_juros_padrao: 'simples',
+        taxa_juros_atraso: 0,
+        taxa_multa_atraso: 0,
+        observacoes: JSON.stringify({
+          eventos: config.eventos
+        }),
+        created_by: user.id
+      };
 
-      if (apiError) throw apiError;
+      if (apiData) {
+        await supabase
+          .from('configuracoes_financeiras')
+          .update(apiConfig)
+          .eq('id', apiData.id);
+      } else {
+        await supabase
+          .from('configuracoes_financeiras')
+          .insert(apiConfig);
+      }
 
       toast.success("Configurações salvas com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar configurações:", error);
       toast.error("Erro ao salvar configurações");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -193,8 +237,8 @@ const ConfiguracoesFinanceiras = () => {
             </div>
           </div>
           
-          <Button onClick={handleSave} className="mt-4">
-            Salvar Configurações
+          <Button onClick={handleSave} disabled={isLoading} className="mt-4">
+            {isLoading ? "Salvando..." : "Salvar Configurações"}
           </Button>
         </CardContent>
       </Card>
@@ -251,8 +295,8 @@ const ConfiguracoesFinanceiras = () => {
               <Label htmlFor="emprestimoAtrasado">Empréstimo Atrasado</Label>
             </div>
           </div>
-          <Button onClick={handleSave} className="mt-4">
-            Salvar Configurações
+          <Button onClick={handleSave} disabled={isLoading} className="mt-4">
+            {isLoading ? "Salvando..." : "Salvar Configurações"}
           </Button>
         </CardContent>
       </Card>
