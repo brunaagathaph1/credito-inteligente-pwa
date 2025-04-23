@@ -74,7 +74,7 @@ const MensagensETemplates = () => {
     template_id: "",
     assunto: "",
     conteudo: "",
-    tipo: "" as "email" | "whatsapp" | "sms" | "",
+    tipo: "whatsapp" as "email" | "whatsapp" | "sms", // Changed from empty string to default "whatsapp"
     status: "pendente" as "enviado" | "agendado" | "erro" | "pendente",
     data_agendamento: "",
     created_by: user?.id || "",
@@ -82,7 +82,7 @@ const MensagensETemplates = () => {
 
   const [newTemplate, setNewTemplate] = useState({
     nome: "",
-    tipo: "whatsapp" as "email" | "whatsapp" | "sms",  // Default to whatsapp instead of empty string
+    tipo: "whatsapp" as "email" | "whatsapp" | "sms",
     assunto: "",
     conteudo: "",
     ativo: true,
@@ -92,7 +92,7 @@ const MensagensETemplates = () => {
   const [newAgendamento, setNewAgendamento] = useState({
     nome: "",
     tipo: "automatico" as "automatico" | "recorrente",
-    evento: "emprestimo_criado" as "emprestimo_criado" | "emprestimo_vencendo" | "emprestimo_atrasado" | "pagamento_confirmado",  // Default to a valid value
+    evento: "emprestimo_criado" as "emprestimo_criado" | "emprestimo_vencendo" | "emprestimo_atrasado" | "pagamento_confirmado",
     dias_antes: 0,
     template_id: "",
     ativo: true,
@@ -198,13 +198,19 @@ const MensagensETemplates = () => {
   };
 
   const handleSendMensagem = async () => {
+    // Ensure tipo is not empty before sending
+    if (!newMensagem.tipo) {
+      toast.error("Selecione um tipo de mensagem");
+      return;
+    }
+    
     await createMensagem.mutateAsync(newMensagem);
     setNewMensagem({
       cliente_id: "",
       template_id: "",
       assunto: "",
       conteudo: "",
-      tipo: "" as "email" | "whatsapp" | "sms" | "",
+      tipo: "whatsapp" as "email" | "whatsapp" | "sms", // Reset to default "whatsapp" instead of empty string
       status: "pendente" as "enviado" | "agendado" | "erro" | "pendente",
       data_agendamento: "",
       created_by: user?.id || "",

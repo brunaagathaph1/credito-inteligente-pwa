@@ -1,4 +1,3 @@
-
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -16,7 +15,7 @@ interface MessageEditorProps {
     template_id: string;
     assunto: string;
     conteudo: string;
-    tipo: "email" | "whatsapp" | "sms" | "";
+    tipo: "email" | "whatsapp" | "sms";
     status: "enviado" | "agendado" | "erro" | "pendente";
     data_agendamento: string;
     created_by: string;
