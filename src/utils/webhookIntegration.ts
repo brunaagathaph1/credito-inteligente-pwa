@@ -54,13 +54,8 @@ export const logWebhookEvent = async (event: string, payload: any, webhookId: st
   }
 };
 
-export const shouldNotifyEvolutionApi = async (event: string, messageType?: string) => {
+export const shouldNotifyEvolutionApi = async (event: string) => {
   try {
-    // Se o tipo de mensagem não for WhatsApp, não notificar a Evolution API
-    if (messageType && messageType !== 'whatsapp') {
-      return false;
-    }
-    
     const { data, error } = await supabase
       .from('configuracoes_financeiras')
       .select('observacoes')
@@ -82,7 +77,7 @@ export const shouldNotifyEvolutionApi = async (event: string, messageType?: stri
         'emprestimo.atraso': 'emprestimoAtrasado'
       };
       
-      return config.events && config.events[eventMap[event]];
+      return config.eventos && config.eventos[eventMap[event]];
     } catch (e) {
       console.error("Error parsing Evolution API config:", e);
       return false;
@@ -95,8 +90,8 @@ export const shouldNotifyEvolutionApi = async (event: string, messageType?: stri
 
 export const sendEvolutionApiNotification = async (event: string, data: any, telefone?: string) => {
   try {
-    // Verificar se a Evolution API deve ser notificada e se é mensagem do tipo WhatsApp
-    const shouldNotify = await shouldNotifyEvolutionApi(event, 'whatsapp');
+    // Verificar se a Evolution API deve ser notificada
+    const shouldNotify = await shouldNotifyEvolutionApi(event);
     
     if (!shouldNotify) return false;
     
@@ -113,8 +108,6 @@ export const sendEvolutionApiNotification = async (event: string, data: any, tel
     
     try {
       const config = JSON.parse(configData.observacoes);
-      
-      if (!config.url) return false;
       
       // Verificar se temos um número de telefone
       if (!telefone) {
@@ -141,7 +134,7 @@ export const sendEvolutionApiNotification = async (event: string, data: any, tel
       const formattedPhone = telefone.replace(/\D/g, '');
       
       // Em um ambiente de produção, você faria uma solicitação HTTP aqui
-      console.log(`Evolution API notification sent to ${config.url} for event ${event}`);
+      console.log(`Evolution API notification sent for event ${event}`);
       console.log("Data:", { ...data, telefone: formattedPhone });
       
       // Registrar o evento

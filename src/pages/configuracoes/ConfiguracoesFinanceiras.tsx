@@ -32,20 +32,20 @@ const ConfiguracoesFinanceiras = () => {
       const { data, error } = await supabase
         .from('configuracoes_financeiras')
         .select('*')
-        .eq('nome', 'evolution_api')
+        .eq('nome', 'default')
         .maybeSingle();
 
       if (data) {
         try {
-          const parsedConfig = data.observacoes ? JSON.parse(data.observacoes) : {};
+          const eventos = data.observacoes ? JSON.parse(data.observacoes).eventos || {} : {};
           setConfig(prev => ({
             ...prev,
-            ...parsedConfig,
             prazo_maximo_dias: data.prazo_maximo_dias,
             taxa_padrao_juros: data.taxa_padrao_juros,
             tipo_juros_padrao: data.tipo_juros_padrao,
             taxa_juros_atraso: data.taxa_juros_atraso,
-            taxa_multa_atraso: data.taxa_multa_atraso
+            taxa_multa_atraso: data.taxa_multa_atraso,
+            eventos: eventos
           }));
         } catch(e) {
           console.error("Error parsing configuration:", e);
@@ -59,22 +59,37 @@ const ConfiguracoesFinanceiras = () => {
     if (!user) return;
 
     try {
-      const { error } = await supabase
+      // Salvar configurações principais
+      const { error: mainError } = await supabase
+        .from('configuracoes_financeiras')
+        .upsert({
+          nome: 'default',
+          prazo_maximo_dias: config.prazo_maximo_dias,
+          taxa_padrao_juros: config.taxa_padrao_juros,
+          tipo_juros_padrao: config.tipo_juros_padrao,
+          taxa_juros_atraso: config.taxa_juros_atraso,
+          taxa_multa_atraso: config.taxa_multa_atraso,
+          observacoes: JSON.stringify({
+            eventos: config.eventos
+          }),
+          created_by: user.id
+        }, { onConflict: 'nome' });
+
+      if (mainError) throw mainError;
+
+      // Salvar configurações da Evolution API separadamente
+      const { error: apiError } = await supabase
         .from('configuracoes_financeiras')
         .upsert({
           nome: 'evolution_api',
           observacoes: JSON.stringify({
             eventos: config.eventos
           }),
-          prazo_maximo_dias: config.prazo_maximo_dias,
-          taxa_padrao_juros: config.taxa_padrao_juros,
-          tipo_juros_padrao: config.tipo_juros_padrao,
-          taxa_juros_atraso: config.taxa_juros_atraso,
-          taxa_multa_atraso: config.taxa_multa_atraso,
           created_by: user.id
         }, { onConflict: 'nome' });
 
-      if (error) throw error;
+      if (apiError) throw apiError;
+
       toast.success("Configurações salvas com sucesso!");
     } catch (error) {
       console.error("Erro ao salvar configurações:", error);
@@ -180,7 +195,7 @@ const ConfiguracoesFinanceiras = () => {
       
       <Card>
         <CardHeader>
-          <CardTitle>Eventos da API Evolution</CardTitle>
+          <CardTitle>Notificações e Eventos</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

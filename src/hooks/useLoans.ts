@@ -2,6 +2,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { emprestimosApi, pagamentosApi } from "@/integrations/supabase/helpers";
 import { toast } from "sonner";
+import { triggerEmprestimoNovo } from "@/utils/eventTriggers";
 
 export interface Pagamento {
   id: string;
@@ -89,12 +90,24 @@ export const useLoans = () => {
     mutationFn: async (loanData: Omit<Loan, "id" | "created_at" | "updated_at" | "cliente" | "pagamentos">) => {
       const { data, error } = await emprestimosApi.create(loanData);
       if (error) throw error;
+      
+      // Trigger webhook events for new loan
+      if (data) {
+        try {
+          await triggerEmprestimoNovo(data);
+        } catch (eventError) {
+          console.error("Error triggering event notifications:", eventError);
+          // Continue even if event trigger fails
+        }
+      }
+      
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
     },
     onError: (error: any) => {
+      console.error("Error creating loan:", error);
       toast.error(`Erro ao criar empréstimo: ${error.message}`);
     }
   });

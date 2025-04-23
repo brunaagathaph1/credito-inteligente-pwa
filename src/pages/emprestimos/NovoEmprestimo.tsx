@@ -24,11 +24,13 @@ import { useClients } from "@/hooks/useClients";
 import { useLoans } from "@/hooks/useLoans";
 import { useActivityLogs } from "@/hooks/useActivityLogs";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NovoEmprestimo = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const clienteIdParam = searchParams.get("cliente");
+  const { user } = useAuth();
   
   const [isLoading, setIsLoading] = useState(false);
   const [valorParcela, setValorParcela] = useState<number | null>(null);
@@ -136,9 +138,10 @@ const NovoEmprestimo = () => {
         observacoes: null,
         renegociacao_id: null,
         renegociado: false,
-        created_by: "system" // Idealmente seria o ID do usuário logado
+        created_by: user?.id || "system"
       };
 
+      console.log("Enviando dados do empréstimo:", emprestimoData);
       const result = await createLoan.mutateAsync(emprestimoData);
       
       if (result) {
