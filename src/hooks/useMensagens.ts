@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -170,14 +169,13 @@ export const useMensagens = () => {
           
           if (error) throw error;
           
-          // Transform raw data to match the Agendamento type
-          const agendamentos = data?.map(item => {
-            return {
-              ...item,
-              tipo: item.tipo as 'automatico' | 'recorrente',
-              evento: item.evento as 'emprestimo_criado' | 'emprestimo_vencendo' | 'emprestimo_atrasado' | 'pagamento_confirmado'
-            };
-          }) || [];
+          // Transform the data to match the Agendamento type
+          const agendamentos = data?.map(item => ({
+            ...item,
+            tipo: item.tipo as 'automatico' | 'recorrente',
+            evento: item.evento as 'emprestimo_criado' | 'emprestimo_vencendo' | 'emprestimo_atrasado' | 'pagamento_confirmado',
+            template: item.template as Partial<Template> | undefined
+          })) || [];
           
           return agendamentos;
         } catch (error) {

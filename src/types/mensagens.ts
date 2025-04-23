@@ -1,4 +1,3 @@
-
 export interface Template {
   id: string;
   nome: string;
@@ -31,7 +30,7 @@ export interface Mensagem {
     email?: string;
     telefone?: string;
   };
-  template?: Template;
+  template?: Partial<Template>; // Changed to Partial<Template> to allow incomplete templates
 }
 
 export interface Agendamento {
@@ -41,7 +40,7 @@ export interface Agendamento {
   evento: 'emprestimo_criado' | 'emprestimo_vencendo' | 'emprestimo_atrasado' | 'pagamento_confirmado';
   dias_antes: number;
   template_id?: string;
-  template?: Template;
+  template?: Partial<Template>; // Changed to Partial<Template> to allow incomplete templates
   ativo: boolean;
   created_at: string;
   created_by: string;
