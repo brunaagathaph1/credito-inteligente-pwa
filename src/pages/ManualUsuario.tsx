@@ -785,7 +785,7 @@ const ManualUsuario = () => {
                       
                       <h4 className="font-medium mt-3">Adicionar Nova Categoria:</h4>
                       <ol className="list-decimal pl-5 space-y-2">
-                        <li>Acesse "Configurações {'>'}Categorias".</li>
+                        <li>Acesse "Configurações > Categorias".</li>
                         <li>Clique em "Nova Categoria".</li>
                         <li>Preencha o nome e descrição da categoria.</li>
                         <li>Clique em "Salvar".</li>
