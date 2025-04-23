@@ -1,4 +1,3 @@
-
 export interface Template {
   id: string;
   nome: string;
@@ -40,12 +39,12 @@ export interface Agendamento {
   tipo: 'automatico' | 'recorrente';
   evento: 'emprestimo_criado' | 'emprestimo_vencendo' | 'emprestimo_atrasado' | 'pagamento_confirmado';
   dias_antes: number;
-  template_id: string;
+  template_id?: string;
+  template?: Template;
   ativo: boolean;
   created_at: string;
   created_by: string;
   updated_at: string;
-  template?: Template;
 }
 
 export interface WebhookIntegracao {
@@ -84,3 +83,13 @@ export const VARIAVEIS_TEMPLATES: Record<string, VariavelTemplate[]> = {
     { categoria: 'pagamento', nome: 'data', descricao: 'Data do pagamento', valor: '{{pagamento.data}}' }
   ]
 };
+
+export interface SystemSettings {
+  id: string;
+  name: string;
+  settings: Record<string, any>;
+  created_at: string;
+  updated_at: string;
+  created_by: string;
+  updated_by?: string;
+}

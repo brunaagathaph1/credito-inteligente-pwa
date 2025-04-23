@@ -1,8 +1,7 @@
-
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Agendamento, Mensagem, Template, WebhookIntegracao } from "@/types/mensagens";
+import { Agendamento, Template, Mensagem, WebhookIntegracao, SystemSettings } from "@/types/mensagens";
 
 export const useMensagens = () => {
   const queryClient = useQueryClient();
@@ -154,9 +153,9 @@ export const useMensagens = () => {
     }
   });
 
-  // Agendamentos
+  // Updated Agendamentos hook
   const useAgendamentos = () => {
-    return useQuery({
+    return useQuery<Agendamento[]>({
       queryKey: ['agendamentos'],
       queryFn: async () => {
         try {
@@ -168,15 +167,8 @@ export const useMensagens = () => {
             `)
             .order('nome');
           
-          if (error) {
-            // Se a tabela não existir, retorna array vazio sem erro
-            if (error.code === '42P01') {
-              return [];
-            }
-            throw error;
-          }
-          
-          return data as Agendamento[];
+          if (error) throw error;
+          return data || [];
         } catch (error) {
           console.error("Error fetching agendamentos:", error);
           toast.error("Erro ao carregar agendamentos");
@@ -186,6 +178,7 @@ export const useMensagens = () => {
     });
   };
 
+  // Updated createAgendamento mutation
   const createAgendamento = useMutation({
     mutationFn: async (agendamento: Omit<Agendamento, 'id' | 'created_at' | 'updated_at'>) => {
       try {
