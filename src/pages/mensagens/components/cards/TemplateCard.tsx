@@ -3,15 +3,16 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Edit } from "lucide-react";
+import { Edit, Trash2 } from "lucide-react";
 import { Template } from "@/types/mensagens";
 
 interface TemplateCardProps {
   template: Template;
   onEdit: () => void;
+  onDelete: () => void;
 }
 
-export const TemplateCard = ({ template, onEdit }: TemplateCardProps) => {
+export const TemplateCard = ({ template, onEdit, onDelete }: TemplateCardProps) => {
   return (
     <Card>
       <CardHeader className="pb-2">
@@ -39,10 +40,14 @@ export const TemplateCard = ({ template, onEdit }: TemplateCardProps) => {
             <p className="text-sm line-clamp-2">{template.conteudo}</p>
           </div>
         </div>
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex justify-end gap-2">
           <Button variant="ghost" size="sm" onClick={onEdit}>
             <Edit className="h-4 w-4 mr-1" />
             Editar
+          </Button>
+          <Button variant="ghost" size="sm" className="text-destructive" onClick={onDelete}>
+            <Trash2 className="h-4 w-4 mr-1" />
+            Excluir
           </Button>
         </div>
       </CardContent>

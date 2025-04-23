@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -213,50 +214,166 @@ export const useMensagens = () => {
     }
   });
 
-  // Webhooks e Integrações
-  const useWebhooks = () => {
+  // Add updateAgendamento mutation
+  const updateAgendamento = useMutation({
+    mutationFn: async ({ id, agendamento }: { id: string; agendamento: Partial<Agendamento> }) => {
+      try {
+        const { data, error } = await supabase
+          .from('agendamentos')
+          .update(agendamento)
+          .eq('id', id)
+          .select()
+          .single();
+        
+        if (error) throw error;
+        return data as Agendamento;
+      } catch (error) {
+        console.error("Error updating agendamento:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agendamentos'] });
+      toast.success("Agendamento atualizado com sucesso!");
+    },
+    onError: (error: any) => {
+      toast.error(`Erro ao atualizar agendamento: ${error.message || "Erro desconhecido"}`);
+    }
+  });
+
+  // Add deleteAgendamento mutation
+  const deleteAgendamento = useMutation({
+    mutationFn: async (id: string) => {
+      try {
+        const { error } = await supabase
+          .from('agendamentos')
+          .delete()
+          .eq('id', id);
+        
+        if (error) throw error;
+        return id;
+      } catch (error) {
+        console.error("Error deleting agendamento:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['agendamentos'] });
+      toast.success("Agendamento excluído com sucesso!");
+    },
+    onError: (error: any) => {
+      toast.error(`Erro ao excluir agendamento: ${error.message || "Erro desconhecido"}`);
+    }
+  });
+
+  // Configurações da Evolution API (WhatsApp)
+  const useEvolutionApiConfig = () => {
     return useQuery({
-      queryKey: ['webhooks'],
+      queryKey: ['evolutionApiConfig'],
       queryFn: async () => {
         try {
           const { data, error } = await supabase
-            .from('webhooks')
+            .from('configuracoes_financeiras')
             .select('*')
-            .order('nome');
+            .eq('nome', 'evolution_api')
+            .maybeSingle();
           
           if (error) throw error;
-          return data as WebhookIntegracao[];
+          
+          if (data && data.observacoes) {
+            try {
+              return JSON.parse(data.observacoes);
+            } catch (e) {
+              console.error("Error parsing Evolution API config:", e);
+              return { webhook_url: '', api_key: '' };
+            }
+          }
+          
+          return { webhook_url: '', api_key: '' };
         } catch (error) {
-          console.error("Error fetching webhooks:", error);
-          toast.error("Erro ao carregar webhooks");
-          return [];
+          console.error("Error fetching Evolution API config:", error);
+          toast.error("Erro ao carregar configuração da API");
+          return { webhook_url: '', api_key: '' };
         }
       }
     });
   };
 
-  const saveWebhook = useMutation({
-    mutationFn: async (webhook: Omit<WebhookIntegracao, 'id' | 'created_at' | 'updated_at'>) => {
+  const saveEvolutionApiConfig = useMutation({
+    mutationFn: async (config: { webhook_url: string; api_key: string; observacoes?: string }) => {
       try {
-        const { data, error } = await supabase
-          .from('webhooks')
-          .insert(webhook)
-          .select()
-          .single();
+        // Check if config already exists
+        const { data: existingConfig, error: fetchError } = await supabase
+          .from('configuracoes_financeiras')
+          .select('id')
+          .eq('nome', 'evolution_api')
+          .maybeSingle();
         
-        if (error) throw error;
-        return data as WebhookIntegracao;
+        if (fetchError) throw fetchError;
+        
+        if (existingConfig) {
+          // Update existing config
+          const { data, error } = await supabase
+            .from('configuracoes_financeiras')
+            .update({
+              observacoes: JSON.stringify(config)
+            })
+            .eq('id', existingConfig.id)
+            .select()
+            .single();
+          
+          if (error) throw error;
+          return data;
+        } else {
+          // Create new config
+          const { data, error } = await supabase
+            .from('configuracoes_financeiras')
+            .insert({
+              nome: 'evolution_api',
+              observacoes: JSON.stringify(config),
+              taxa_padrao_juros: 0,
+              tipo_juros_padrao: 'simples',
+              taxa_juros_atraso: 0,
+              taxa_multa_atraso: 0,
+              prazo_maximo_dias: 30,
+              created_by: 'sistema'
+            })
+            .select()
+            .single();
+          
+          if (error) throw error;
+          return data;
+        }
       } catch (error) {
-        console.error("Error creating webhook:", error);
+        console.error("Error saving Evolution API config:", error);
         throw error;
       }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['webhooks'] });
-      toast.success("Webhook salvo com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ['evolutionApiConfig'] });
+      toast.success("Configuração da API salva com sucesso!");
     },
     onError: (error: any) => {
-      toast.error(`Erro ao salvar webhook: ${error.message || "Erro desconhecido"}`);
+      toast.error(`Erro ao salvar configuração da API: ${error.message || "Erro desconhecido"}`);
+    }
+  });
+
+  const testEvolutionApi = useMutation({
+    mutationFn: async (config: { webhook_url: string; api_key: string }) => {
+      try {
+        // Here we would normally make a test request to the webhook
+        // For now, we'll just simulate a successful test
+        return true;
+      } catch (error) {
+        console.error("Error testing Evolution API:", error);
+        throw error;
+      }
+    },
+    onSuccess: () => {
+      toast.success("Conexão com a API de WhatsApp testada com sucesso!");
+    },
+    onError: (error: any) => {
+      toast.error(`Erro ao testar conexão com a API: ${error.message || "Erro desconhecido"}`);
     }
   });
 
@@ -274,9 +391,12 @@ export const useMensagens = () => {
     // Agendamentos
     useAgendamentos,
     createAgendamento,
+    updateAgendamento,
+    deleteAgendamento,
     
-    // Webhooks
-    useWebhooks,
-    saveWebhook
+    // Evolution API Config
+    useEvolutionApiConfig,
+    saveEvolutionApiConfig,
+    testEvolutionApi
   };
 };

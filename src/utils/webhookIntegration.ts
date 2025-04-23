@@ -1,61 +1,14 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-export const sendWebhookNotification = async (event: string, data: any) => {
+// Função para enviar notificação via Evolution API (WhatsApp)
+export const sendEvolutionApiNotification = async (
+  phoneNumber: string, 
+  message: string,
+  templateData?: any
+) => {
   try {
-    const { data: webhookData, error } = await supabase
-      .from('webhooks')
-      .select('*')
-      .eq('ativo', true)
-      .limit(1);
-      
-    if (error) throw error;
-    
-    if (!webhookData || webhookData.length === 0) return false;
-    
-    const webhook = webhookData[0];
-    
-    // Validar se o webhook suporta o evento específico
-    if (!webhook.eventos.includes(event)) return false;
-    
-    const urls = webhook.url.split('|');
-    const postUrl = urls[0] || "";
-    
-    if (!postUrl) return false;
-    
-    // Registrar log do webhook
-    await logWebhookEvent(event, data, webhook.id);
-    
-    // Aqui você faria a chamada real para o webhook
-    console.log(`Webhook notification sent to ${postUrl} for event ${event}`);
-    
-    return true;
-  } catch (error) {
-    console.error("Error sending webhook notification:", error);
-    return false;
-  }
-};
-
-export const logWebhookEvent = async (event: string, payload: any, webhookId: string = 'default') => {
-  try {
-    await supabase
-      .from('webhook_logs')
-      .insert({
-        webhook_id: webhookId,
-        evento: event,
-        payload: payload,
-        status: 'enviado'
-      });
-      
-    return true;
-  } catch (error) {
-    console.error("Error logging webhook event:", error);
-    return false;
-  }
-};
-
-export const shouldNotifyEvolutionApi = async (event: string) => {
-  try {
+    // Obter configuração da Evolution API
     const { data, error } = await supabase
       .from('configuracoes_financeiras')
       .select('observacoes')
@@ -64,81 +17,36 @@ export const shouldNotifyEvolutionApi = async (event: string) => {
       
     if (error) throw error;
     
-    if (!data || !data.observacoes) return false;
+    if (!data || !data.observacoes) {
+      console.log("Evolution API não configurada");
+      return false;
+    }
     
     try {
       const config = JSON.parse(data.observacoes);
       
-      // Mapear eventos para propriedades de configuração
-      const eventMap: Record<string, string> = {
-        'emprestimo.novo': 'novoEmprestimo',
-        'pagamento.novo': 'novoPagamento',
-        'cliente.novo': 'novoCliente',
-        'emprestimo.atraso': 'emprestimoAtrasado'
-      };
-      
-      return config.eventos && config.eventos[eventMap[event]];
-    } catch (e) {
-      console.error("Error parsing Evolution API config:", e);
-      return false;
-    }
-  } catch (error) {
-    console.error("Error checking Evolution API config:", error);
-    return false;
-  }
-};
-
-export const sendEvolutionApiNotification = async (event: string, data: any, telefone?: string) => {
-  try {
-    // Verificar se a Evolution API deve ser notificada
-    const shouldNotify = await shouldNotifyEvolutionApi(event);
-    
-    if (!shouldNotify) return false;
-    
-    // Obter configuração da Evolution API
-    const { data: configData, error } = await supabase
-      .from('configuracoes_financeiras')
-      .select('observacoes')
-      .eq('nome', 'evolution_api')
-      .maybeSingle();
-      
-    if (error) throw error;
-    
-    if (!configData || !configData.observacoes) return false;
-    
-    try {
-      const config = JSON.parse(configData.observacoes);
-      
-      // Verificar se temos um número de telefone
-      if (!telefone) {
-        // Tentar obter número de telefone do cliente
-        if (data.cliente_id) {
-          const { data: clienteData } = await supabase
-            .from('clientes')
-            .select('telefone')
-            .eq('id', data.cliente_id)
-            .single();
-            
-          if (clienteData?.telefone) {
-            telefone = clienteData.telefone;
-          }
-        }
-      }
-      
-      if (!telefone) {
-        console.log("No phone number available for Evolution API notification");
+      if (!config.webhook_url || !config.api_key) {
+        console.log("URL ou chave da API não configurados");
         return false;
       }
       
       // Formatar número de telefone (remover não-dígitos)
-      const formattedPhone = telefone.replace(/\D/g, '');
+      const formattedPhone = phoneNumber.replace(/\D/g, '');
+      
+      // Preparar dados para envio
+      const payload = {
+        phone: formattedPhone,
+        message,
+        ...templateData
+      };
       
       // Em um ambiente de produção, você faria uma solicitação HTTP aqui
-      console.log(`Evolution API notification sent for event ${event}`);
-      console.log("Data:", { ...data, telefone: formattedPhone });
+      console.log(`Evolution API notification sent`);
+      console.log("Payload:", payload);
+      console.log("URL:", config.webhook_url);
       
       // Registrar o evento
-      await logWebhookEvent(`evolution.${event}`, { ...data, telefone: formattedPhone });
+      await logMessageEvent("whatsapp_sent", payload);
       
       return true;
     } catch (e) {
@@ -149,4 +57,77 @@ export const sendEvolutionApiNotification = async (event: string, data: any, tel
     console.error("Error sending Evolution API notification:", error);
     return false;
   }
+};
+
+// Função para registrar eventos de mensagens
+export const logMessageEvent = async (event: string, payload: any) => {
+  try {
+    await supabase
+      .from('mensagens')
+      .insert({
+        tipo: 'whatsapp',
+        status: 'enviado',
+        conteudo: payload.message,
+        cliente_id: payload.cliente_id || null,
+        emprestimo_id: payload.emprestimo_id || null,
+        assunto: event,
+        created_by: 'sistema',
+        data_envio: new Date().toISOString()
+      });
+      
+    return true;
+  } catch (error) {
+    console.error("Error logging message event:", error);
+    return false;
+  }
+};
+
+// Função para processar variáveis em templates
+export const processTemplateVariables = async (
+  template: string, 
+  data: {
+    cliente?: any;
+    emprestimo?: any;
+    pagamento?: any;
+    [key: string]: any;
+  }
+) => {
+  let processedTemplate = template;
+  
+  // Processar variáveis de cliente
+  if (data.cliente) {
+    processedTemplate = processedTemplate.replace(/\{\{cliente\.nome\}\}/g, data.cliente.nome || '');
+    processedTemplate = processedTemplate.replace(/\{\{cliente\.telefone\}\}/g, data.cliente.telefone || '');
+    processedTemplate = processedTemplate.replace(/\{\{cliente\.email\}\}/g, data.cliente.email || '');
+  }
+  
+  // Processar variáveis de empréstimo
+  if (data.emprestimo) {
+    processedTemplate = processedTemplate.replace(/\{\{emprestimo\.valor_principal\}\}/g, 
+      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+        .format(data.emprestimo.valor_principal) || '');
+    processedTemplate = processedTemplate.replace(/\{\{emprestimo\.data_vencimento\}\}/g, 
+      new Date(data.emprestimo.data_vencimento).toLocaleDateString('pt-BR') || '');
+    processedTemplate = processedTemplate.replace(/\{\{emprestimo\.taxa_juros\}\}/g, 
+      `${data.emprestimo.taxa_juros}%` || '');
+  }
+  
+  // Processar variáveis de pagamento
+  if (data.pagamento) {
+    processedTemplate = processedTemplate.replace(/\{\{pagamento\.valor\}\}/g, 
+      new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
+        .format(data.pagamento.valor) || '');
+    processedTemplate = processedTemplate.replace(/\{\{pagamento\.data_pagamento\}\}/g, 
+      new Date(data.pagamento.data_pagamento).toLocaleDateString('pt-BR') || '');
+  }
+  
+  // Processar outras variáveis
+  Object.keys(data).forEach(key => {
+    if (typeof data[key] === 'string' || typeof data[key] === 'number') {
+      const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
+      processedTemplate = processedTemplate.replace(regex, String(data[key]));
+    }
+  });
+  
+  return processedTemplate;
 };

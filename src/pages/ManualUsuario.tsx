@@ -30,30 +30,28 @@ const ManualUsuario = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <div className="bg-card rounded-md p-1">
           {isMobile ? (
-            <ScrollArea className="w-full whitespace-nowrap">
-              <TabsList className="inline-flex w-max">
-                <TabsTrigger value="inicio">
-                  <Info className="h-4 w-4 mr-2" />
-                  Início
-                </TabsTrigger>
-                <TabsTrigger value="clientes">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Clientes
-                </TabsTrigger>
-                <TabsTrigger value="emprestimos">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Empréstimos
-                </TabsTrigger>
-                <TabsTrigger value="mensagens">
-                  <FileText className="h-4 w-4 mr-2" />
-                  Mensagens
-                </TabsTrigger>
-                <TabsTrigger value="faq">
-                  <HelpCircle className="h-4 w-4 mr-2" />
-                  FAQ
-                </TabsTrigger>
-              </TabsList>
-            </ScrollArea>
+            <div className="grid grid-cols-3 gap-1 mb-1">
+              <TabsTrigger value="inicio" className="text-xs py-1 px-2">
+                <Info className="h-3 w-3 mr-1" />
+                Início
+              </TabsTrigger>
+              <TabsTrigger value="clientes" className="text-xs py-1 px-2">
+                <FileText className="h-3 w-3 mr-1" />
+                Clientes
+              </TabsTrigger>
+              <TabsTrigger value="emprestimos" className="text-xs py-1 px-2">
+                <FileText className="h-3 w-3 mr-1" />
+                Empréstimos
+              </TabsTrigger>
+              <TabsTrigger value="mensagens" className="text-xs py-1 px-2 col-start-1 col-end-2">
+                <FileText className="h-3 w-3 mr-1" />
+                Mensagens
+              </TabsTrigger>
+              <TabsTrigger value="faq" className="text-xs py-1 px-2 col-start-2 col-end-3">
+                <HelpCircle className="h-3 w-3 mr-1" />
+                FAQ
+              </TabsTrigger>
+            </div>
           ) : (
             <TabsList className="w-full">
               <TabsTrigger value="inicio">
