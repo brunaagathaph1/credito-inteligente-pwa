@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { VARIAVEIS_TEMPLATES, VariavelTemplate } from "@/types/mensagens";
 import React from "react";
+import { toast } from "sonner";
 
 interface TemplateEditorProps {
   newTemplate: {
@@ -99,16 +100,16 @@ export default function TemplateEditor({
         <div className="mt-4 space-y-4">
           <div>
             <Label className="mb-2 block">Variáveis Disponíveis:</Label>
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
               {Object.entries(VARIAVEIS_TEMPLATES).map(([categoria, variaveis]) => (
-                <div key={categoria} className="border p-4 rounded-md w-full md:w-auto">
-                  <strong className="block mb-2">{categoria.charAt(0).toUpperCase() + categoria.slice(1)}</strong>
+                <div key={categoria} className="border p-3 rounded-md">
+                  <strong className="block mb-2 text-sm">{categoria.charAt(0).toUpperCase() + categoria.slice(1)}</strong>
                   <div className="flex flex-wrap gap-1">
                     {variaveis.map((variavel) => (
                       <Badge 
                         key={variavel.valor} 
                         variant="outline" 
-                        className="cursor-pointer" 
+                        className="cursor-pointer text-xs mb-1" 
                         onClick={() => handleInsertVariable(variavel)}
                       >
                         {variavel.valor}
@@ -133,4 +134,3 @@ export default function TemplateEditor({
     </Card>
   );
 }
-

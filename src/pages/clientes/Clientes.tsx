@@ -29,6 +29,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useActivityLogs } from "@/hooks/useActivityLogs";
 import { EmptyState } from "@/components/common/EmptyState";
 import { useClients } from "@/hooks/useClients";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Clientes = () => {
   const navigate = useNavigate();
@@ -37,6 +38,7 @@ const Clientes = () => {
   const [statusFilter, setStatusFilter] = useState("todos");
   const { logActivity } = useActivityLogs();
   const { clients, isLoadingClients } = useClients();
+  const isMobile = useIsMobile();
   
   // Log activity only once when component mounts
   useEffect(() => {
@@ -62,6 +64,51 @@ const Clientes = () => {
     if (score >= 70) return "text-warning";
     return "text-destructive";
   };
+
+  const handleViewClient = (clientId: string) => {
+    navigate(`/clientes/${clientId}`);
+  };
+
+  // Renderiza um card para dispositivos móveis em vez de uma linha de tabela
+  const renderMobileCard = (cliente: any) => (
+    <Card key={cliente.id} className="mb-4">
+      <CardContent className="p-4">
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <h3 className="font-medium text-base">{cliente.nome}</h3>
+            <p className="text-xs text-muted-foreground">{cliente.cpf || '-'}</p>
+          </div>
+          <div className={`text-right ${handleScoreClass(cliente.score)}`}>
+            <span className="font-medium">{cliente.score || '-'}</span>
+            <p className="text-xs text-muted-foreground">Score</p>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 gap-2 mb-3">
+          <div>
+            <p className="text-xs text-muted-foreground">Telefone</p>
+            <p className="text-sm">{cliente.telefone || '-'}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Email</p>
+            <p className="text-sm">{cliente.email || '-'}</p>
+          </div>
+        </div>
+        
+        <div className="flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleViewClient(cliente.id)}
+            className="flex items-center"
+          >
+            <Eye className="h-4 w-4 mr-1" />
+            Ver detalhes
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="space-y-6">
@@ -113,45 +160,49 @@ const Clientes = () => {
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </div>
           ) : clientesFiltrados.length > 0 ? (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Nome</TableHead>
-                    <TableHead className="hidden md:table-cell">CPF</TableHead>
-                    <TableHead className="hidden md:table-cell">Telefone</TableHead>
-                    <TableHead className="hidden md:table-cell">Email</TableHead>
-                    <TableHead>Score</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {clientesFiltrados.map((cliente) => (
-                    <TableRow key={cliente.id}>
-                      <TableCell className="font-medium">{cliente.nome}</TableCell>
-                      <TableCell className="hidden md:table-cell">{cliente.cpf || '-'}</TableCell>
-                      <TableCell className="hidden md:table-cell">{cliente.telefone || '-'}</TableCell>
-                      <TableCell className="hidden md:table-cell">{cliente.email || '-'}</TableCell>
-                      <TableCell className={handleScoreClass(cliente.score)}>
-                        {cliente.score || '-'}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          asChild
-                        >
-                          <Link to={`/clientes/${cliente.id}`}>
+            isMobile ? (
+              <div>
+                {clientesFiltrados.map(cliente => renderMobileCard(cliente))}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Nome</TableHead>
+                      <TableHead className="hidden md:table-cell">CPF</TableHead>
+                      <TableHead className="hidden md:table-cell">Telefone</TableHead>
+                      <TableHead className="hidden md:table-cell">Email</TableHead>
+                      <TableHead>Score</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {clientesFiltrados.map((cliente) => (
+                      <TableRow key={cliente.id}>
+                        <TableCell className="font-medium">{cliente.nome}</TableCell>
+                        <TableCell className="hidden md:table-cell">{cliente.cpf || '-'}</TableCell>
+                        <TableCell className="hidden md:table-cell">{cliente.telefone || '-'}</TableCell>
+                        <TableCell className="hidden md:table-cell">{cliente.email || '-'}</TableCell>
+                        <TableCell className={handleScoreClass(cliente.score)}>
+                          {cliente.score || '-'}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleViewClient(cliente.id)}
+                          >
                             <Eye className="h-4 w-4" />
                             <span className="sr-only">Ver cliente</span>
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )
           ) : (
             <EmptyState
               title="Nenhum cliente encontrado"

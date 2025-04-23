@@ -24,6 +24,7 @@ import { Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useActivityLogs } from "@/hooks/useActivityLogs";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 // Define types for the data
 interface MesData {
@@ -40,6 +41,7 @@ interface StatusData {
 const RelatoriosEGraficos = () => {
   const { loans, isLoadingLoans } = useLoans();
   const { logActivity } = useActivityLogs();
+  const isMobile = useIsMobile();
   const [dadosMensais, setDadosMensais] = useState<MesData[]>([]);
   const [dadosStatus, setDadosStatus] = useState<StatusData[]>([]);
 
@@ -153,33 +155,52 @@ const RelatoriosEGraficos = () => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
+          <Card className="w-full">
             <CardHeader>
               <CardTitle>Movimentação Financeira Mensal</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-80">
+              <div className={isMobile ? "h-60" : "h-80"} style={{ width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <RechartsBarChart
                     data={dadosMensais}
-                    margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
+                    margin={{ 
+                      top: 20, 
+                      right: isMobile ? 10 : 30, 
+                      left: isMobile ? 0 : 20, 
+                      bottom: 5 
+                    }}
                   >
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="mes" />
-                    <YAxis />
+                    <XAxis 
+                      dataKey="mes" 
+                      tick={{ fontSize: isMobile ? 10 : 12 }}
+                      interval={isMobile ? 1 : 0}
+                    />
+                    <YAxis 
+                      width={isMobile ? 40 : 60}
+                      tick={{ fontSize: isMobile ? 10 : 12 }}
+                      tickFormatter={(value) => 
+                        isMobile 
+                          ? `${Math.round(value / 1000)}k` 
+                          : formatCurrency(value).replace(/[^0-9,.-]/g, '')
+                      } 
+                    />
                     <Tooltip formatter={(value) => [formatCurrency(value as number), ""]} />
-                    <Legend />
+                    <Legend wrapperStyle={{ fontSize: isMobile ? 10 : 12 }} />
                     <Bar 
                       name="Empréstimos" 
                       dataKey="emprestimos" 
                       fill="hsl(var(--primary))" 
                       radius={[4, 4, 0, 0]}
+                      maxBarSize={isMobile ? 20 : 60}
                     />
                     <Bar 
                       name="Recebimentos" 
                       dataKey="recebimentos" 
                       fill="hsl(var(--success))" 
                       radius={[4, 4, 0, 0]}
+                      maxBarSize={isMobile ? 20 : 60}
                     />
                   </RechartsBarChart>
                 </ResponsiveContainer>
@@ -187,12 +208,12 @@ const RelatoriosEGraficos = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="w-full">
             <CardHeader>
               <CardTitle>Status dos Empréstimos</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-80">
+              <div className={isMobile ? "h-60" : "h-80"} style={{ width: '100%' }}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
@@ -201,7 +222,7 @@ const RelatoriosEGraficos = () => {
                       cy="50%"
                       labelLine={false}
                       label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                      outerRadius={80}
+                      outerRadius={isMobile ? 60 : 80}
                       fill="#8884d8"
                       dataKey="value"
                     >
@@ -210,6 +231,12 @@ const RelatoriosEGraficos = () => {
                       ))}
                     </Pie>
                     <Tooltip formatter={(value) => [`${value} empréstimo(s)`, ""]} />
+                    <Legend 
+                      layout={isMobile ? "horizontal" : "vertical"} 
+                      verticalAlign={isMobile ? "bottom" : "middle"} 
+                      align={isMobile ? "center" : "right"}
+                      wrapperStyle={{ fontSize: isMobile ? 10 : 12 }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>

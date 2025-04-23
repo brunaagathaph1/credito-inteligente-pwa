@@ -13,14 +13,16 @@ const Layout = () => {
   const isOverflowRoute = 
     location.pathname.includes('/configuracoes/categorias') || 
     location.pathname.includes('/configuracoes/metodos-pagamento') ||
-    location.pathname.includes('/mensagens');
+    location.pathname.includes('/mensagens') ||
+    location.pathname.includes('/manual') ||
+    location.pathname.includes('/relatorios');
 
   return (
     <div className="min-h-screen flex flex-col">
       {isMobile ? (
         <>
           <Navbar />
-          <main className={`flex-1 container mx-auto px-4 pb-16 ${isOverflowRoute ? 'overflow-x-auto' : ''}`}>
+          <main className={`flex-1 container mx-auto px-4 pb-16 ${isOverflowRoute ? 'overflow-visible' : ''}`}>
             <Outlet />
           </main>
           <BottomNav />
@@ -28,7 +30,7 @@ const Layout = () => {
       ) : (
         <div className="flex">
           <Sidebar />
-          <main className="flex-1 px-6 py-8 overflow-x-auto">
+          <main className="flex-1 px-6 py-8 overflow-visible">
             <Outlet />
           </main>
         </div>

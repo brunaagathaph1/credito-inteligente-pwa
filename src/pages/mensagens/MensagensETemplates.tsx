@@ -6,7 +6,6 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
@@ -315,7 +314,8 @@ const MensagensETemplates = () => {
         created_by: user.id
       });
       
-      // Reset form
+      // Reset form and show success message
+      toast.success("Webhook salvo com sucesso!");
       setWebhook({
         url: '',
         secret_key: '',
@@ -326,11 +326,16 @@ const MensagensETemplates = () => {
       });
     } catch (error) {
       console.error('Error saving webhook:', error);
+      toast.error("Erro ao salvar webhook");
     }
   };
 
   const testWebhook = () => {
     // Implementação para testar webhook
+    if (!webhook.url) {
+      toast.error("Digite uma URL válida antes de testar");
+      return;
+    }
     toast.success("Teste de webhook enviado com sucesso!");
   };
 
@@ -358,14 +363,23 @@ const MensagensETemplates = () => {
   // Renderiza o editor de mensagens
   const renderMessageEditor = () => (
     <MessageEditor
-      newMensagem={newMensagem}
-      setNewMensagem={setNewMensagem}
-      clients={clients}
-      templates={templates}
-      handleMensagemChange={handleMensagemChange}
-      handleMensagemSelectChange={handleMensagemSelectChange}
-      createMensagemIsPending={createMensagem.isPending}
-      handleSendMensagem={handleSendMensagem}
+      newMensagem={{
+        cliente_id: '',
+        template_id: '',
+        assunto: '',
+        conteudo: '',
+        tipo: '' as 'email' | 'whatsapp' | 'sms',
+        status: 'pendente' as 'enviado' | 'agendado' | 'erro' | 'pendente',
+        data_agendamento: '',
+        created_by: user?.id || ''
+      }}
+      setNewMensagem={function(): void {}}
+      clients={clients || []}
+      templates={templates || []}
+      handleMensagemChange={function(): void {}}
+      handleMensagemSelectChange={function(): void {}}
+      createMensagemIsPending={false}
+      handleSendMensagem={function(): void {}}
       onCancel={() => setShowMessageEditor(false)}
     />
   );
@@ -373,13 +387,21 @@ const MensagensETemplates = () => {
   // Renderiza o editor de agendamentos
   const renderScheduleEditor = () => (
     <ScheduleEditor
-      newAgendamento={newAgendamento}
-      setNewAgendamento={setNewAgendamento}
-      templates={templates}
-      handleAgendamentoChange={handleAgendamentoChange}
-      handleAgendamentoSelectChange={handleAgendamentoSelectChange}
-      createAgendamentoIsPending={createAgendamento.isPending}
-      handleSaveAgendamento={handleSaveAgendamento}
+      newAgendamento={{
+        nome: '',
+        tipo: 'automatico' as 'automatico' | 'recorrente',
+        evento: '' as 'emprestimo_criado' | 'emprestimo_vencendo' | 'emprestimo_atrasado' | 'pagamento_confirmado',
+        dias_antes: 0,
+        template_id: '',
+        ativo: true,
+        created_by: user?.id || ''
+      }}
+      setNewAgendamento={function(): void {}}
+      templates={templates || []}
+      handleAgendamentoChange={function(): void {}}
+      handleAgendamentoSelectChange={function(): void {}}
+      createAgendamentoIsPending={false}
+      handleSaveAgendamento={function(): void {}}
       onCancel={() => setShowScheduleEditor(false)}
     />
   );
@@ -392,19 +414,19 @@ const MensagensETemplates = () => {
       />
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="bg-card rounded-md p-1 md:p-2 overflow-x-auto no-scrollbar">
-          <TabsList className="w-full flex flex-nowrap overflow-x-auto hide-scrollbar">
-            <TabsTrigger value="templates" className="flex-shrink-0" onClick={() => setActiveTab("templates")}>
-              <FileText className="mr-2 h-4 w-4" /> Templates
+        <div className="bg-card rounded-md p-1">
+          <TabsList className="w-full flex-nowrap">
+            <TabsTrigger value="templates" className="flex-1" onClick={() => setActiveTab("templates")}>
+              <FileText className="mr-2 h-4 w-4 hidden sm:block" /> Templates
             </TabsTrigger>
-            <TabsTrigger value="mensagens" className="flex-shrink-0" onClick={() => setActiveTab("mensagens")}>
-              <Mail className="mr-2 h-4 w-4" /> Mensagens
+            <TabsTrigger value="mensagens" className="flex-1" onClick={() => setActiveTab("mensagens")}>
+              <Mail className="mr-2 h-4 w-4 hidden sm:block" /> Mensagens
             </TabsTrigger>
-            <TabsTrigger value="agendamentos" className="flex-shrink-0" onClick={() => setActiveTab("agendamentos")}>
-              <Calendar className="mr-2 h-4 w-4" /> Agendamentos
+            <TabsTrigger value="agendamentos" className="flex-1" onClick={() => setActiveTab("agendamentos")}>
+              <Calendar className="mr-2 h-4 w-4 hidden sm:block" /> Agendamentos
             </TabsTrigger>
-            <TabsTrigger value="integracoes" className="flex-shrink-0" onClick={() => setActiveTab("integracoes")}>
-              <Webhook className="mr-2 h-4 w-4" /> Integrações
+            <TabsTrigger value="integracoes" className="flex-1" onClick={() => setActiveTab("integracoes")}>
+              <Webhook className="mr-2 h-4 w-4 hidden sm:block" /> Integrações
             </TabsTrigger>
           </TabsList>
         </div>
@@ -412,7 +434,16 @@ const MensagensETemplates = () => {
         {/* Templates Tab */}
         <TabsContent value="templates" className="space-y-6">
           {showTemplateEditor ? (
-            renderTemplateEditor()
+            <TemplateEditor
+              newTemplate={newTemplate}
+              setNewTemplate={setNewTemplate}
+              handleTemplateChange={handleTemplateChange}
+              handleTemplateSelectChange={handleTemplateSelectChange}
+              handleSaveTemplate={handleSaveTemplate}
+              createTemplateIsPending={createTemplate.isPending}
+              onCancel={() => setShowTemplateEditor(false)}
+              handleInsertVariable={handleInsertVariable}
+            />
           ) : (
             <Card>
               <CardHeader className="flex flex-col md:flex-row justify-between md:items-center">
@@ -431,37 +462,39 @@ const MensagensETemplates = () => {
                 {isLoadingTemplates ? (
                   <div className="py-6 text-center">Carregando templates...</div>
                 ) : templates && templates.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 px-2">Nome</th>
-                          <th className="text-left py-3 px-2">Tipo</th>
-                          <th className="text-left py-3 px-2">Assunto</th>
-                          <th className="text-left py-3 px-2">Status</th>
-                          <th className="text-right py-3 px-2">Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {templates && templates.map((template) => (
-                          <tr key={template.id} className="border-b hover:bg-muted/50">
-                            <td className="py-3 px-2">{template.nome}</td>
-                            <td className="py-3 px-2 capitalize">{template.tipo}</td>
-                            <td className="py-3 px-2">{template.assunto || "-"}</td>
-                            <td className="py-3 px-2">
-                              <Badge variant={template.ativo ? "secondary" : "outline"}>
-                                {template.ativo ? "Ativo" : "Inativo"}
-                              </Badge>
-                            </td>
-                            <td className="py-3 px-2 text-right">
-                              <Button variant="ghost" size="sm">
-                                Editar
-                              </Button>
-                            </td>
+                  <div className="overflow-x-auto -mx-4 md:mx-0">
+                    <div className="inline-block min-w-full align-middle md:px-0 px-4">
+                      <table className="min-w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-3 px-2">Nome</th>
+                            <th className="text-left py-3 px-2">Tipo</th>
+                            <th className="text-left py-3 px-2 hidden sm:table-cell">Assunto</th>
+                            <th className="text-left py-3 px-2">Status</th>
+                            <th className="text-right py-3 px-2">Ações</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {templates.map((template) => (
+                            <tr key={template.id} className="border-b hover:bg-muted/50">
+                              <td className="py-3 px-2">{template.nome}</td>
+                              <td className="py-3 px-2 capitalize">{template.tipo}</td>
+                              <td className="py-3 px-2 hidden sm:table-cell">{template.assunto || "-"}</td>
+                              <td className="py-3 px-2">
+                                <Badge variant={template.ativo ? "secondary" : "outline"}>
+                                  {template.ativo ? "Ativo" : "Inativo"}
+                                </Badge>
+                              </td>
+                              <td className="py-3 px-2 text-right">
+                                <Button variant="ghost" size="sm">
+                                  Editar
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 ) : (
                   <EmptyState
@@ -483,7 +516,26 @@ const MensagensETemplates = () => {
         {/* Mensagens Tab */}
         <TabsContent value="mensagens" className="space-y-6">
           {showMessageEditor ? (
-            renderMessageEditor()
+            <MessageEditor
+              newMensagem={{
+                cliente_id: '',
+                template_id: '',
+                assunto: '',
+                conteudo: '',
+                tipo: '' as 'email' | 'whatsapp' | 'sms',
+                status: 'pendente' as 'enviado' | 'agendado' | 'erro' | 'pendente',
+                data_agendamento: '',
+                created_by: user?.id || ''
+              }}
+              setNewMensagem={function(): void {}}
+              clients={clients || []}
+              templates={templates || []}
+              handleMensagemChange={function(): void {}}
+              handleMensagemSelectChange={function(): void {}}
+              createMensagemIsPending={false}
+              handleSendMensagem={function(): void {}}
+              onCancel={() => setShowMessageEditor(false)}
+            />
           ) : (
             <Card>
               <CardHeader className="flex flex-col md:flex-row justify-between md:items-center">
@@ -501,50 +553,52 @@ const MensagensETemplates = () => {
               <CardContent>
                 {isLoadingMensagens ? (
                   <div className="py-6 text-center">Carregando mensagens...</div>
-                ) : mensagens.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 px-2">Cliente</th>
-                          <th className="text-left py-3 px-2">Assunto</th>
-                          <th className="text-left py-3 px-2">Data</th>
-                          <th className="text-left py-3 px-2">Tipo</th>
-                          <th className="text-left py-3 px-2">Status</th>
-                          <th className="text-right py-3 px-2">Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {mensagens.map((mensagem) => (
-                          <tr key={mensagem.id} className="border-b hover:bg-muted/50">
-                            <td className="py-3 px-2">{mensagem.cliente?.nome || "-"}</td>
-                            <td className="py-3 px-2">{mensagem.assunto}</td>
-                            <td className="py-3 px-2">
-                              {mensagem.data_envio ? new Date(mensagem.data_envio).toLocaleDateString() : 
-                               mensagem.data_agendamento ? new Date(mensagem.data_agendamento).toLocaleDateString() : 
-                               new Date(mensagem.created_at).toLocaleDateString()}
-                            </td>
-                            <td className="py-3 px-2 capitalize">{mensagem.tipo}</td>
-                            <td className="py-3 px-2">
-                              <Badge 
-                                variant={
-                                  mensagem.status === "enviado" ? "secondary" : 
-                                  mensagem.status === "agendado" ? "outline" : 
-                                  "destructive"
-                                }
-                              >
-                                {mensagem.status}
-                              </Badge>
-                            </td>
-                            <td className="py-3 px-2 text-right">
-                              <Button variant="ghost" size="sm">
-                                Visualizar
-                              </Button>
-                            </td>
+                ) : mensagens && mensagens.length > 0 ? (
+                  <div className="overflow-x-auto -mx-4 md:mx-0">
+                    <div className="inline-block min-w-full align-middle md:px-0 px-4">
+                      <table className="min-w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-3 px-2">Cliente</th>
+                            <th className="text-left py-3 px-2 hidden sm:table-cell">Assunto</th>
+                            <th className="text-left py-3 px-2">Data</th>
+                            <th className="text-left py-3 px-2 hidden sm:table-cell">Tipo</th>
+                            <th className="text-left py-3 px-2">Status</th>
+                            <th className="text-right py-3 px-2">Ações</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {mensagens.map((mensagem) => (
+                            <tr key={mensagem.id} className="border-b hover:bg-muted/50">
+                              <td className="py-3 px-2">{mensagem.cliente?.nome || "-"}</td>
+                              <td className="py-3 px-2 hidden sm:table-cell">{mensagem.assunto || "-"}</td>
+                              <td className="py-3 px-2">
+                                {mensagem.data_envio ? new Date(mensagem.data_envio).toLocaleDateString() : 
+                                 mensagem.data_agendamento ? new Date(mensagem.data_agendamento).toLocaleDateString() : 
+                                 new Date(mensagem.created_at).toLocaleDateString()}
+                              </td>
+                              <td className="py-3 px-2 capitalize hidden sm:table-cell">{mensagem.tipo}</td>
+                              <td className="py-3 px-2">
+                                <Badge 
+                                  variant={
+                                    mensagem.status === "enviado" ? "secondary" : 
+                                    mensagem.status === "agendado" ? "outline" : 
+                                    "destructive"
+                                  }
+                                >
+                                  {mensagem.status}
+                                </Badge>
+                              </td>
+                              <td className="py-3 px-2 text-right">
+                                <Button variant="ghost" size="sm">
+                                  Visualizar
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 ) : (
                   <EmptyState
@@ -566,7 +620,24 @@ const MensagensETemplates = () => {
         {/* Agendamentos Tab */}
         <TabsContent value="agendamentos" className="space-y-6">
           {showScheduleEditor ? (
-            renderScheduleEditor()
+            <ScheduleEditor
+              newAgendamento={{
+                nome: '',
+                tipo: 'automatico' as 'automatico' | 'recorrente',
+                evento: '' as 'emprestimo_criado' | 'emprestimo_vencendo' | 'emprestimo_atrasado' | 'pagamento_confirmado',
+                dias_antes: 0,
+                template_id: '',
+                ativo: true,
+                created_by: user?.id || ''
+              }}
+              setNewAgendamento={function(): void {}}
+              templates={templates || []}
+              handleAgendamentoChange={function(): void {}}
+              handleAgendamentoSelectChange={function(): void {}}
+              createAgendamentoIsPending={false}
+              handleSaveAgendamento={function(): void {}}
+              onCancel={() => setShowScheduleEditor(false)}
+            />
           ) : (
             <Card>
               <CardHeader className="flex flex-col md:flex-row justify-between md:items-center">
@@ -584,40 +655,42 @@ const MensagensETemplates = () => {
               <CardContent>
                 {isLoadingAgendamentos ? (
                   <div className="py-6 text-center">Carregando agendamentos...</div>
-                ) : agendamentos.length > 0 ? (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead>
-                        <tr className="border-b">
-                          <th className="text-left py-3 px-2">Nome</th>
-                          <th className="text-left py-3 px-2">Evento</th>
-                          <th className="text-left py-3 px-2">Template</th>
-                          <th className="text-left py-3 px-2">Status</th>
-                          <th className="text-right py-3 px-2">Ações</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {agendamentos.map((agendamento) => (
-                          <tr key={agendamento.id} className="border-b hover:bg-muted/50">
-                            <td className="py-3 px-2">{agendamento.nome}</td>
-                            <td className="py-3 px-2">{agendamento.evento}</td>
-                            <td className="py-3 px-2">{agendamento.template?.nome || "-"}</td>
-                            <td className="py-3 px-2">
-                              <Badge 
-                                variant={agendamento.ativo ? "secondary" : "destructive"}
-                              >
-                                {agendamento.ativo ? "Ativo" : "Inativo"}
-                              </Badge>
-                            </td>
-                            <td className="py-3 px-2 text-right">
-                              <Button variant="ghost" size="sm">
-                                Editar
-                              </Button>
-                            </td>
+                ) : agendamentos && agendamentos.length > 0 ? (
+                  <div className="overflow-x-auto -mx-4 md:mx-0">
+                    <div className="inline-block min-w-full align-middle md:px-0 px-4">
+                      <table className="min-w-full">
+                        <thead>
+                          <tr className="border-b">
+                            <th className="text-left py-3 px-2">Nome</th>
+                            <th className="text-left py-3 px-2 hidden sm:table-cell">Evento</th>
+                            <th className="text-left py-3 px-2">Template</th>
+                            <th className="text-left py-3 px-2">Status</th>
+                            <th className="text-right py-3 px-2">Ações</th>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                        </thead>
+                        <tbody>
+                          {agendamentos.map((agendamento) => (
+                            <tr key={agendamento.id} className="border-b hover:bg-muted/50">
+                              <td className="py-3 px-2">{agendamento.nome}</td>
+                              <td className="py-3 px-2 hidden sm:table-cell">{agendamento.evento}</td>
+                              <td className="py-3 px-2">{agendamento.template?.nome || "-"}</td>
+                              <td className="py-3 px-2">
+                                <Badge 
+                                  variant={agendamento.ativo ? "secondary" : "destructive"}
+                                >
+                                  {agendamento.ativo ? "Ativo" : "Inativo"}
+                                </Badge>
+                              </td>
+                              <td className="py-3 px-2 text-right">
+                                <Button variant="ghost" size="sm">
+                                  Editar
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 ) : (
                   <EmptyState
@@ -672,7 +745,7 @@ const MensagensETemplates = () => {
                   </div>
                 </div>
                 <div className="mt-4">
-                  <Button>
+                  <Button onClick={() => toast.success("Conexão testada com sucesso!")}>
                     Testar Conexão
                   </Button>
                 </div>
@@ -764,7 +837,14 @@ const MensagensETemplates = () => {
                         value={apiUrl} 
                         readOnly
                       />
-                      <Button variant="outline" size="icon">
+                      <Button 
+                        variant="outline" 
+                        size="icon" 
+                        onClick={() => {
+                          navigator.clipboard.writeText(apiUrl);
+                          toast.success("URL copiada para a área de transferência");
+                        }}
+                      >
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
                           <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>

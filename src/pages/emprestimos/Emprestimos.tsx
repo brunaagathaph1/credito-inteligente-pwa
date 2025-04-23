@@ -11,25 +11,21 @@ import {
   TableHeader, 
   TableRow 
 } from "@/components/ui/table";
-import { 
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
 import { Search, PlusCircle, Eye, Loader2 } from "lucide-react";
 import { useLoans } from "@/hooks/useLoans";
 import { useActivityLogs } from "@/hooks/useActivityLogs";
 import { EmptyState } from "@/components/common/EmptyState";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Emprestimos = () => {
   const navigate = useNavigate();
@@ -37,6 +33,7 @@ const Emprestimos = () => {
   const [statusFilter, setStatusFilter] = useState("todos");
   const { loans, isLoadingLoans } = useLoans();
   const { logActivity } = useActivityLogs();
+  const isMobile = useIsMobile();
   
   // Log activity once when component mounts
   useEffect(() => {
@@ -97,6 +94,65 @@ const Emprestimos = () => {
     }
   };
 
+  // Renderiza um card para dispositivos móveis em vez de uma linha de tabela
+  const renderMobileCard = (emprestimo: any) => (
+    <Card key={emprestimo.id} className="mb-4">
+      <CardContent className="p-4">
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <h3 className="font-medium text-base">{emprestimo.cliente?.nome || '-'}</h3>
+            <p className="text-xs text-muted-foreground">
+              {emprestimo.taxa_juros}% ({emprestimo.tipo_juros === "composto" ? "composto" : "simples"})
+            </p>
+          </div>
+          <span
+            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+              handleStatusClass(emprestimo.status)
+            }`}
+          >
+            {handleStatusText(emprestimo.status)}
+          </span>
+        </div>
+        
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <div>
+            <p className="text-xs text-muted-foreground">Data</p>
+            <p className="text-sm">{formatDate(emprestimo.data_emprestimo)}</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted-foreground">Valor</p>
+            <p className="text-sm font-medium">{formatCurrency(Number(emprestimo.valor_principal))}</p>
+          </div>
+          {emprestimo.status !== "quitado" && (
+            <>
+              <div>
+                <p className="text-xs text-muted-foreground">Vencimento</p>
+                <p className="text-sm">{formatDate(emprestimo.data_vencimento)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Restante</p>
+                <p className="text-sm">{formatCurrency(Number(emprestimo.valor_principal))}</p>
+              </div>
+            </>
+          )}
+        </div>
+        
+        <div className="flex justify-end">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+          >
+            <Link to={`/emprestimos/${emprestimo.id}`} className="flex items-center">
+              <Eye className="h-4 w-4 mr-1" />
+              Ver detalhes
+            </Link>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -151,67 +207,73 @@ const Emprestimos = () => {
               <Loader2 className="h-10 w-10 animate-spin text-primary" />
             </div>
           ) : emprestimosFiltrados.length > 0 ? (
-            <div className="rounded-md border overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead className="hidden md:table-cell">Data</TableHead>
-                    <TableHead className="text-right">Valor</TableHead>
-                    <TableHead className="hidden md:table-cell text-right">Restante</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {emprestimosFiltrados.map((emprestimo) => (
-                    <TableRow key={emprestimo.id}>
-                      <TableCell className="font-medium">
-                        <div>
-                          <div>{emprestimo.cliente?.nome || '-'}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {emprestimo.taxa_juros}% ({emprestimo.tipo_juros === "composto" ? "composto" : "simples"})
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        {formatDate(emprestimo.data_emprestimo)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(Number(emprestimo.valor_principal))}
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell text-right">
-                        {emprestimo.status === "quitado" 
-                          ? "Quitado" 
-                          : formatCurrency(Number(emprestimo.valor_principal)) // Placeholder - replace with actual remaining value
-                        }
-                      </TableCell>
-                      <TableCell>
-                        <span
-                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                            handleStatusClass(emprestimo.status)
-                          }`}
-                        >
-                          {handleStatusText(emprestimo.status)}
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          asChild
-                        >
-                          <Link to={`/emprestimos/${emprestimo.id}`}>
-                            <Eye className="h-4 w-4" />
-                            <span className="sr-only">Ver empréstimo</span>
-                          </Link>
-                        </Button>
-                      </TableCell>
+            isMobile ? (
+              <div>
+                {emprestimosFiltrados.map(emprestimo => renderMobileCard(emprestimo))}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Cliente</TableHead>
+                      <TableHead className="hidden md:table-cell">Data</TableHead>
+                      <TableHead className="text-right">Valor</TableHead>
+                      <TableHead className="hidden md:table-cell text-right">Restante</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                  </TableHeader>
+                  <TableBody>
+                    {emprestimosFiltrados.map((emprestimo) => (
+                      <TableRow key={emprestimo.id}>
+                        <TableCell className="font-medium">
+                          <div>
+                            <div>{emprestimo.cliente?.nome || '-'}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {emprestimo.taxa_juros}% ({emprestimo.tipo_juros === "composto" ? "composto" : "simples"})
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {formatDate(emprestimo.data_emprestimo)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {formatCurrency(Number(emprestimo.valor_principal))}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell text-right">
+                          {emprestimo.status === "quitado" 
+                            ? "Quitado" 
+                            : formatCurrency(Number(emprestimo.valor_principal)) // Placeholder - replace with actual remaining value
+                          }
+                        </TableCell>
+                        <TableCell>
+                          <span
+                            className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              handleStatusClass(emprestimo.status)
+                            }`}
+                          >
+                            {handleStatusText(emprestimo.status)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            asChild
+                          >
+                            <Link to={`/emprestimos/${emprestimo.id}`}>
+                              <Eye className="h-4 w-4" />
+                              <span className="sr-only">Ver empréstimo</span>
+                            </Link>
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )
           ) : (
             <EmptyState
               title="Nenhum empréstimo encontrado"
@@ -233,4 +295,3 @@ const Emprestimos = () => {
 };
 
 export default Emprestimos;
-
