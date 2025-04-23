@@ -1,1362 +1,748 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle,
-  CardFooter
-} from "@/components/ui/card";
+
+import { useState } from "react";
+import { PageHeader } from "@/components/common/PageHeader";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue, 
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { supabase } from "@/integrations/supabase/client";
-import { useActivityLogs } from "@/hooks/useActivityLogs";
-import { useAuth } from "@/contexts/AuthContext";
+import { Badge } from "@/components/ui/badge";
 import { 
+  AlertTriangle, 
+  Calendar, 
   Mail, 
   MessageSquare, 
-  Calendar, 
-  Webhook, 
-  Plus,
-  Link,
-  Check,
-  Loader2,
-  Bold,
-  Italic,
-  Underline,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
+  MessagesSquare, 
+  Send, 
+  Template, 
+  Webhook 
 } from "lucide-react";
-import { toast } from "sonner";
-import { useClients } from "@/hooks/useClients";
+import { EmptyState } from "@/components/common/EmptyState";
 
-const SYSTEM_VARIABLES = [
-  { name: "{nome_cliente}", description: "Nome do cliente" },
-  { name: "{valor_emprestimo}", description: "Valor do empréstimo" },
-  { name: "{data_vencimento}", description: "Data de vencimento" },
-  { name: "{parcela_atual}", description: "Número da parcela atual" },
-  { name: "{valor_parcela}", description: "Valor da parcela" },
-  { name: "{total_parcelas}", description: "Total de parcelas" },
-  { name: "{saldo_devedor}", description: "Saldo devedor" },
-];
+const MensagensETemplates = () => {
+  const [activeTab, setActiveTab] = useState("templates");
+  const [showTemplateEditor, setShowTemplateEditor] = useState(false);
+  const [showMessageEditor, setShowMessageEditor] = useState(false);
+  const [showScheduleEditor, setShowScheduleEditor] = useState(false);
 
-interface Template {
-  id: string;
-  nome: string;
-  assunto: string;
-  conteudo: string;
-  tipo: string;
-}
+  // Dados de exemplo
+  const templates = [
+    { 
+      id: 1, 
+      nome: "Lembrete de Pagamento", 
+      tipo: "email", 
+      assunto: "Lembrete: Pagamento em Aberto",
+      conteudo: "Olá {{cliente.nome}}, gostaríamos de lembrar que seu pagamento de R$ {{emprestimo.valor}} vence em {{emprestimo.data_vencimento}}.",
+      ativo: true
+    },
+    { 
+      id: 2, 
+      nome: "Confirmação de Pagamento", 
+      tipo: "whatsapp", 
+      assunto: "",
+      conteudo: "Olá {{cliente.nome}}! Confirmamos o recebimento do seu pagamento no valor de R$ {{pagamento.valor}}. Agradecemos a pontualidade!",
+      ativo: true
+    },
+    { 
+      id: 3, 
+      nome: "Empréstimo Aprovado", 
+      tipo: "email", 
+      assunto: "Seu empréstimo foi aprovado!",
+      conteudo: "Olá {{cliente.nome}}, seu empréstimo no valor de R$ {{emprestimo.valor_principal}} foi aprovado e será liberado em breve.",
+      ativo: true
+    },
+  ];
 
-const VariableButton = ({ variable, onClick }: { variable: { name: string, description: string }, onClick: (variable: string) => void }) => (
-  <Button 
-    type="button" 
-    variant="outline" 
-    size="sm" 
-    className="mb-1 mr-1" 
-    onClick={() => onClick(variable.name)}
-    title={variable.description}
-  >
-    {variable.name}
-  </Button>
-);
+  const mensagens = [
+    {
+      id: 1,
+      cliente: "João Silva",
+      assunto: "Lembrete: Pagamento em Aberto",
+      data: "10/04/2025",
+      status: "enviado",
+      tipo: "email"
+    },
+    {
+      id: 2,
+      cliente: "Maria Oliveira",
+      assunto: "Confirmação de Pagamento",
+      data: "08/04/2025",
+      status: "enviado",
+      tipo: "whatsapp"
+    },
+    {
+      id: 3,
+      cliente: "Pedro Santos",
+      assunto: "Empréstimo Aprovado",
+      data: "12/04/2025",
+      status: "agendado",
+      tipo: "email"
+    },
+  ];
 
-const TextEditor = ({ value, onChange, placeholder }: { value: string, onChange: (value: string) => void, placeholder: string }) => {
-  const insertStyle = (tag: string) => {
-    onChange(value + ` <${tag}>texto</${tag}> `);
-  };
-  
-  const insertAlignment = (align: string) => {
-    onChange(value + ` <div style="text-align: ${align}">texto alinhado</div> `);
-  };
-  
-  return (
-    <div className="space-y-2">
-      <div className="flex flex-wrap gap-1 mb-2 p-1 border rounded-md bg-muted/50">
-        <Button type="button" variant="ghost" size="icon" onClick={() => insertStyle('b')} title="Negrito">
-          <Bold className="h-4 w-4" />
-        </Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => insertStyle('i')} title="Itálico">
-          <Italic className="h-4 w-4" />
-        </Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => insertStyle('u')} title="Sublinhado">
-          <Underline className="h-4 w-4" />
-        </Button>
-        <div className="h-6 border-l mx-1"></div>
-        <Button type="button" variant="ghost" size="icon" onClick={() => insertAlignment('left')} title="Alinhar à esquerda">
-          <AlignLeft className="h-4 w-4" />
-        </Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => insertAlignment('center')} title="Centralizar">
-          <AlignCenter className="h-4 w-4" />
-        </Button>
-        <Button type="button" variant="ghost" size="icon" onClick={() => insertAlignment('right')} title="Alinhar à direita">
-          <AlignRight className="h-4 w-4" />
-        </Button>
-      </div>
-      <Textarea 
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
-        rows={8}
-        className="min-h-[200px]"
-      />
-      <div>
-        <Label className="mb-2 block">Variáveis disponíveis:</Label>
-        <div className="flex flex-wrap gap-1">
-          {SYSTEM_VARIABLES.map((variable) => (
-            <VariableButton 
-              key={variable.name} 
-              variable={variable} 
-              onClick={(v) => onChange(value + v)}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
+  const agendamentos = [
+    {
+      id: 1,
+      nome: "Lembrete de Vencimento",
+      tipo: "automático",
+      evento: "emprestimo_vencendo",
+      dias_antes: 3,
+      template: "Lembrete de Pagamento",
+      ativo: true
+    },
+    {
+      id: 2,
+      nome: "Confirmação após Pagamento",
+      tipo: "automático",
+      evento: "pagamento_confirmado",
+      dias_antes: 0,
+      template: "Confirmação de Pagamento",
+      ativo: true
+    },
+  ];
 
-const EmailConfigCard = () => {
-  const [smtpConfig, setSmtpConfig] = useState({
-    host: "",
-    port: "",
-    user: "",
-    password: "",
-    from_email: "",
-    from_name: ""
-  });
-  const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingConfig, setIsLoadingConfig] = useState(true);
-  
-  useEffect(() => {
-    loadEmailConfig();
-  }, []);
-  
-  const loadEmailConfig = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('configuracoes_financeiras')
-        .select('observacoes')
-        .eq('nome', 'smtp_config')
-        .maybeSingle();
-      
-      if (error) throw error;
-      
-      if (data && data.observacoes) {
-        try {
-          const parsedConfig = JSON.parse(data.observacoes);
-          setSmtpConfig(parsedConfig);
-        } catch (e) {
-          console.error("Error parsing SMTP config", e);
-        }
-      }
-    } catch (error) {
-      console.error("Error loading SMTP config:", error);
-    } finally {
-      setIsLoadingConfig(false);
-    }
-  };
-  
-  const saveEmailConfig = async () => {
-    setIsLoading(true);
-    
-    try {
-      const { data, error } = await supabase
-        .from('configuracoes_financeiras')
-        .select('id')
-        .eq('nome', 'smtp_config')
-        .maybeSingle();
-      
-      if (error) throw error;
-      
-      const configData = {
-        observacoes: JSON.stringify(smtpConfig),
-        taxa_padrao_juros: 0,
-        tipo_juros_padrao: 'composto',
-        prazo_maximo_dias: 30,
-        taxa_multa_atraso: 0,
-        taxa_juros_atraso: 0
-      };
-      
-      let result;
-      
-      if (data) {
-        result = await supabase
-          .from('configuracoes_financeiras')
-          .update({
-            observacoes: JSON.stringify(smtpConfig),
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', data.id);
-      } else {
-        result = await supabase
-          .from('configuracoes_financeiras')
-          .insert({
-            nome: 'smtp_config',
-            ...configData,
-            created_by: "system"
-          });
-      }
-      
-      if (result.error) throw result.error;
-      
-      toast.success("Configurações SMTP salvas com sucesso");
-    } catch (error) {
-      console.error("Error saving SMTP config:", error);
-      toast.error("Erro ao salvar configurações SMTP");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setSmtpConfig(prev => ({ ...prev, [name]: value }));
-  };
-  
-  if (isLoadingConfig) {
-    return (
-      <Card>
-        <CardHeader>
-          <CardTitle>Configurações SMTP de Email</CardTitle>
-          <CardDescription>
-            Configure o servidor SMTP para envio de emails.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="text-center py-8">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-          <p className="mt-2 text-muted-foreground">Carregando configurações...</p>
-        </CardContent>
-      </Card>
-    );
-  }
-  
-  return (
+  // Renderiza o editor de templates
+  const renderTemplateEditor = () => (
     <Card>
       <CardHeader>
-        <CardTitle>Configurações SMTP de Email</CardTitle>
+        <CardTitle>Novo Template</CardTitle>
         <CardDescription>
-          Configure o servidor SMTP para envio de emails.
+          Crie um novo template para mensagens
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="host">Servidor SMTP</Label>
-            <Input 
-              id="host" 
-              name="host" 
-              placeholder="smtp.exemplo.com" 
-              value={smtpConfig.host}
-              onChange={handleInputChange}
-            />
+            <Label htmlFor="template-nome">Nome do Template</Label>
+            <Input id="template-nome" placeholder="Ex: Lembrete de Pagamento" />
           </div>
-          
           <div className="space-y-2">
-            <Label htmlFor="port">Porta</Label>
-            <Input 
-              id="port" 
-              name="port" 
-              placeholder="587" 
-              value={smtpConfig.port}
-              onChange={handleInputChange}
-            />
+            <Label htmlFor="template-tipo">Tipo de Mensagem</Label>
+            <Select>
+              <SelectTrigger id="template-tipo">
+                <SelectValue placeholder="Selecione o tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="email">E-mail</SelectItem>
+                <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                <SelectItem value="sms">SMS</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="user">Usuário</Label>
-            <Input 
-              id="user" 
-              name="user" 
-              placeholder="seu.email@exemplo.com" 
-              value={smtpConfig.user}
-              onChange={handleInputChange}
-            />
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="template-assunto">Assunto (para e-mail)</Label>
+            <Input id="template-assunto" placeholder="Ex: Lembrete de Pagamento" />
           </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="password">Senha</Label>
-            <Input 
-              id="password" 
-              name="password" 
-              type="password" 
-              placeholder="••••••••" 
-              value={smtpConfig.password}
-              onChange={handleInputChange}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="from_name">Nome de Exibição</Label>
-            <Input 
-              id="from_name" 
-              name="from_name" 
-              placeholder="Sua Empresa" 
-              value={smtpConfig.from_name}
-              onChange={handleInputChange}
-            />
-          </div>
-          
-          <div className="space-y-2">
-            <Label htmlFor="from_email">Email de Origem</Label>
-            <Input 
-              id="from_email" 
-              name="from_email" 
-              placeholder="noreply@exemplo.com" 
-              value={smtpConfig.from_email}
-              onChange={handleInputChange}
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="template-conteudo">Conteúdo da Mensagem</Label>
+            <Textarea 
+              id="template-conteudo" 
+              placeholder="Digite o conteúdo da mensagem..." 
+              className="min-h-[200px]"
             />
           </div>
         </div>
+        
+        <div className="mt-4 space-y-4">
+          <div>
+            <Label className="mb-2 block">Variáveis Disponíveis:</Label>
+            <div className="flex flex-wrap gap-2">
+              <div className="border p-4 rounded-md w-full md:w-auto">
+                <strong className="block mb-2">Cliente</strong>
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant="outline" className="cursor-pointer" onClick={() => {}}>
+                    {"{{cliente.nome}}"}
+                  </Badge>
+                  <Badge variant="outline" className="cursor-pointer" onClick={() => {}}>
+                    {"{{cliente.email}}"}
+                  </Badge>
+                  <Badge variant="outline" className="cursor-pointer" onClick={() => {}}>
+                    {"{{cliente.telefone}}"}
+                  </Badge>
+                </div>
+              </div>
+              
+              <div className="border p-4 rounded-md w-full md:w-auto">
+                <strong className="block mb-2">Empréstimo</strong>
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant="outline" className="cursor-pointer" onClick={() => {}}>
+                    {"{{emprestimo.valor_principal}}"}
+                  </Badge>
+                  <Badge variant="outline" className="cursor-pointer" onClick={() => {}}>
+                    {"{{emprestimo.data_vencimento}}"}
+                  </Badge>
+                  <Badge variant="outline" className="cursor-pointer" onClick={() => {}}>
+                    {"{{emprestimo.status}}"}
+                  </Badge>
+                </div>
+              </div>
+              
+              <div className="border p-4 rounded-md w-full md:w-auto">
+                <strong className="block mb-2">Pagamento</strong>
+                <div className="flex flex-wrap gap-1">
+                  <Badge variant="outline" className="cursor-pointer" onClick={() => {}}>
+                    {"{{pagamento.valor}}"}
+                  </Badge>
+                  <Badge variant="outline" className="cursor-pointer" onClick={() => {}}>
+                    {"{{pagamento.data}}"}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-end gap-2 mt-6">
+          <Button variant="outline" onClick={() => setShowTemplateEditor(false)}>
+            Cancelar
+          </Button>
+          <Button>
+            Salvar Template
+          </Button>
+        </div>
       </CardContent>
-      <CardFooter>
-        <Button 
-          onClick={saveEmailConfig} 
-          disabled={isLoading}
-          className="ml-auto"
-        >
-          {isLoading ? (
-            <>
-              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              Salvando...
-            </>
-          ) : (
-            <>
-              <Check className="mr-2 h-4 w-4" />
-              Salvar Configurações
-            </>
-          )}
-        </Button>
-      </CardFooter>
     </Card>
   );
-};
 
-const MensagensETemplates = () => {
-  const navigate = useNavigate();
-  const { logActivity } = useActivityLogs();
-  const { clients, isLoadingClients } = useClients();
-  const { user } = useAuth();
-  const [isAdmin, setIsAdmin] = useState(false);
+  // Renderiza o editor de mensagens
+  const renderMessageEditor = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Nova Mensagem</CardTitle>
+        <CardDescription>
+          Enviar mensagem para um cliente
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="msg-cliente">Cliente</Label>
+            <Select>
+              <SelectTrigger id="msg-cliente">
+                <SelectValue placeholder="Selecione o cliente" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">João Silva</SelectItem>
+                <SelectItem value="2">Maria Oliveira</SelectItem>
+                <SelectItem value="3">Pedro Santos</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="msg-tipo">Tipo de Mensagem</Label>
+            <Select>
+              <SelectTrigger id="msg-tipo">
+                <SelectValue placeholder="Selecione o tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="email">E-mail</SelectItem>
+                <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                <SelectItem value="sms">SMS</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="msg-template">Usar Template</Label>
+            <Select>
+              <SelectTrigger id="msg-template">
+                <SelectValue placeholder="Selecione um template" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Não usar template</SelectItem>
+                {templates.map(t => (
+                  <SelectItem key={t.id} value={t.id.toString()}>
+                    {t.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="msg-agendamento">Agendamento</Label>
+            <Input 
+              id="msg-agendamento" 
+              type="datetime-local" 
+              placeholder="Enviar agora" 
+            />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="msg-assunto">Assunto (para e-mail)</Label>
+            <Input id="msg-assunto" placeholder="Assunto da mensagem" />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="msg-conteudo">Conteúdo da Mensagem</Label>
+            <Textarea 
+              id="msg-conteudo" 
+              placeholder="Digite sua mensagem..." 
+              className="min-h-[200px]"
+            />
+          </div>
+        </div>
+        
+        <div className="flex justify-end gap-2 mt-6">
+          <Button variant="outline" onClick={() => setShowMessageEditor(false)}>
+            Cancelar
+          </Button>
+          <Button>
+            <Send className="mr-2 h-4 w-4" />
+            Enviar Mensagem
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
-  const [templateList, setTemplateList] = useState<Template[]>([]);
-  const [loadingTemplates, setLoadingTemplates] = useState(true);
-  const [templateName, setTemplateName] = useState("");
-  const [templateSubject, setTemplateSubject] = useState("");
-  const [templateContent, setTemplateContent] = useState("");
-  const [templateType, setTemplateType] = useState("email");
-  const [isSavingTemplate, setIsSavingTemplate] = useState(false);
-  
-  const [selectedClient, setSelectedClient] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState("");
-  const [messageSubject, setMessageSubject] = useState("");
-  const [messageContent, setMessageContent] = useState("");
-  const [messageType, setMessageType] = useState("email");
-  const [scheduleDate, setScheduleDate] = useState("");
-  const [isSendingMessage, setIsSendingMessage] = useState(false);
-  
-  const [webhookConfig, setWebhookConfig] = useState({
-    postUrl: "",
-    apiUrl: "",
-    events: {
-      novoEmprestimo: true,
-      novoPagamento: true,
-      novoCliente: true,
-      emprestimoAtrasado: true
-    }
-  });
-  const [evolutionConfig, setEvolutionConfig] = useState({
-    url: "",
-    events: {
-      novoEmprestimo: true,
-      novoPagamento: true,
-      novoCliente: true,
-      emprestimoAtrasado: true
-    }
-  });
-  const [isSavingWebhook, setIsSavingWebhook] = useState(false);
-  const [isSavingEvolution, setIsSavingEvolution] = useState(false);
-  
-  useEffect(() => {
-    const checkAdminStatus = async () => {
-      if (user) {
-        try {
-          const { data, error } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('id', user.id)
-            .single();
-          
-          if (error) throw error;
-          
-          setIsAdmin(data?.role === 'admin');
-        } catch (error) {
-          console.error("Error checking admin status:", error);
-        }
-      }
-    };
-    
-    checkAdminStatus();
-  }, [user]);
-  
-  useEffect(() => {
-    logActivity("Acessou página de mensagens e templates");
-    loadTemplates();
-    loadWebhookConfig();
-    loadEvolutionConfig();
-  }, []);
-  
-  const loadTemplates = async () => {
-    setLoadingTemplates(true);
-    try {
-      const { data, error } = await supabase
-        .from('templates_mensagens')
-        .select('*')
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      
-      setTemplateList(data || []);
-    } catch (error) {
-      console.error("Erro ao carregar templates:", error);
-      toast.error("Erro ao carregar templates");
-    } finally {
-      setLoadingTemplates(false);
-    }
-  };
-  
-  const loadWebhookConfig = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('webhooks')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(1);
-      
-      if (error) throw error;
-      
-      if (data && data.length > 0) {
-        const webhook = data[0];
+  // Renderiza o editor de agendamentos
+  const renderScheduleEditor = () => (
+    <Card>
+      <CardHeader>
+        <CardTitle>Novo Agendamento</CardTitle>
+        <CardDescription>
+          Configure mensagens automáticas
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label htmlFor="sched-nome">Nome do Agendamento</Label>
+            <Input id="sched-nome" placeholder="Ex: Lembrete de Vencimento" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="sched-tipo">Tipo de Agendamento</Label>
+            <Select>
+              <SelectTrigger id="sched-tipo">
+                <SelectValue placeholder="Selecione o tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="automatico">Automático (por evento)</SelectItem>
+                <SelectItem value="recorrente">Recorrente (periódico)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="sched-evento">Evento Disparador</Label>
+            <Select>
+              <SelectTrigger id="sched-evento">
+                <SelectValue placeholder="Selecione o evento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="emprestimo_criado">Empréstimo Criado</SelectItem>
+                <SelectItem value="emprestimo_vencendo">Empréstimo Vencendo</SelectItem>
+                <SelectItem value="emprestimo_atrasado">Empréstimo Atrasado</SelectItem>
+                <SelectItem value="pagamento_confirmado">Pagamento Confirmado</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="sched-dias">Dias de Antecedência</Label>
+            <Input 
+              id="sched-dias" 
+              type="number" 
+              placeholder="Ex: 3 dias antes"
+            />
+          </div>
+          <div className="space-y-2 md:col-span-2">
+            <Label htmlFor="sched-template">Template a Ser Utilizado</Label>
+            <Select>
+              <SelectTrigger id="sched-template">
+                <SelectValue placeholder="Selecione um template" />
+              </SelectTrigger>
+              <SelectContent>
+                {templates.map(t => (
+                  <SelectItem key={t.id} value={t.id.toString()}>
+                    {t.nome}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         
-        const events = {
-          novoEmprestimo: webhook.eventos.includes("emprestimo.novo"),
-          novoPagamento: webhook.eventos.includes("pagamento.novo"),
-          novoCliente: webhook.eventos.includes("cliente.novo"),
-          emprestimoAtrasado: webhook.eventos.includes("emprestimo.atraso")
-        };
-        
-        const urls = webhook.url.split("|");
-        
-        setWebhookConfig({
-          postUrl: urls[0] || "",
-          apiUrl: urls[1] || "",
-          events
-        });
-      }
-    } catch (error) {
-      console.error("Erro ao carregar configuração do webhook:", error);
-    }
-  };
-  
-  const loadEvolutionConfig = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('configuracoes_financeiras')
-        .select('*')
-        .eq('nome', 'evolution_api')
-        .maybeSingle();
-      
-      if (error) throw error;
-      
-      if (data) {
-        try {
-          const config = JSON.parse(data.observacoes || "{}");
-          
-          setEvolutionConfig({
-            url: config.url || "",
-            events: config.events || {
-              novoEmprestimo: true,
-              novoPagamento: true,
-              novoCliente: true,
-              emprestimoAtrasado: true
-            }
-          });
-        } catch (e) {
-          console.error("Erro ao parsear config da Evolution API:", e);
-        }
-      }
-    } catch (error) {
-      console.error("Erro ao carregar configuração da Evolution API:", error);
-    }
-  };
-  
-  const salvarTemplate = async () => {
-    if (!templateName || !templateContent) {
-      toast.error("Nome e conteúdo do template são obrigatórios");
-      return;
-    }
-    
-    setIsSavingTemplate(true);
-    
-    try {
-      const templateData = {
-        nome: templateName,
-        assunto: templateType === "email" ? templateSubject : "",
-        conteudo: templateContent,
-        tipo: templateType,
-        ativo: true,
-        created_by: user?.id || "system"
-      };
-      
-      const { data, error } = await supabase
-        .from('templates_mensagens')
-        .insert(templateData)
-        .select();
-      
-      if (error) throw error;
-      
-      toast.success("Template salvo com sucesso!");
-      logActivity("Criou template de mensagem");
-      
-      setTemplateName("");
-      setTemplateSubject("");
-      setTemplateContent("");
-      
-      loadTemplates();
-    } catch (error) {
-      console.error("Erro ao salvar template:", error);
-      toast.error("Erro ao salvar template. Tente novamente.");
-    } finally {
-      setIsSavingTemplate(false);
-    }
-  };
-  
-  const handleTemplateChange = async (templateId: string) => {
-    setSelectedTemplate(templateId);
-    
-    if (templateId) {
-      try {
-        const template = templateList.find(t => t.id === templateId);
-        
-        if (template) {
-          setMessageSubject(template.assunto || "");
-          setMessageContent(template.conteudo || "");
-          setMessageType(template.tipo || "email");
-        }
-      } catch (error) {
-        console.error("Erro ao carregar template:", error);
-      }
-    } else {
-      setMessageSubject("");
-      setMessageContent("");
-    }
-  };
-  
-  const enviarMensagem = async () => {
-    if (!selectedClient || !messageContent) {
-      toast.error("Cliente e conteúdo da mensagem são obrigatórios");
-      return;
-    }
-    
-    if (messageType === "email" && !messageSubject) {
-      toast.error("Assunto é obrigatório para mensagens de email");
-      return;
-    }
-    
-    setIsSendingMessage(true);
-    
-    try {
-      const mensagemData = {
-        cliente_id: selectedClient,
-        template_id: selectedTemplate || null,
-        assunto: messageSubject,
-        conteudo: messageContent,
-        tipo: messageType,
-        status: scheduleDate ? "agendada" : "pendente",
-        data_agendamento: scheduleDate || null,
-        created_by: user?.id || "system"
-      };
-      
-      const { data, error } = await supabase.from('mensagens').insert(mensagemData);
-      
-      if (error) throw error;
-      
-      toast.success(scheduleDate ? "Mensagem agendada com sucesso!" : "Mensagem enviada para a fila de processamento!");
-      logActivity(scheduleDate ? "Agendou mensagem" : "Enviou mensagem");
-      
-      setSelectedClient("");
-      setSelectedTemplate("");
-      setMessageSubject("");
-      setMessageContent("");
-      setScheduleDate("");
-    } catch (error) {
-      console.error("Erro ao enviar/agendar mensagem:", error);
-      toast.error("Erro ao processar mensagem. Tente novamente.");
-    } finally {
-      setIsSendingMessage(false);
-    }
-  };
-  
-  const salvarWebhookConfig = async () => {
-    if (!webhookConfig.postUrl && !webhookConfig.apiUrl) {
-      toast.error("Pelo menos uma URL é obrigatória");
-      return;
-    }
-    
-    setIsSavingWebhook(true);
-    
-    try {
-      const eventos = [];
-      if (webhookConfig.events.novoEmprestimo) eventos.push("emprestimo.novo");
-      if (webhookConfig.events.novoPagamento) eventos.push("pagamento.novo");
-      if (webhookConfig.events.novoCliente) eventos.push("cliente.novo");
-      if (webhookConfig.events.emprestimoAtrasado) eventos.push("emprestimo.atraso");
-      
-      const url = webhookConfig.postUrl + (webhookConfig.apiUrl ? `|${webhookConfig.apiUrl}` : "");
-      
-      const { data: existingWebhook, error: fetchError } = await supabase
-        .from('webhooks')
-        .select('id')
-        .limit(1);
-      
-      if (fetchError) throw fetchError;
-      
-      let result;
-      
-      if (existingWebhook && existingWebhook.length > 0) {
-        result = await supabase
-          .from('webhooks')
-          .update({
-            url,
-            eventos,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingWebhook[0].id);
-      } else {
-        result = await supabase
-          .from('webhooks')
-          .insert({
-            nome: "Webhook Principal",
-            url,
-            eventos,
-            ativo: true,
-            created_by: user?.id || "system"
-          });
-      }
-      
-      if (result.error) throw result.error;
-      
-      toast.success("Webhook configurado com sucesso!");
-      logActivity("Configurou webhook de integrações");
-    } catch (error) {
-      console.error("Erro ao salvar webhook:", error);
-      toast.error("Erro ao configurar webhook. Tente novamente.");
-    } finally {
-      setIsSavingWebhook(false);
-    }
-  };
-  
-  const salvarEvolutionConfig = async () => {
-    if (!evolutionConfig.url) {
-      toast.error("URL da Evolution API é obrigatória");
-      return;
-    }
-    
-    setIsSavingEvolution(true);
-    
-    try {
-      const configJson = JSON.stringify(evolutionConfig);
-      
-      const { data: existingConfig, error: fetchError } = await supabase
-        .from('configuracoes_financeiras')
-        .select('id')
-        .eq('nome', 'evolution_api')
-        .maybeSingle();
-      
-      if (fetchError) throw fetchError;
-      
-      let result;
-      
-      if (existingConfig) {
-        result = await supabase
-          .from('configuracoes_financeiras')
-          .update({
-            observacoes: configJson,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', existingConfig.id);
-      } else {
-        result = await supabase
-          .from('configuracoes_financeiras')
-          .insert({
-            nome: 'evolution_api',
-            taxa_padrao_juros: 0,
-            tipo_juros_padrao: 'composto',
-            prazo_maximo_dias: 0,
-            taxa_multa_atraso: 0,
-            taxa_juros_atraso: 0,
-            observacoes: configJson,
-            created_by: user?.id || "system"
-          });
-      }
-      
-      if (result.error) throw result.error;
-      
-      toast.success("Configuração da Evolution API salva com sucesso!");
-      logActivity("Configurou integração com Evolution API");
-    } catch (error) {
-      console.error("Erro ao salvar configuração:", error);
-      toast.error("Erro ao salvar configuração. Tente novamente.");
-    } finally {
-      setIsSavingEvolution(false);
-    }
-  };
-  
-  const testarWebhook = async () => {
-    try {
-      await supabase
-        .from('webhook_logs')
-        .insert({
-          webhook_id: "test",
-          evento: "webhook.test",
-          payload: JSON.stringify({
-            event: "webhook.test",
-            timestamp: new Date().toISOString(),
-            data: {
-              message: "Teste de conexão do sistema Crédito Inteligente"
-            }
-          }),
-          status: "enviado"
-        });
-      
-      toast.success("Teste de webhook enviado com sucesso!");
-    } catch (error) {
-      console.error("Erro ao testar webhook:", error);
-      toast.error("Erro ao testar webhook");
-    }
-  };
+        <div className="flex justify-end gap-2 mt-6">
+          <Button variant="outline" onClick={() => setShowScheduleEditor(false)}>
+            Cancelar
+          </Button>
+          <Button>
+            Salvar Agendamento
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Mensagens e Templates</h1>
-        <p className="text-muted-foreground">
-          Gerencie mensagens automatizadas e templates para comunicação com clientes.
-        </p>
-      </div>
+      <PageHeader 
+        title="Mensagens e Templates" 
+        description="Gerencie mensagens e templates para comunicação com clientes"
+      />
 
-      <Tabs defaultValue="templates" className="space-y-6">
-        <TabsList className="w-full grid grid-cols-1 md:grid-cols-4 mb-4">
-          <TabsTrigger value="templates" className="flex items-center gap-2">
-            <Mail className="h-4 w-4" />
-            <span>Templates</span>
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="w-full md:w-auto grid grid-cols-2 md:flex flex-wrap">
+          <TabsTrigger value="templates" onClick={() => setActiveTab("templates")}>
+            <Template className="mr-2 h-4 w-4" /> Templates
           </TabsTrigger>
-          <TabsTrigger value="mensagens" className="flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            <span>Mensagens</span>
+          <TabsTrigger value="mensagens" onClick={() => setActiveTab("mensagens")}>
+            <Mail className="mr-2 h-4 w-4" /> Mensagens
           </TabsTrigger>
-          <TabsTrigger value="agendamento" className="flex items-center gap-2">
-            <Calendar className="h-4 w-4" />
-            <span>Agendamento</span>
+          <TabsTrigger value="agendamentos" onClick={() => setActiveTab("agendamentos")}>
+            <Calendar className="mr-2 h-4 w-4" /> Agendamentos
           </TabsTrigger>
-          <TabsTrigger value="integracoes" className="flex items-center gap-2">
-            <Webhook className="h-4 w-4" />
-            <span>Integrações</span>
+          <TabsTrigger value="integracoes" onClick={() => setActiveTab("integracoes")}>
+            <Webhook className="mr-2 h-4 w-4" /> Integrações
           </TabsTrigger>
         </TabsList>
 
+        {/* Templates Tab */}
         <TabsContent value="templates" className="space-y-6">
-          <EmailConfigCard />
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Criar Novo Template</CardTitle>
-              <CardDescription>
-                Utilize o editor abaixo para criar templates com variáveis dinâmicas do sistema.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="templateName">Nome do Template</Label>
-                  <Input 
-                    id="templateName" 
-                    placeholder="Ex: Boas Vindas" 
-                    value={templateName}
-                    onChange={(e) => setTemplateName(e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="templateType">Tipo de Mensagem</Label>
-                  <Select 
-                    value={templateType} 
-                    onValueChange={setTemplateType}
-                  >
-                    <SelectTrigger id="templateType">
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="email">E-mail</SelectItem>
-                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {templateType === "email" && (
-                <div className="space-y-2">
-                  <Label htmlFor="templateSubject">Assunto do E-mail</Label>
-                  <Input 
-                    id="templateSubject" 
-                    placeholder="Assunto da mensagem" 
-                    value={templateSubject}
-                    onChange={(e) => setTemplateSubject(e.target.value)}
-                  />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="templateContent">Conteúdo</Label>
-                <TextEditor 
-                  value={templateContent}
-                  onChange={setTemplateContent}
-                  placeholder="Digite ou cole o conteúdo do template aqui..."
-                />
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button onClick={salvarTemplate} disabled={isSavingTemplate}>
-                {isSavingTemplate ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Check className="mr-2 h-4 w-4" />
-                    Salvar Template
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Templates Existentes</CardTitle>
-              <CardDescription>
-                Gerencie os templates de mensagens criados.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loadingTemplates ? (
-                <div className="text-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
-                  <p className="mt-2 text-muted-foreground">Carregando templates...</p>
-                </div>
-              ) : templateList.length > 0 ? (
-                <div className="space-y-4">
-                  {templateList.map(template => (
-                    <Card key={template.id} className="overflow-hidden">
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <CardTitle className="text-base">{template.nome}</CardTitle>
-                            <CardDescription>Tipo: {template.tipo === "email" ? "E-mail" : "WhatsApp"}</CardDescription>
-                          </div>
-                          <Button variant="ghost" size="sm" className="h-8 px-2">
-                            Editar
-                          </Button>
-                        </div>
-                      </CardHeader>
-                      <CardContent className="pb-3">
-                        {template.tipo === "email" && template.assunto && (
-                          <p className="text-sm font-medium mt-1">Assunto: {template.assunto}</p>
-                        )}
-                        <div className="mt-2 text-sm text-muted-foreground truncate max-h-20 overflow-hidden">
-                          {template.conteudo}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8">
-                  <Mail className="h-12 w-12 mx-auto text-muted-foreground" />
-                  <p className="text-muted-foreground mt-4">
-                    Nenhum template encontrado. Crie seu primeiro template acima.
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="mensagens" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Enviar Mensagem</CardTitle>
-              <CardDescription>
-                Envie uma mensagem personalizada para um cliente.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="clientSelect">Cliente</Label>
-                  {isLoadingClients ? (
-                    <div className="flex items-center space-x-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Carregando clientes...</span>
-                    </div>
-                  ) : (
-                    <Select value={selectedClient} onValueChange={setSelectedClient}>
-                      <SelectTrigger id="clientSelect">
-                        <SelectValue placeholder="Selecione um cliente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clients && clients.map(cliente => (
-                          <SelectItem key={cliente.id} value={cliente.id}>
-                            {cliente.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="messageType">Tipo de Mensagem</Label>
-                  <Select value={messageType} onValueChange={setMessageType}>
-                    <SelectTrigger id="messageType">
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="email">E-mail</SelectItem>
-                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="templateSelect">Template (opcional)</Label>
-                <Select value={selectedTemplate} onValueChange={handleTemplateChange}>
-                  <SelectTrigger id="templateSelect">
-                    <SelectValue placeholder="Selecione um template ou deixe em branco" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no-template">Personalizado (sem template)</SelectItem>
-                    {templateList
-                      .filter(template => template.tipo === messageType)
-                      .map(template => (
-                        <SelectItem key={template.id} value={template.id}>
-                          {template.nome}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {messageType === "email" && (
-                <div className="space-y-2">
-                  <Label htmlFor="messageSubject">Assunto</Label>
-                  <Input
-                    id="messageSubject"
-                    placeholder="Assunto da mensagem"
-                    value={messageSubject}
-                    onChange={(e) => setMessageSubject(e.target.value)}
-                  />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="messageContent">Conteúdo</Label>
-                <TextEditor
-                  value={messageContent}
-                  onChange={setMessageContent}
-                  placeholder="Digite ou cole o conteúdo da mensagem aqui..."
-                />
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button onClick={enviarMensagem} disabled={isSendingMessage}>
-                {isSendingMessage ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Enviando...
-                  </>
-                ) : (
-                  <>
-                    <Mail className="mr-2 h-4 w-4" />
-                    Enviar Mensagem
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="agendamento" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Agendar Mensagem</CardTitle>
-              <CardDescription>
-                Agende mensagens para serem enviadas em uma data futura.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="clientSelectSchedule">Cliente</Label>
-                  {isLoadingClients ? (
-                    <div className="flex items-center space-x-2">
-                      <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Carregando clientes...</span>
-                    </div>
-                  ) : (
-                    <Select value={selectedClient} onValueChange={setSelectedClient}>
-                      <SelectTrigger id="clientSelectSchedule">
-                        <SelectValue placeholder="Selecione um cliente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clients && clients.map(cliente => (
-                          <SelectItem key={cliente.id} value={cliente.id}>
-                            {cliente.nome}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="scheduleDate">Data de Envio</Label>
-                  <Input
-                    id="scheduleDate"
-                    type="datetime-local"
-                    value={scheduleDate}
-                    onChange={(e) => setScheduleDate(e.target.value)}
-                    min={new Date().toISOString().slice(0, 16)}
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="messageTypeSchedule">Tipo de Mensagem</Label>
-                <Select value={messageType} onValueChange={setMessageType}>
-                  <SelectTrigger id="messageTypeSchedule">
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="email">E-mail</SelectItem>
-                    <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="templateSelectSchedule">Template (opcional)</Label>
-                <Select value={selectedTemplate} onValueChange={handleTemplateChange}>
-                  <SelectTrigger id="templateSelectSchedule">
-                    <SelectValue placeholder="Selecione um template ou deixe em branco" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="no-template">Personalizado (sem template)</SelectItem>
-                    {templateList
-                      .filter(template => template.tipo === messageType)
-                      .map(template => (
-                        <SelectItem key={template.id} value={template.id}>
-                          {template.nome}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {messageType === "email" && (
-                <div className="space-y-2">
-                  <Label htmlFor="messageSubjectSchedule">Assunto</Label>
-                  <Input
-                    id="messageSubjectSchedule"
-                    placeholder="Assunto da mensagem"
-                    value={messageSubject}
-                    onChange={(e) => setMessageSubject(e.target.value)}
-                  />
-                </div>
-              )}
-
-              <div className="space-y-2">
-                <Label htmlFor="messageContentSchedule">Conteúdo</Label>
-                <TextEditor
-                  value={messageContent}
-                  onChange={setMessageContent}
-                  placeholder="Digite ou cole o conteúdo da mensagem aqui..."
-                />
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-end">
-              <Button onClick={enviarMensagem} disabled={isSendingMessage || !scheduleDate}>
-                {isSendingMessage ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Agendando...
-                  </>
-                ) : (
-                  <>
-                    <Calendar className="mr-2 h-4 w-4" />
-                    Agendar Mensagem
-                  </>
-                )}
-              </Button>
-            </CardFooter>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="integracoes" className="space-y-6">
-          {isAdmin ? (
-            <>
-              <Card>
-                <CardHeader>
-                  <CardTitle>Integração com Webhook</CardTitle>
-                  <CardDescription>
-                    Configure webhooks para integrar com outros sistemas.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="postUrl">URL para POST Automático</Label>
-                    <Input
-                      id="postUrl"
-                      placeholder="https://seu-sistema.com/webhook"
-                      value={webhookConfig.postUrl}
-                      onChange={(e) => setWebhookConfig(prev => ({ ...prev, postUrl: e.target.value }))}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Esta URL receberá POST automático quando ocorrerem os eventos selecionados.
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="apiUrl">URL para API (GET externo)</Label>
-                    <Input
-                      id="apiUrl"
-                      placeholder="https://seu-sistema.com/api"
-                      value={webhookConfig.apiUrl}
-                      onChange={(e) => setWebhookConfig(prev => ({ ...prev, apiUrl: e.target.value }))}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Esta URL será disponibilizada para outros sistemas consultarem dados.
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="block mb-2">Eventos que acionam o webhook</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="novoEmprestimo"
-                          checked={webhookConfig.events.novoEmprestimo}
-                          onChange={(e) => setWebhookConfig(prev => ({
-                            ...prev,
-                            events: { ...prev.events, novoEmprestimo: e.target.checked }
-                          }))}
-                          className="rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <Label htmlFor="novoEmprestimo" className="cursor-pointer">Novo Empréstimo</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="novoPagamento"
-                          checked={webhookConfig.events.novoPagamento}
-                          onChange={(e) => setWebhookConfig(prev => ({
-                            ...prev,
-                            events: { ...prev.events, novoPagamento: e.target.checked }
-                          }))}
-                          className="rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <Label htmlFor="novoPagamento" className="cursor-pointer">Novo Pagamento</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="novoCliente"
-                          checked={webhookConfig.events.novoCliente}
-                          onChange={(e) => setWebhookConfig(prev => ({
-                            ...prev,
-                            events: { ...prev.events, novoCliente: e.target.checked }
-                          }))}
-                          className="rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <Label htmlFor="novoCliente" className="cursor-pointer">Novo Cliente</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="emprestimoAtrasado"
-                          checked={webhookConfig.events.emprestimoAtrasado}
-                          onChange={(e) => setWebhookConfig(prev => ({
-                            ...prev,
-                            events: { ...prev.events, emprestimoAtrasado: e.target.checked }
-                          }))}
-                          className="rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <Label htmlFor="emprestimoAtrasado" className="cursor-pointer">Empréstimo Atrasado</Label>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="pt-4">
-                    <Button
-                      variant="outline"
-                      className="w-full md:w-auto"
-                      onClick={testarWebhook}
-                    >
-                      <Link className="mr-2 h-4 w-4" />
-                      Testar Webhook
-                    </Button>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-end">
-                  <Button onClick={salvarWebhookConfig} disabled={isSavingWebhook}>
-                    {isSavingWebhook ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Salvando...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="mr-2 h-4 w-4" />
-                        Salvar Configuração
-                      </>
-                    )}
-                  </Button>
-                </CardFooter>
-              </Card>
-              
-              <Card>
-                <CardHeader>
-                  <CardTitle>Integração com Evolution API</CardTitle>
-                  <CardDescription>
-                    Configure a integração com a Evolution API para WhatsApp.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="evolutionUrl">URL da Evolution API</Label>
-                    <Input
-                      id="evolutionUrl"
-                      placeholder="https://sua-evolution-api.com/webhook"
-                      value={evolutionConfig.url}
-                      onChange={(e) => setEvolutionConfig(prev => ({ ...prev, url: e.target.value }))}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Esta URL receberá POST automático quando ocorrerem os eventos selecionados.
-                    </p>
-                  </div>
-                  
-                  <div className="space-y-2">
-                    <Label className="block mb-2">Eventos que acionam a Evolution API</Label>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="novoEmprestimoEvo"
-                          checked={evolutionConfig.events.novoEmprestimo}
-                          onChange={(e) => setEvolutionConfig(prev => ({
-                            ...prev,
-                            events: { ...prev.events, novoEmprestimo: e.target.checked }
-                          }))}
-                          className="rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <Label htmlFor="novoEmprestimoEvo" className="cursor-pointer">Novo Empréstimo</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="novoPagamentoEvo"
-                          checked={evolutionConfig.events.novoPagamento}
-                          onChange={(e) => setEvolutionConfig(prev => ({
-                            ...prev,
-                            events: { ...prev.events, novoPagamento: e.target.checked }
-                          }))}
-                          className="rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <Label htmlFor="novoPagamentoEvo" className="cursor-pointer">Novo Pagamento</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="novoClienteEvo"
-                          checked={evolutionConfig.events.novoCliente}
-                          onChange={(e) => setEvolutionConfig(prev => ({
-                            ...prev,
-                            events: { ...prev.events, novoCliente: e.target.checked }
-                          }))}
-                          className="rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <Label htmlFor="novoClienteEvo" className="cursor-pointer">Novo Cliente</Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          id="emprestimoAtrasadoEvo"
-                          checked={evolutionConfig.events.emprestimoAtrasado}
-                          onChange={(e) => setEvolutionConfig(prev => ({
-                            ...prev,
-                            events: { ...prev.events, emprestimoAtrasado: e.target.checked }
-                          }))}
-                          className="rounded border-gray-300 text-primary focus:ring-primary"
-                        />
-                        <Label htmlFor="emprestimoAtrasadoEvo" className="cursor-pointer">Empréstimo Atrasado</Label>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-                <CardFooter className="flex justify-end">
-                  <Button onClick={salvarEvolutionConfig} disabled={isSavingEvolution}>
-                    {isSavingEvolution ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Salvando...
-                      </>
-                    ) : (
-                      <>
-                        <Check className="mr-2 h-4 w-4" />
-                        Salvar Configuração
-                      </>
-                    )}
-                  </Button>
-                </CardFooter>
-              </Card>
-            </>
+          {showTemplateEditor ? (
+            renderTemplateEditor()
           ) : (
             <Card>
-              <CardHeader>
-                <CardTitle>Acesso Restrito</CardTitle>
-                <CardDescription>
-                  Apenas administradores podem acessar as configurações de integrações.
-                </CardDescription>
+              <CardHeader className="flex flex-col md:flex-row justify-between md:items-center">
+                <div>
+                  <CardTitle>Templates de Mensagens</CardTitle>
+                  <CardDescription>
+                    Modelos de mensagens para envio automático ou manual
+                  </CardDescription>
+                </div>
+                <Button className="mt-4 md:mt-0" onClick={() => setShowTemplateEditor(true)}>
+                  <Template className="mr-2 h-4 w-4" />
+                  Novo Template
+                </Button>
               </CardHeader>
-              <CardContent className="text-center py-8">
-                <p className="text-muted-foreground">
-                  Você não tem permissões suficientes para visualizar essa seção.
-                </p>
+              <CardContent>
+                {templates.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-2">Nome</th>
+                          <th className="text-left py-3 px-2">Tipo</th>
+                          <th className="text-left py-3 px-2">Assunto</th>
+                          <th className="text-left py-3 px-2">Status</th>
+                          <th className="text-right py-3 px-2">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {templates.map((template) => (
+                          <tr key={template.id} className="border-b hover:bg-muted/50">
+                            <td className="py-3 px-2">{template.nome}</td>
+                            <td className="py-3 px-2 capitalize">{template.tipo}</td>
+                            <td className="py-3 px-2">{template.assunto || "-"}</td>
+                            <td className="py-3 px-2">
+                              <Badge variant={template.ativo ? "success" : "secondary"}>
+                                {template.ativo ? "Ativo" : "Inativo"}
+                              </Badge>
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <Button variant="ghost" size="sm">
+                                Editar
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <EmptyState
+                    title="Nenhum template encontrado"
+                    description="Crie templates para enviar mensagens com facilidade"
+                    icon={<Template />}
+                    action={
+                      <Button onClick={() => setShowTemplateEditor(true)}>
+                        Criar Primeiro Template
+                      </Button>
+                    }
+                  />
+                )}
               </CardContent>
             </Card>
           )}
+        </TabsContent>
+
+        {/* Mensagens Tab */}
+        <TabsContent value="mensagens" className="space-y-6">
+          {showMessageEditor ? (
+            renderMessageEditor()
+          ) : (
+            <Card>
+              <CardHeader className="flex flex-col md:flex-row justify-between md:items-center">
+                <div>
+                  <CardTitle>Histórico de Mensagens</CardTitle>
+                  <CardDescription>
+                    Mensagens enviadas e agendadas para clientes
+                  </CardDescription>
+                </div>
+                <Button className="mt-4 md:mt-0" onClick={() => setShowMessageEditor(true)}>
+                  <MessageSquare className="mr-2 h-4 w-4" />
+                  Nova Mensagem
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {mensagens.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-2">Cliente</th>
+                          <th className="text-left py-3 px-2">Assunto</th>
+                          <th className="text-left py-3 px-2">Data</th>
+                          <th className="text-left py-3 px-2">Tipo</th>
+                          <th className="text-left py-3 px-2">Status</th>
+                          <th className="text-right py-3 px-2">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {mensagens.map((mensagem) => (
+                          <tr key={mensagem.id} className="border-b hover:bg-muted/50">
+                            <td className="py-3 px-2">{mensagem.cliente}</td>
+                            <td className="py-3 px-2">{mensagem.assunto}</td>
+                            <td className="py-3 px-2">{mensagem.data}</td>
+                            <td className="py-3 px-2 capitalize">{mensagem.tipo}</td>
+                            <td className="py-3 px-2">
+                              <Badge 
+                                variant={
+                                  mensagem.status === "enviado" ? "success" : 
+                                  mensagem.status === "agendado" ? "outline" : 
+                                  "destructive"
+                                }
+                              >
+                                {mensagem.status}
+                              </Badge>
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <Button variant="ghost" size="sm">
+                                Visualizar
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <EmptyState
+                    title="Nenhuma mensagem encontrada"
+                    description="Envie mensagens para seus clientes"
+                    icon={<MessagesSquare />}
+                    action={
+                      <Button onClick={() => setShowMessageEditor(true)}>
+                        Enviar Primeira Mensagem
+                      </Button>
+                    }
+                  />
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Agendamentos Tab */}
+        <TabsContent value="agendamentos" className="space-y-6">
+          {showScheduleEditor ? (
+            renderScheduleEditor()
+          ) : (
+            <Card>
+              <CardHeader className="flex flex-col md:flex-row justify-between md:items-center">
+                <div>
+                  <CardTitle>Agendamentos Automáticos</CardTitle>
+                  <CardDescription>
+                    Configure mensagens para envio automático
+                  </CardDescription>
+                </div>
+                <Button className="mt-4 md:mt-0" onClick={() => setShowScheduleEditor(true)}>
+                  <Calendar className="mr-2 h-4 w-4" />
+                  Novo Agendamento
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {agendamentos.length > 0 ? (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-2">Nome</th>
+                          <th className="text-left py-3 px-2">Evento</th>
+                          <th className="text-left py-3 px-2">Template</th>
+                          <th className="text-left py-3 px-2">Status</th>
+                          <th className="text-right py-3 px-2">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {agendamentos.map((agendamento) => (
+                          <tr key={agendamento.id} className="border-b hover:bg-muted/50">
+                            <td className="py-3 px-2">{agendamento.nome}</td>
+                            <td className="py-3 px-2">{agendamento.evento}</td>
+                            <td className="py-3 px-2">{agendamento.template}</td>
+                            <td className="py-3 px-2">
+                              <Badge 
+                                variant={agendamento.ativo ? "success" : "destructive"}
+                              >
+                                {agendamento.ativo ? "Ativo" : "Inativo"}
+                              </Badge>
+                            </td>
+                            <td className="py-3 px-2 text-right">
+                              <Button variant="ghost" size="sm">
+                                Editar
+                              </Button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                ) : (
+                  <EmptyState
+                    title="Nenhum agendamento encontrado"
+                    description="Configure mensagens automáticas baseadas em eventos"
+                    icon={<Calendar />}
+                    action={
+                      <Button onClick={() => setShowScheduleEditor(true)}>
+                        Criar Primeiro Agendamento
+                      </Button>
+                    }
+                  />
+                )}
+              </CardContent>
+            </Card>
+          )}
+        </TabsContent>
+
+        {/* Integrações Tab */}
+        <TabsContent value="integracoes" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Integrações Externas</CardTitle>
+              <CardDescription>
+                Configure integrações com serviços externos
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Integração com WhatsApp (Evolution API)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="whatsapp-url">URL da API</Label>
+                    <Input 
+                      id="whatsapp-url" 
+                      placeholder="https://sua-evolution-api.com" 
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="whatsapp-key">API Key</Label>
+                    <Input 
+                      id="whatsapp-key" 
+                      type="password"
+                      placeholder="Chave secreta da API" 
+                    />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <Button>
+                    Testar Conexão
+                  </Button>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t space-y-4">
+                <h3 className="text-lg font-semibold">Webhooks</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="webhook-url">URL para POST Automático</Label>
+                    <Input 
+                      id="webhook-url" 
+                      placeholder="https://seu-webhook.com" 
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Esta URL receberá POST automático quando ocorrerem os eventos selecionados
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="webhook-secret">Secret Key</Label>
+                    <Input 
+                      id="webhook-secret" 
+                      type="password"
+                      placeholder="Chave secreta para autenticação" 
+                    />
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <Label className="mb-2 block">Eventos a serem notificados:</Label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div className="flex items-center space-x-2">
+                      <input type="checkbox" id="event-loan" className="rounded" />
+                      <Label htmlFor="event-loan">Novo empréstimo</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input type="checkbox" id="event-payment" className="rounded" />
+                      <Label htmlFor="event-payment">Novo pagamento</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input type="checkbox" id="event-client" className="rounded" />
+                      <Label htmlFor="event-client">Novo cliente</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input type="checkbox" id="event-late" className="rounded" />
+                      <Label htmlFor="event-late">Empréstimo atrasado</Label>
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 flex gap-2">
+                  <Button>
+                    Salvar Webhooks
+                  </Button>
+                  <Button variant="outline">
+                    Testar Webhook
+                  </Button>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t space-y-4">
+                <h3 className="text-lg font-semibold">URL para API (GET externo)</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="api-url">URL da API</Label>
+                    <div className="flex items-center space-x-2">
+                      <Input 
+                        id="api-url" 
+                        value="https://seudominio.com/api/webhook/12345" 
+                        readOnly
+                      />
+                      <Button variant="outline" size="icon">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                      </Button>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Esta URL permite que sistemas externos consultem informações via GET
+                    </p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="api-key">API Key</Label>
+                    <Input 
+                      id="api-key" 
+                      type="password"
+                      placeholder="Chave secreta para autenticação"
+                    />
+                    <p className="text-sm text-muted-foreground">
+                      Inclua esta chave no cabeçalho de autorização das requisições
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4">
+                  <Button>
+                    Gerar Nova API Key
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
     </div>

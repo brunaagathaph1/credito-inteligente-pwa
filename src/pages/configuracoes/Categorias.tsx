@@ -155,7 +155,7 @@ const Categorias = () => {
         title="Gerenciamento de Categorias"
         description="Gerencie as categorias de empréstimos do sistema"
         actions={
-          <Button onClick={handleOpenNewDialog}>
+          <Button onClick={handleOpenNewDialog} className="w-full md:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Nova Categoria
           </Button>
@@ -165,45 +165,47 @@ const Categorias = () => {
       {isLoading ? (
         <div className="flex justify-center py-10">Carregando...</div>
       ) : categorias.length > 0 ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Descrição</TableHead>
-              <TableHead>Data de Criação</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {categorias.map((categoria) => (
-              <TableRow key={categoria.id}>
-                <TableCell className="font-medium">{categoria.name}</TableCell>
-                <TableCell>{categoria.description}</TableCell>
-                <TableCell>
-                  {new Date(categoria.created_at).toLocaleDateString("pt-BR")}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleOpenEditDialog(categoria)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleOpenDeleteDialog(categoria)}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-1/3">Nome</TableHead>
+                <TableHead className="w-1/3">Descrição</TableHead>
+                <TableHead className="w-1/6">Data de Criação</TableHead>
+                <TableHead className="w-1/6 text-right">Ações</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {categorias.map((categoria) => (
+                <TableRow key={categoria.id}>
+                  <TableCell className="font-medium">{categoria.name}</TableCell>
+                  <TableCell>{categoria.description}</TableCell>
+                  <TableCell>
+                    {new Date(categoria.created_at).toLocaleDateString("pt-BR")}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleOpenEditDialog(categoria)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleOpenDeleteDialog(categoria)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       ) : (
         <EmptyState
           title="Nenhuma categoria encontrada"

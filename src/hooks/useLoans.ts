@@ -88,27 +88,35 @@ export const useLoans = () => {
   // Create new loan
   const createLoan = useMutation({
     mutationFn: async (loanData: Omit<Loan, "id" | "created_at" | "updated_at" | "cliente" | "pagamentos">) => {
-      const { data, error } = await emprestimosApi.create(loanData);
-      if (error) throw error;
-      
-      // Trigger webhook events for new loan
-      if (data) {
-        try {
-          await triggerEmprestimoNovo(data);
-        } catch (eventError) {
-          console.error("Error triggering event notifications:", eventError);
-          // Continue even if event trigger fails
+      try {
+        // First create the loan
+        const { data, error } = await emprestimosApi.create(loanData);
+        if (error) throw error;
+        
+        // Trigger webhook/notification events for new loan
+        if (data) {
+          try {
+            await triggerEmprestimoNovo(data);
+            console.log("Event notifications triggered for new loan");
+          } catch (eventError) {
+            console.error("Error triggering event notifications:", eventError);
+            // Continue even if event trigger fails
+          }
         }
+        
+        return data;
+      } catch (error) {
+        console.error("Error creating loan:", error);
+        throw error;
       }
-      
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
+      toast.success("Empréstimo criado com sucesso!");
     },
     onError: (error: any) => {
       console.error("Error creating loan:", error);
-      toast.error(`Erro ao criar empréstimo: ${error.message}`);
+      toast.error(`Erro ao criar empréstimo: ${error.message || "Erro desconhecido"}`);
     }
   });
 
@@ -121,9 +129,10 @@ export const useLoans = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
+      toast.success("Empréstimo atualizado com sucesso!");
     },
     onError: (error: any) => {
-      toast.error(`Erro ao atualizar empréstimo: ${error.message}`);
+      toast.error(`Erro ao atualizar empréstimo: ${error.message || "Erro desconhecido"}`);
     }
   });
 
@@ -136,9 +145,10 @@ export const useLoans = () => {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
+      toast.success("Empréstimo excluído com sucesso!");
     },
     onError: (error: any) => {
-      toast.error(`Erro ao excluir empréstimo: ${error.message}`);
+      toast.error(`Erro ao excluir empréstimo: ${error.message || "Erro desconhecido"}`);
     }
   });
 

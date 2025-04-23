@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Button } from "@/components/ui/button";
-import { Plus, Edit, Trash, AlertTriangle, CreditCard } from "lucide-react";
+import { Plus, Edit, Trash, AlertTriangle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -37,7 +37,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { metodosApi } from "@/integrations/supabase/helpers";
 import { useAuth } from "@/contexts/AuthContext";
 
-// Tipo para método de pagamento
+// Tipo para o método de pagamento
 type MetodoPagamento = {
   id: string;
   name: string;
@@ -54,9 +54,13 @@ const MetodosPagamento = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [currentMetodo, setCurrentMetodo] = useState<MetodoPagamento | null>(null);
-  const [formData, setFormData] = useState({ nome: "", descricao: "", ativo: true });
+  const [formData, setFormData] = useState({
+    nome: "",
+    descricao: "",
+    ativo: true,
+  });
 
-  // Buscar métodos de pagamento
+  // Buscar métodos
   useEffect(() => {
     if (user) {
       fetchMetodos();
@@ -83,10 +87,10 @@ const MetodosPagamento = () => {
 
   const handleOpenEditDialog = (metodo: MetodoPagamento) => {
     setCurrentMetodo(metodo);
-    setFormData({ 
-      nome: metodo.name, 
-      descricao: metodo.description || "", 
-      ativo: metodo.is_active 
+    setFormData({
+      nome: metodo.name,
+      descricao: metodo.description || "",
+      ativo: metodo.is_active,
     });
     setIsDialogOpen(true);
   };
@@ -107,7 +111,7 @@ const MetodosPagamento = () => {
 
   const handleSubmit = async () => {
     if (!formData.nome.trim()) {
-      toast.error("O nome do método de pagamento é obrigatório");
+      toast.error("O nome do método é obrigatório");
       return;
     }
 
@@ -117,9 +121,9 @@ const MetodosPagamento = () => {
         const { error } = await metodosApi.update(currentMetodo.id, {
           name: formData.nome,
           description: formData.descricao || null,
-          is_active: formData.ativo
+          is_active: formData.ativo,
         });
-        
+
         if (error) throw error;
         toast.success("Método de pagamento atualizado com sucesso");
       } else {
@@ -127,13 +131,13 @@ const MetodosPagamento = () => {
         const { error } = await metodosApi.create({
           name: formData.nome,
           description: formData.descricao || null,
-          is_active: formData.ativo
+          is_active: formData.ativo,
         });
-        
+
         if (error) throw error;
         toast.success("Método de pagamento criado com sucesso");
       }
-      
+
       fetchMetodos();
       setIsDialogOpen(false);
     } catch (error) {
@@ -146,7 +150,7 @@ const MetodosPagamento = () => {
     if (currentMetodo) {
       try {
         const { error } = await metodosApi.delete(currentMetodo.id);
-        
+
         if (error) throw error;
         toast.success("Método de pagamento excluído com sucesso");
         fetchMetodos();
@@ -158,28 +162,13 @@ const MetodosPagamento = () => {
     }
   };
 
-  const toggleStatus = async (id: string, currentStatus: boolean) => {
-    try {
-      const { error } = await metodosApi.update(id, {
-        is_active: !currentStatus
-      });
-      
-      if (error) throw error;
-      toast.success(`Status do método de pagamento ${currentStatus ? 'desativado' : 'ativado'} com sucesso`);
-      fetchMetodos();
-    } catch (error) {
-      console.error("Erro ao alterar status:", error);
-      toast.error("Erro ao alterar status do método de pagamento");
-    }
-  };
-
   return (
     <div className="space-y-6">
       <PageHeader
         title="Métodos de Pagamento"
         description="Gerencie os métodos de pagamento disponíveis no sistema"
         actions={
-          <Button onClick={handleOpenNewDialog}>
+          <Button onClick={handleOpenNewDialog} className="w-full md:w-auto">
             <Plus className="mr-2 h-4 w-4" />
             Novo Método
           </Button>
@@ -189,62 +178,64 @@ const MetodosPagamento = () => {
       {isLoading ? (
         <div className="flex justify-center py-10">Carregando...</div>
       ) : metodos.length > 0 ? (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Descrição</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Data de Criação</TableHead>
-              <TableHead className="text-right">Ações</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {metodos.map((metodo) => (
-              <TableRow key={metodo.id}>
-                <TableCell className="font-medium">{metodo.name}</TableCell>
-                <TableCell>{metodo.description}</TableCell>
-                <TableCell>
-                  <div className="flex items-center">
-                    <Switch
-                      checked={metodo.is_active}
-                      onCheckedChange={() => toggleStatus(metodo.id, metodo.is_active)}
-                    />
-                    <span className="ml-2">
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-1/4">Nome</TableHead>
+                <TableHead className="w-1/3">Descrição</TableHead>
+                <TableHead className="w-1/6">Status</TableHead>
+                <TableHead className="w-1/6">Data de Criação</TableHead>
+                <TableHead className="w-1/6 text-right">Ações</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {metodos.map((metodo) => (
+                <TableRow key={metodo.id}>
+                  <TableCell className="font-medium">{metodo.name}</TableCell>
+                  <TableCell>{metodo.description}</TableCell>
+                  <TableCell>
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        metodo.is_active
+                          ? "bg-green-100 text-green-800"
+                          : "bg-red-100 text-red-800"
+                      }`}
+                    >
                       {metodo.is_active ? "Ativo" : "Inativo"}
                     </span>
-                  </div>
-                </TableCell>
-                <TableCell>
-                  {new Date(metodo.created_at).toLocaleDateString("pt-BR")}
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleOpenEditDialog(metodo)}
-                    >
-                      <Edit className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleOpenDeleteDialog(metodo)}
-                    >
-                      <Trash className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                  </TableCell>
+                  <TableCell>
+                    {new Date(metodo.created_at).toLocaleDateString("pt-BR")}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleOpenEditDialog(metodo)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleOpenDeleteDialog(metodo)}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       ) : (
         <EmptyState
           title="Nenhum método de pagamento encontrado"
           description="Crie um novo método para começar"
-          icon={<CreditCard />}
+          icon={<AlertTriangle />}
           action={
             <Button onClick={handleOpenNewDialog}>
               <Plus className="mr-2 h-4 w-4" />
@@ -258,7 +249,7 @@ const MetodosPagamento = () => {
         <DialogContent>
           <DialogHeader>
             <DialogTitle>
-              {currentMetodo ? "Editar Método de Pagamento" : "Novo Método de Pagamento"}
+              {currentMetodo ? "Editar Método" : "Novo Método"}
             </DialogTitle>
             <DialogDescription>
               {currentMetodo
@@ -275,7 +266,7 @@ const MetodosPagamento = () => {
                 name="nome"
                 value={formData.nome}
                 onChange={handleInputChange}
-                placeholder="Nome do método de pagamento"
+                placeholder="Nome do método"
               />
             </div>
 
@@ -286,7 +277,7 @@ const MetodosPagamento = () => {
                 name="descricao"
                 value={formData.descricao}
                 onChange={handleInputChange}
-                placeholder="Descrição do método de pagamento"
+                placeholder="Descrição do método"
               />
             </div>
 
@@ -309,7 +300,10 @@ const MetodosPagamento = () => {
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+      <AlertDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Confirmar exclusão</AlertDialogTitle>
@@ -320,7 +314,9 @@ const MetodosPagamento = () => {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDelete}>Excluir</AlertDialogAction>
+            <AlertDialogAction onClick={handleDelete}>
+              Excluir
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

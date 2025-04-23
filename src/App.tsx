@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "@/pages/Index";
 import Login from "@/pages/auth/Login";
@@ -23,9 +24,9 @@ import LogsAtividades from "@/pages/configuracoes/LogsAtividades";
 import Perfil from "@/pages/configuracoes/Perfil";
 import ConfiguracoesFinanceiras from "@/pages/configuracoes/ConfiguracoesFinanceiras";
 import OfflineIndicator from "@/components/common/OfflineIndicator";
-import { Toaster } from "@/components/ui/toaster";
+import { Toaster } from "sonner";
 import { ThemeProvider } from "@/components/theme-provider";
-import ManualUsuario from "./pages/ManualUsuario";
+import ManualUsuario from "@/pages/ManualUsuario";
 
 const App = () => {
   return (

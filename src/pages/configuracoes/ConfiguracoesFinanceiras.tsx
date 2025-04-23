@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -122,6 +122,7 @@ const ConfiguracoesFinanceiras = () => {
       <Card>
         <CardHeader>
           <CardTitle>Configurações de Juros e Prazos</CardTitle>
+          <CardDescription>Defina os valores padrão para juros e prazos</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -196,6 +197,7 @@ const ConfiguracoesFinanceiras = () => {
       <Card>
         <CardHeader>
           <CardTitle>Notificações e Eventos</CardTitle>
+          <CardDescription>Configure os eventos que disparam notificações automáticas</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
