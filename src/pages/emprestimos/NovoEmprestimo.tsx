@@ -35,8 +35,8 @@ const NovoEmprestimo = () => {
   const [valorParcela, setValorParcela] = useState<number | null>(null);
   const [valorTotal, setValorTotal] = useState<number | null>(null);
   const { clients, isLoadingClients } = useClients();
-  const loansHooks = useLoans();
-  const { createLoan } = loansHooks;
+  const { useCreateLoan } = useLoans();
+  const createLoanMutation = useCreateLoan();
   const { logActivity } = useActivityLogs();
 
   const [formData, setFormData] = useState({
@@ -142,7 +142,7 @@ const NovoEmprestimo = () => {
       };
 
       console.log("Enviando dados do empréstimo:", emprestimoData);
-      const result = await createLoan.mutateAsync(emprestimoData);
+      const result = await createLoanMutation.mutateAsync(emprestimoData);
       
       if (result) {
         await logActivity("Cadastrou novo empréstimo", { emprestimo_id: result.id });

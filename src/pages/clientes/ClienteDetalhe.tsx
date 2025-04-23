@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -34,14 +33,11 @@ import { useActivityLogs } from "@/hooks/useActivityLogs";
 const ClienteDetalhe = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getClientById, isClientLoading } = useClients();
+  const { client, isClientLoading, clientsError } = useClients(id);
   const { loans } = useLoans();
   const isMobile = useIsMobile();
   const { logActivity } = useActivityLogs();
   
-  // Get client details using the hook
-  const { data: client, isLoading, error } = getClientById(id);
-
   // Filter loans for this client
   const clientLoans = loans?.filter(loan => loan.cliente_id === id) || [];
   
@@ -100,7 +96,7 @@ const ClienteDetalhe = () => {
     }
   };
 
-  if (error) {
+  if (clientsError) {
     toast.error("Erro ao carregar dados do cliente");
     navigate("/clientes");
     return null;
@@ -110,7 +106,7 @@ const ClienteDetalhe = () => {
     <div className="space-y-6">
       <div className="flex items-start justify-between">
         <PageHeader
-          title={isLoading ? "Carregando..." : client?.nome || "Cliente"}
+          title={isClientLoading ? "Carregando..." : client?.nome || "Cliente"}
           description="Detalhes do cliente e empréstimos relacionados"
         />
 
@@ -125,7 +121,7 @@ const ClienteDetalhe = () => {
             Voltar
           </Button>
           
-          {!isLoading && client && (
+          {!isClientLoading && client && (
             <Button
               variant="outline"
               size="sm"
@@ -138,7 +134,7 @@ const ClienteDetalhe = () => {
         </div>
       </div>
       
-      {isLoading || isClientLoading ? (
+      {isClientLoading ? (
         <LoadingClienteDetalhe />
       ) : client ? (
         <Tabs defaultValue="dados" className="w-full">

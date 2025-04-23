@@ -1,4 +1,3 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
@@ -8,6 +7,7 @@ interface StatCardProps {
   icon?: React.ReactNode;
   description?: string;
   className?: string;
+  loading?: boolean;
 }
 
 export function StatCard({ title, value, icon, description, className }: StatCardProps) {

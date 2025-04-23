@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -506,9 +505,12 @@ const EmprestimoDetalhe = () => {
       {/* Renegociação Dialog */}
       {loan && (
         <RenegociacaoDialog 
-          open={showRenegociacaoDialog} 
-          onOpenChange={setShowRenegociacaoDialog} 
-          loan={loan}
+          isOpen={showRenegociacaoDialog} 
+          onClose={() => setShowRenegociacaoDialog(false)}
+          emprestimo={loan}
+          onRenegociationComplete={() => {
+            setShowRenegociacaoDialog(false);
+          }}
         />
       )}
     </div>
@@ -523,9 +525,9 @@ const LoadingEmprestimoDetalhe = () => {
         <Card className="flex-1">
           <CardHeader>
             <CardTitle><Skeleton className="h-6 w-48" /></CardTitle>
-            <CardDescription>
+            <div className="text-sm text-muted-foreground">
               <Skeleton className="h-4 w-36" />
-            </CardDescription>
+            </div>
           </CardHeader>
           <CardContent className="grid gap-4 md:grid-cols-2">
             {[...Array(6)].map((_, i) => (
@@ -540,9 +542,9 @@ const LoadingEmprestimoDetalhe = () => {
         <Card className="flex-1">
           <CardHeader>
             <CardTitle><Skeleton className="h-6 w-48" /></CardTitle>
-            <CardDescription>
+            <div className="text-sm text-muted-foreground">
               <Skeleton className="h-4 w-36" />
-            </CardDescription>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
             {[...Array(3)].map((_, i) => (
@@ -561,9 +563,9 @@ const LoadingEmprestimoDetalhe = () => {
       <Card>
         <CardHeader>
           <CardTitle><Skeleton className="h-6 w-48" /></CardTitle>
-          <CardDescription>
+          <div className="text-sm text-muted-foreground">
             <Skeleton className="h-4 w-64" />
-          </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <Skeleton className="h-[200px] w-full" />
