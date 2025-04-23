@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -53,6 +54,7 @@ const MensagensETemplates = () => {
   const templates = useTemplates();
   const agendamentos = useAgendamentos();
   const evolutionApiConfigData = useEvolutionApiConfig();
+  const mensagensHistory = useMensagensHistory();
 
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [showScheduleEditor, setShowScheduleEditor] = useState(false);
@@ -66,9 +68,21 @@ const MensagensETemplates = () => {
     observacoes: ''
   });
 
+  // New message state
+  const [newMensagem, setNewMensagem] = useState({
+    cliente_id: "",
+    template_id: "",
+    assunto: "",
+    conteudo: "",
+    tipo: "" as "email" | "whatsapp" | "sms" | "",
+    status: "pendente" as "enviado" | "agendado" | "erro" | "pendente",
+    data_agendamento: "",
+    created_by: user?.id || "",
+  });
+
   const [newTemplate, setNewTemplate] = useState({
     nome: "",
-    tipo: "" as "email" | "whatsapp" | "sms" | "",
+    tipo: "whatsapp" as "email" | "whatsapp" | "sms",  // Default to whatsapp instead of empty string
     assunto: "",
     conteudo: "",
     ativo: true,
@@ -78,7 +92,7 @@ const MensagensETemplates = () => {
   const [newAgendamento, setNewAgendamento] = useState({
     nome: "",
     tipo: "automatico" as "automatico" | "recorrente",
-    evento: "" as "emprestimo_criado" | "emprestimo_vencendo" | "emprestimo_atrasado" | "pagamento_confirmado" | "",
+    evento: "emprestimo_criado" as "emprestimo_criado" | "emprestimo_vencendo" | "emprestimo_atrasado" | "pagamento_confirmado",  // Default to a valid value
     dias_antes: 0,
     template_id: "",
     ativo: true,
@@ -89,7 +103,7 @@ const MensagensETemplates = () => {
   const handleNewTemplate = () => {
     setNewTemplate({
       nome: "",
-      tipo: "" as "email" | "whatsapp" | "sms" | "",
+      tipo: "whatsapp" as "email" | "whatsapp" | "sms",
       assunto: "",
       conteudo: "",
       ativo: true,
@@ -103,7 +117,7 @@ const MensagensETemplates = () => {
     setEditingTemplate(template);
     setNewTemplate({
       nome: template.nome,
-      tipo: template.tipo as "email" | "whatsapp" | "sms" | "",
+      tipo: template.tipo,
       assunto: template.assunto || "",
       conteudo: template.conteudo,
       ativo: template.ativo,
@@ -116,10 +130,10 @@ const MensagensETemplates = () => {
     setEditingSchedule(agendamento);
     setNewAgendamento({
       nome: agendamento.nome,
-      tipo: agendamento.tipo as "automatico" | "recorrente",
-      evento: agendamento.evento as "emprestimo_criado" | "emprestimo_vencendo" | "emprestimo_atrasado" | "pagamento_confirmado" | "",
+      tipo: agendamento.tipo,
+      evento: agendamento.evento,
       dias_antes: agendamento.dias_antes,
-      template_id: agendamento.template_id,
+      template_id: agendamento.template_id || "",
       ativo: agendamento.ativo,
       created_by: agendamento.created_by,
     });
@@ -138,12 +152,20 @@ const MensagensETemplates = () => {
     setNewTemplate({ ...newTemplate, [e.target.name]: e.target.value });
   };
 
+  const handleMensagemChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setNewMensagem({ ...newMensagem, [e.target.name]: e.target.value });
+  };
+
   const handleAgendamentoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setNewAgendamento({ ...newAgendamento, [e.target.name]: e.target.value });
   };
 
   const handleTemplateSelectChange = (name: string, value: string) => {
     setNewTemplate({ ...newTemplate, [name]: value });
+  };
+
+  const handleMensagemSelectChange = (name: string, value: string) => {
+    setNewMensagem({ ...newMensagem, [name]: value });
   };
 
   const handleAgendamentoSelectChange = (name: string, value: string) => {
@@ -175,6 +197,20 @@ const MensagensETemplates = () => {
     }
   };
 
+  const handleSendMensagem = async () => {
+    await createMensagem.mutateAsync(newMensagem);
+    setNewMensagem({
+      cliente_id: "",
+      template_id: "",
+      assunto: "",
+      conteudo: "",
+      tipo: "" as "email" | "whatsapp" | "sms" | "",
+      status: "pendente" as "enviado" | "agendado" | "erro" | "pendente",
+      data_agendamento: "",
+      created_by: user?.id || "",
+    });
+  };
+
   const handleSaveAgendamento = async () => {
     if (editingSchedule) {
       // Update existing agendamento
@@ -202,11 +238,12 @@ const MensagensETemplates = () => {
     await testEvolutionApi.mutateAsync(evolutionApiConfig);
   };
 
-  React.useEffect(() => {
+  // Side effect to set Evolution API config
+  useState(() => {
     if (evolutionApiConfigData.data) {
       setEvolutionApiConfig(evolutionApiConfigData.data);
     }
-  }, [evolutionApiConfigData.data]);
+  });
 
   return (
     <div className="space-y-6">
@@ -266,7 +303,7 @@ const MensagensETemplates = () => {
               handleTemplateChange={handleTemplateChange}
               handleTemplateSelectChange={handleTemplateSelectChange}
               handleSaveTemplate={handleSaveTemplate}
-              createTemplateIsPending={createTemplate.isLoading}
+              createTemplateIsPending={createTemplate.isPending}
               onCancel={() => setShowTemplateEditor(false)}
               handleInsertVariable={handleInsertVariable}
             />
@@ -331,7 +368,17 @@ const MensagensETemplates = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <MessageEditor templates={templates.data || []} clients={clients?.clients || []} />
+              <MessageEditor 
+                templates={templates.data || []} 
+                clients={clients || []}
+                newMensagem={newMensagem}
+                setNewMensagem={setNewMensagem}
+                handleMensagemChange={handleMensagemChange}
+                handleMensagemSelectChange={handleMensagemSelectChange}
+                createMensagemIsPending={createMensagem.isPending}
+                handleSendMensagem={handleSendMensagem}
+                onCancel={() => {}}
+              />
             </CardContent>
           </Card>
         </TabsContent>
@@ -344,7 +391,7 @@ const MensagensETemplates = () => {
               templates={templates.data || []}
               handleAgendamentoChange={handleAgendamentoChange}
               handleAgendamentoSelectChange={handleAgendamentoSelectChange}
-              createAgendamentoIsPending={createAgendamento.isLoading}
+              createAgendamentoIsPending={createAgendamento.isPending}
               handleSaveAgendamento={handleSaveAgendamento}
               onCancel={() => setShowScheduleEditor(false)}
             />

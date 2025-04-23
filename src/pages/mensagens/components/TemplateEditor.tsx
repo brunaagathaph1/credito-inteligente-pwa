@@ -13,7 +13,7 @@ import { toast } from "sonner";
 interface TemplateEditorProps {
   newTemplate: {
     nome: string;
-    tipo: "email" | "whatsapp" | "sms" | "";
+    tipo: "email" | "whatsapp" | "sms";
     assunto: string;
     conteudo: string;
     ativo: boolean;

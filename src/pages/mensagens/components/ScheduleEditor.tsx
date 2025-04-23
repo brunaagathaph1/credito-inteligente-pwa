@@ -11,7 +11,7 @@ interface ScheduleEditorProps {
   newAgendamento: {
     nome: string;
     tipo: "automatico" | "recorrente";
-    evento: "emprestimo_criado" | "emprestimo_vencendo" | "emprestimo_atrasado" | "pagamento_confirmado" | "";
+    evento: "emprestimo_criado" | "emprestimo_vencendo" | "emprestimo_atrasado" | "pagamento_confirmado";
     dias_antes: number;
     template_id: string;
     ativo: boolean;
@@ -60,7 +60,7 @@ export default function ScheduleEditor({
             <Label htmlFor="tipo">Tipo de Agendamento</Label>
             <Select 
               value={newAgendamento.tipo}
-              onValueChange={(value) => handleAgendamentoSelectChange('tipo', value)}
+              onValueChange={(value) => handleAgendamentoSelectChange('tipo', value as "automatico" | "recorrente")}
             >
               <SelectTrigger id="tipo">
                 <SelectValue placeholder="Selecione o tipo" />
@@ -75,7 +75,7 @@ export default function ScheduleEditor({
             <Label htmlFor="evento">Evento Disparador</Label>
             <Select 
               value={newAgendamento.evento}
-              onValueChange={(value) => handleAgendamentoSelectChange('evento', value)}
+              onValueChange={(value) => handleAgendamentoSelectChange('evento', value as "emprestimo_criado" | "emprestimo_vencendo" | "emprestimo_atrasado" | "pagamento_confirmado")}
             >
               <SelectTrigger id="evento">
                 <SelectValue placeholder="Selecione o evento" />
@@ -131,4 +131,3 @@ export default function ScheduleEditor({
     </Card>
   );
 }
-

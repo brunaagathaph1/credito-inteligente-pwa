@@ -1,14 +1,14 @@
 
 import { supabase } from "@/integrations/supabase/client";
 
-// Função para enviar notificação via Evolution API (WhatsApp)
+// Function to send WhatsApp notification via Evolution API
 export const sendEvolutionApiNotification = async (
   phoneNumber: string, 
   message: string,
   templateData?: any
 ) => {
   try {
-    // Obter configuração da Evolution API
+    // Get Evolution API configuration
     const { data, error } = await supabase
       .from('configuracoes_financeiras')
       .select('observacoes')
@@ -18,7 +18,7 @@ export const sendEvolutionApiNotification = async (
     if (error) throw error;
     
     if (!data || !data.observacoes) {
-      console.log("Evolution API não configurada");
+      console.log("Evolution API not configured");
       return false;
     }
     
@@ -26,26 +26,26 @@ export const sendEvolutionApiNotification = async (
       const config = JSON.parse(data.observacoes);
       
       if (!config.webhook_url || !config.api_key) {
-        console.log("URL ou chave da API não configurados");
+        console.log("URL or API key not configured");
         return false;
       }
       
-      // Formatar número de telefone (remover não-dígitos)
+      // Format phone number (remove non-digits)
       const formattedPhone = phoneNumber.replace(/\D/g, '');
       
-      // Preparar dados para envio
+      // Prepare data for sending
       const payload = {
         phone: formattedPhone,
         message,
         ...templateData
       };
       
-      // Em um ambiente de produção, você faria uma solicitação HTTP aqui
+      // In a production environment, you would make an HTTP request here
       console.log(`Evolution API notification sent`);
       console.log("Payload:", payload);
       console.log("URL:", config.webhook_url);
       
-      // Registrar o evento
+      // Log the event
       await logMessageEvent("whatsapp_sent", payload);
       
       return true;
@@ -59,7 +59,7 @@ export const sendEvolutionApiNotification = async (
   }
 };
 
-// Função para registrar eventos de mensagens
+// Function to log message events
 export const logMessageEvent = async (event: string, payload: any) => {
   try {
     await supabase
@@ -82,7 +82,7 @@ export const logMessageEvent = async (event: string, payload: any) => {
   }
 };
 
-// Função para processar variáveis em templates
+// Function to process variables in templates
 export const processTemplateVariables = async (
   template: string, 
   data: {
@@ -94,14 +94,14 @@ export const processTemplateVariables = async (
 ) => {
   let processedTemplate = template;
   
-  // Processar variáveis de cliente
+  // Process client variables
   if (data.cliente) {
     processedTemplate = processedTemplate.replace(/\{\{cliente\.nome\}\}/g, data.cliente.nome || '');
     processedTemplate = processedTemplate.replace(/\{\{cliente\.telefone\}\}/g, data.cliente.telefone || '');
     processedTemplate = processedTemplate.replace(/\{\{cliente\.email\}\}/g, data.cliente.email || '');
   }
   
-  // Processar variáveis de empréstimo
+  // Process loan variables
   if (data.emprestimo) {
     processedTemplate = processedTemplate.replace(/\{\{emprestimo\.valor_principal\}\}/g, 
       new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -112,7 +112,7 @@ export const processTemplateVariables = async (
       `${data.emprestimo.taxa_juros}%` || '');
   }
   
-  // Processar variáveis de pagamento
+  // Process payment variables
   if (data.pagamento) {
     processedTemplate = processedTemplate.replace(/\{\{pagamento\.valor\}\}/g, 
       new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })
@@ -121,7 +121,7 @@ export const processTemplateVariables = async (
       new Date(data.pagamento.data_pagamento).toLocaleDateString('pt-BR') || '');
   }
   
-  // Processar outras variáveis
+  // Process other variables
   Object.keys(data).forEach(key => {
     if (typeof data[key] === 'string' || typeof data[key] === 'number') {
       const regex = new RegExp(`\\{\\{${key}\\}\\}`, 'g');
