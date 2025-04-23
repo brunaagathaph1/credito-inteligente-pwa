@@ -52,9 +52,7 @@ export const useLoans = () => {
         .from('emprestimos')
         .select(`
           *,
-          cliente:clientes(id, nome, telefone, email, cpf),
-          parcelas(*),
-          renegociacoes:renegociacoes!renegociacoes_emprestimo_id_fkey(*)
+          cliente:clientes(id, nome, telefone, email, cpf)
         `)
         .eq('id', id)
         .single();
@@ -63,8 +61,35 @@ export const useLoans = () => {
         console.error('Erro ao carregar empréstimo:', error);
         throw error;
       }
+      
+      // Fetch parcelas in a separate query
+      const { data: parcelas, error: parcelasError } = await supabase
+        .from('parcelas')
+        .select('*')
+        .eq('emprestimo_id', id);
+        
+      if (parcelasError) {
+        console.error('Erro ao carregar parcelas:', parcelasError);
+        throw parcelasError;
+      }
+      
+      // Fetch renegociacoes in a separate query
+      const { data: renegociacoes, error: renegociacoesError } = await supabase
+        .from('renegociacoes')
+        .select('*')
+        .eq('emprestimo_id', id);
+        
+      if (renegociacoesError) {
+        console.error('Erro ao carregar renegociações:', renegociacoesError);
+        throw renegociacoesError;
+      }
 
-      return data;
+      // Combine the data
+      return {
+        ...data,
+        parcelas: parcelas || [],
+        renegociacoes: renegociacoes || []
+      };
     } catch (error) {
       console.error('Erro ao carregar empréstimo:', error);
       throw error;
@@ -261,7 +286,7 @@ export const useLoans = () => {
   };
 
   // React Query Hooks
-  const loans = useQuery({
+  const { data: loansData, isLoading: isLoadingLoans, error: loansError } = useQuery({
     queryKey: ['loans'],
     queryFn: fetchLoans,
   });
@@ -312,7 +337,9 @@ export const useLoans = () => {
   };
 
   return {
-    loans,
+    loans: loansData,
+    isLoadingLoans,
+    loansError,
     useLoan,
     useCreateLoan,
     useUpdateLoanStatus,

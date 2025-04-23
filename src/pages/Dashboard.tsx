@@ -66,7 +66,7 @@ const Dashboard = () => {
       const endOfPrevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
       
       // Calcula valores para empréstimos ativos (não quitados)
-      const emprestimosAtivos = loans.filter(emp => emp.status !== "quitado");
+      const emprestimosAtivos = (loans || []).filter(emp => emp.status !== "quitado");
       const totalEmprestimosAtivos = emprestimosAtivos.reduce(
         (sum, emp) => sum + Number(emp.valor_principal), 0
       );
@@ -77,7 +77,7 @@ const Dashboard = () => {
       ).size;
       
       // Calcula novos clientes este mês
-      const clientesNovosMes = clients.filter(
+      const clientesNovosMes = (clients || []).filter(
         cliente => {
           const createdAt = new Date(cliente.created_at);
           return isAfter(createdAt, startOfMonth) || createdAt.getTime() === startOfMonth.getTime();
@@ -85,8 +85,14 @@ const Dashboard = () => {
       ).length;
       
       // Calcula recebimentos do mês atual
-      const recebimentosMesAtual = loans
-        .flatMap(emp => emp.pagamentos && Array.isArray(emp.pagamentos) ? emp.pagamentos : [])
+      const pagamentos = [];
+      (loans || []).forEach(emp => {
+        if (emp.pagamentos && Array.isArray(emp.pagamentos)) {
+          pagamentos.push(...emp.pagamentos);
+        }
+      });
+      
+      const recebimentosMesAtual = pagamentos
         .filter(pag => {
           if (!pag || !pag.data_pagamento) return false;
           const dataPagamento = new Date(pag.data_pagamento);
@@ -96,8 +102,7 @@ const Dashboard = () => {
         .reduce((sum, pag) => sum + Number(pag.valor), 0);
       
       // Calcula recebimentos do mês anterior
-      const recebimentosMesAnterior = loans
-        .flatMap(emp => emp.pagamentos && Array.isArray(emp.pagamentos) ? emp.pagamentos : [])
+      const recebimentosMesAnterior = pagamentos
         .filter(pag => {
           if (!pag || !pag.data_pagamento) return false;
           const dataPagamento = new Date(pag.data_pagamento);
@@ -111,7 +116,7 @@ const Dashboard = () => {
         : 0;
       
       // Calcula valor de inadimplência (empréstimos atrasados)
-      const emprestimosAtrasados = loans.filter(emp => emp.status === "atrasado");
+      const emprestimosAtrasados = (loans || []).filter(emp => emp.status === "atrasado");
       const valorInadimplencia = emprestimosAtrasados.reduce(
         (sum, emp) => sum + Number(emp.valor_principal), 0
       );
@@ -167,24 +172,20 @@ const Dashboard = () => {
       }).reverse();
       
       // Mapeia pagamentos para os respectivos meses
-      loans.forEach(emp => {
-        if (!emp.pagamentos || !Array.isArray(emp.pagamentos)) return;
+      pagamentos.forEach(pag => {
+        if (!pag || !pag.data_pagamento) return;
         
-        emp.pagamentos.forEach(pag => {
-          if (!pag || !pag.data_pagamento) return;
-          
-          const dataPagamento = new Date(pag.data_pagamento);
-          
-          // Verifica se o pagamento está dentro dos últimos 6 meses
-          const mesIndex = ultimosMeses.findIndex(m => 
-            m.date.getMonth() === dataPagamento.getMonth() && 
-            m.date.getFullYear() === dataPagamento.getFullYear()
-          );
-          
-          if (mesIndex !== -1) {
-            ultimosMeses[mesIndex].valor += Number(pag.valor);
-          }
-        });
+        const dataPagamento = new Date(pag.data_pagamento);
+        
+        // Verifica se o pagamento está dentro dos últimos 6 meses
+        const mesIndex = ultimosMeses.findIndex(m => 
+          m.date.getMonth() === dataPagamento.getMonth() && 
+          m.date.getFullYear() === dataPagamento.getFullYear()
+        );
+        
+        if (mesIndex !== -1) {
+          ultimosMeses[mesIndex].valor += Number(pag.valor);
+        }
       });
       
       setRecebimentosMensais(ultimosMeses.map(m => ({
@@ -196,7 +197,7 @@ const Dashboard = () => {
       const hoje = new Date();
       const proximosDias = addDays(hoje, 15); // Próximos 15 dias
       
-      const vencimentosProximos = loans
+      const vencimentosProximos = (loans || [])
         .filter(emp => 
           emp.status !== "quitado" && 
           emp.data_vencimento && 
@@ -224,7 +225,7 @@ const Dashboard = () => {
     }
   }, [loans, clients]);
 
-  const formatCurrency = (value) => {
+  const formatCurrency = (value: any) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
