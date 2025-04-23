@@ -25,6 +25,9 @@ import { useMensagens } from "@/hooks/useMensagens";
 import { useAuth } from "@/contexts/AuthContext";
 import { VARIAVEIS_TEMPLATES, VariavelTemplate } from "@/types/mensagens";
 import { useClients } from "@/hooks/useClients";
+import TemplateEditor from "./components/TemplateEditor";
+import MessageEditor from "./components/MessageEditor";
+import ScheduleEditor from "./components/ScheduleEditor";
 
 const MensagensETemplates = () => {
   const { user } = useAuth();
@@ -340,351 +343,45 @@ const MensagensETemplates = () => {
 
   // Renderiza o editor de templates
   const renderTemplateEditor = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>Novo Template</CardTitle>
-        <CardDescription>
-          Crie um novo template para mensagens
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="nome">Nome do Template</Label>
-            <Input 
-              id="nome"
-              name="nome"
-              placeholder="Ex: Lembrete de Pagamento" 
-              value={newTemplate.nome}
-              onChange={handleTemplateChange}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="tipo">Tipo de Mensagem</Label>
-            <Select 
-              value={newTemplate.tipo}
-              onValueChange={(value) => handleTemplateSelectChange('tipo', value)}
-            >
-              <SelectTrigger id="tipo">
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="email">E-mail</SelectItem>
-                <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                <SelectItem value="sms">SMS</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="assunto">Assunto (para e-mail)</Label>
-            <Input 
-              id="assunto"
-              name="assunto"
-              placeholder="Ex: Lembrete de Pagamento" 
-              value={newTemplate.assunto}
-              onChange={handleTemplateChange}
-            />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="template-conteudo">Conteúdo da Mensagem</Label>
-            <Textarea 
-              id="template-conteudo" 
-              name="conteudo"
-              placeholder="Digite o conteúdo da mensagem..." 
-              className="min-h-[200px]"
-              value={newTemplate.conteudo}
-              onChange={handleTemplateChange}
-            />
-          </div>
-        </div>
-        
-        <div className="mt-4 space-y-4">
-          <div>
-            <Label className="mb-2 block">Variáveis Disponíveis:</Label>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(VARIAVEIS_TEMPLATES).map(([categoria, variaveis]) => (
-                <div key={categoria} className="border p-4 rounded-md w-full md:w-auto">
-                  <strong className="block mb-2">{categoria.charAt(0).toUpperCase() + categoria.slice(1)}</strong>
-                  <div className="flex flex-wrap gap-1">
-                    {variaveis.map((variavel) => (
-                      <Badge 
-                        key={variavel.valor} 
-                        variant="outline" 
-                        className="cursor-pointer" 
-                        onClick={() => handleInsertVariable(variavel)}
-                      >
-                        {variavel.valor}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex justify-end gap-2 mt-6">
-          <Button variant="outline" onClick={() => setShowTemplateEditor(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSaveTemplate} disabled={createTemplate.isPending}>
-            {createTemplate.isPending ? "Salvando..." : "Salvar Template"}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <TemplateEditor
+      newTemplate={newTemplate}
+      setNewTemplate={setNewTemplate}
+      handleTemplateChange={handleTemplateChange}
+      handleTemplateSelectChange={handleTemplateSelectChange}
+      handleSaveTemplate={handleSaveTemplate}
+      createTemplateIsPending={createTemplate.isPending}
+      onCancel={() => setShowTemplateEditor(false)}
+      handleInsertVariable={handleInsertVariable}
+    />
   );
 
   // Renderiza o editor de mensagens
   const renderMessageEditor = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>Nova Mensagem</CardTitle>
-        <CardDescription>
-          Enviar mensagem para um cliente
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="cliente_id">Cliente</Label>
-            <Select 
-              value={newMensagem.cliente_id}
-              onValueChange={(value) => handleMensagemSelectChange('cliente_id', value)}
-            >
-              <SelectTrigger id="cliente_id">
-                <SelectValue placeholder="Selecione o cliente" />
-              </SelectTrigger>
-              <SelectContent>
-                {clients.map(cliente => (
-                  <SelectItem key={cliente.id} value={cliente.id}>
-                    {cliente.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="tipo">Tipo de Mensagem</Label>
-            <Select 
-              value={newMensagem.tipo}
-              onValueChange={(value) => handleMensagemSelectChange('tipo', value)}
-            >
-              <SelectTrigger id="tipo">
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="email">E-mail</SelectItem>
-                <SelectItem value="whatsapp">WhatsApp</SelectItem>
-                <SelectItem value="sms">SMS</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="template_id">Usar Template</Label>
-            <Select 
-              value={newMensagem.template_id}
-              onValueChange={(value) => handleMensagemSelectChange('template_id', value)}
-            >
-              <SelectTrigger id="template_id">
-                <SelectValue placeholder="Selecione um template" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0">Não usar template</SelectItem>
-                {templates.map(t => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="data_agendamento">Agendamento</Label>
-            <Input 
-              id="data_agendamento" 
-              name="data_agendamento"
-              type="datetime-local" 
-              placeholder="Enviar agora" 
-              value={newMensagem.data_agendamento}
-              onChange={handleMensagemChange}
-            />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="assunto">Assunto (para e-mail)</Label>
-            <Input 
-              id="assunto" 
-              name="assunto"
-              placeholder="Assunto da mensagem" 
-              value={newMensagem.assunto}
-              onChange={handleMensagemChange}
-            />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="conteudo">Conteúdo da Mensagem</Label>
-            <Textarea 
-              id="conteudo" 
-              name="conteudo"
-              placeholder="Digite sua mensagem..." 
-              className="min-h-[200px]"
-              value={newMensagem.conteudo}
-              onChange={handleMensagemChange}
-            />
-          </div>
-        </div>
-        
-        <div className="mt-4 space-y-4">
-          <div>
-            <Label className="mb-2 block">Variáveis Disponíveis:</Label>
-            <div className="flex flex-wrap gap-2">
-              {Object.entries(VARIAVEIS_TEMPLATES).map(([categoria, variaveis]) => (
-                <div key={categoria} className="border p-4 rounded-md w-full md:w-auto">
-                  <strong className="block mb-2">{categoria.charAt(0).toUpperCase() + categoria.slice(1)}</strong>
-                  <div className="flex flex-wrap gap-1">
-                    {variaveis.map((variavel) => (
-                      <Badge 
-                        key={variavel.valor} 
-                        variant="outline" 
-                        className="cursor-pointer" 
-                        onClick={() => {
-                          const textarea = document.getElementById('conteudo') as HTMLTextAreaElement;
-                          if (textarea) {
-                            const start = textarea.selectionStart;
-                            const end = textarea.selectionEnd;
-                            const text = textarea.value;
-                            const before = text.substring(0, start);
-                            const after = text.substring(end, text.length);
-                            
-                            setNewMensagem(prev => ({
-                              ...prev,
-                              conteudo: before + variavel.valor + after
-                            }));
-                            
-                            setTimeout(() => {
-                              textarea.focus();
-                              textarea.selectionStart = start + variavel.valor.length;
-                              textarea.selectionEnd = start + variavel.valor.length;
-                            }, 10);
-                          }
-                        }}
-                      >
-                        {variavel.valor}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-        
-        <div className="flex justify-end gap-2 mt-6">
-          <Button variant="outline" onClick={() => setShowMessageEditor(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSendMensagem} disabled={createMensagem.isPending}>
-            <Send className="mr-2 h-4 w-4" />
-            {createMensagem.isPending ? "Enviando..." : "Enviar Mensagem"}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <MessageEditor
+      newMensagem={newMensagem}
+      setNewMensagem={setNewMensagem}
+      clients={clients}
+      templates={templates}
+      handleMensagemChange={handleMensagemChange}
+      handleMensagemSelectChange={handleMensagemSelectChange}
+      createMensagemIsPending={createMensagem.isPending}
+      handleSendMensagem={handleSendMensagem}
+      onCancel={() => setShowMessageEditor(false)}
+    />
   );
 
   // Renderiza o editor de agendamentos
   const renderScheduleEditor = () => (
-    <Card>
-      <CardHeader>
-        <CardTitle>Novo Agendamento</CardTitle>
-        <CardDescription>
-          Configure mensagens automáticas
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="nome">Nome do Agendamento</Label>
-            <Input 
-              id="nome"
-              name="nome" 
-              placeholder="Ex: Lembrete de Vencimento" 
-              value={newAgendamento.nome}
-              onChange={handleAgendamentoChange}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="tipo">Tipo de Agendamento</Label>
-            <Select 
-              value={newAgendamento.tipo}
-              onValueChange={(value) => handleAgendamentoSelectChange('tipo', value)}
-            >
-              <SelectTrigger id="tipo">
-                <SelectValue placeholder="Selecione o tipo" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="automatico">Automático (por evento)</SelectItem>
-                <SelectItem value="recorrente">Recorrente (periódico)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="evento">Evento Disparador</Label>
-            <Select 
-              value={newAgendamento.evento}
-              onValueChange={(value) => handleAgendamentoSelectChange('evento', value)}
-            >
-              <SelectTrigger id="evento">
-                <SelectValue placeholder="Selecione o evento" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="emprestimo_criado">Empréstimo Criado</SelectItem>
-                <SelectItem value="emprestimo_vencendo">Empréstimo Vencendo</SelectItem>
-                <SelectItem value="emprestimo_atrasado">Empréstimo Atrasado</SelectItem>
-                <SelectItem value="pagamento_confirmado">Pagamento Confirmado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="dias_antes">Dias de Antecedência</Label>
-            <Input 
-              id="dias_antes"
-              name="dias_antes" 
-              type="number" 
-              placeholder="Ex: 3 dias antes"
-              value={newAgendamento.dias_antes}
-              onChange={handleAgendamentoChange}
-            />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="template_id">Template a Ser Utilizado</Label>
-            <Select 
-              value={newAgendamento.template_id}
-              onValueChange={(value) => handleAgendamentoSelectChange('template_id', value)}
-            >
-              <SelectTrigger id="template_id">
-                <SelectValue placeholder="Selecione um template" />
-              </SelectTrigger>
-              <SelectContent>
-                {templates.map(t => (
-                  <SelectItem key={t.id} value={t.id}>
-                    {t.nome}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        
-        <div className="flex justify-end gap-2 mt-6">
-          <Button variant="outline" onClick={() => setShowScheduleEditor(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={handleSaveAgendamento} disabled={createAgendamento.isPending}>
-            {createAgendamento.isPending ? "Salvando..." : "Salvar Agendamento"}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <ScheduleEditor
+      newAgendamento={newAgendamento}
+      setNewAgendamento={setNewAgendamento}
+      templates={templates}
+      handleAgendamentoChange={handleAgendamentoChange}
+      handleAgendamentoSelectChange={handleAgendamentoSelectChange}
+      createAgendamentoIsPending={createAgendamento.isPending}
+      handleSaveAgendamento={handleSaveAgendamento}
+      onCancel={() => setShowScheduleEditor(false)}
+    />
   );
 
   return (
