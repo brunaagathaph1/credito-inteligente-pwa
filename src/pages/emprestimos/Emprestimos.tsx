@@ -26,6 +26,7 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { PageHeader } from "@/components/common/PageHeader";
 
 const Emprestimos = () => {
   const navigate = useNavigate();
@@ -51,7 +52,7 @@ const Emprestimos = () => {
 
   const handleStatusClass = (status: string) => {
     switch (status) {
-      case "em-dia":
+      case "em_dia":
         return "bg-success/10 text-success";
       case "atrasado":
         return "bg-destructive/10 text-destructive";
@@ -64,7 +65,7 @@ const Emprestimos = () => {
 
   const handleStatusText = (status: string) => {
     switch (status) {
-      case "em-dia":
+      case "em_dia":
         return "Em dia";
       case "atrasado":
         return "Atrasado";
@@ -77,8 +78,9 @@ const Emprestimos = () => {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return value.toLocaleString("pt-BR", {
+  const formatCurrency = (value: number | string) => {
+    const numValue = typeof value === 'string' ? parseFloat(value) : value;
+    return numValue.toLocaleString("pt-BR", {
       style: "currency",
       currency: "BRL"
     });
@@ -121,7 +123,7 @@ const Emprestimos = () => {
           </div>
           <div>
             <p className="text-xs text-muted-foreground">Valor</p>
-            <p className="text-sm font-medium">{formatCurrency(Number(emprestimo.valor_principal))}</p>
+            <p className="text-sm font-medium">{formatCurrency(emprestimo.valor_principal)}</p>
           </div>
           {emprestimo.status !== "quitado" && (
             <>
@@ -131,7 +133,7 @@ const Emprestimos = () => {
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Restante</p>
-                <p className="text-sm">{formatCurrency(Number(emprestimo.valor_principal))}</p>
+                <p className="text-sm">{formatCurrency(emprestimo.valor_principal)}</p>
               </div>
             </>
           )}
@@ -155,19 +157,16 @@ const Emprestimos = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex-1 min-w-0">
-          <h1 className="text-3xl font-bold mb-2">Empréstimos</h1>
-          <p className="text-muted-foreground">
-            Gerencie todos os empréstimos ativos e quitados.
-          </p>
-        </div>
-        <div className="mt-2 sm:mt-0 flex-shrink-0 w-full sm:w-auto">
-          <Button onClick={() => navigate("/emprestimos/novo")} className="w-full sm:w-auto">
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Novo Empréstimo
-          </Button>
-        </div>
+      <PageHeader
+        title="Empréstimos"
+        description="Gerencie todos os empréstimos ativos e quitados"
+      />
+
+      <div className="flex items-center justify-end">
+        <Button onClick={() => navigate("/emprestimos/novo")}>
+          <PlusCircle className="mr-2 h-4 w-4" />
+          Novo Empréstimo
+        </Button>
       </div>
 
       <Card>
@@ -194,7 +193,7 @@ const Emprestimos = () => {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="todos">Todos</SelectItem>
-                <SelectItem value="em-dia">Em dia</SelectItem>
+                <SelectItem value="em_dia">Em dia</SelectItem>
                 <SelectItem value="atrasado">Atrasados</SelectItem>
                 <SelectItem value="quitado">Quitados</SelectItem>
                 <SelectItem value="pendente">Pendentes</SelectItem>
@@ -239,12 +238,12 @@ const Emprestimos = () => {
                           {formatDate(emprestimo.data_emprestimo)}
                         </TableCell>
                         <TableCell className="text-right">
-                          {formatCurrency(Number(emprestimo.valor_principal))}
+                          {formatCurrency(emprestimo.valor_principal)}
                         </TableCell>
                         <TableCell className="hidden md:table-cell text-right">
                           {emprestimo.status === "quitado" 
                             ? "Quitado" 
-                            : formatCurrency(Number(emprestimo.valor_principal)) // Placeholder - replace with actual remaining value
+                            : formatCurrency(emprestimo.valor_principal) // Placeholder - replace with actual remaining value
                           }
                         </TableCell>
                         <TableCell>

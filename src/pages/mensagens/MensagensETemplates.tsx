@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { 
   Calendar, 
@@ -260,7 +261,7 @@ const MensagensETemplates = () => {
         description="Envie mensagens e gerencie templates para comunicação com clientes"
       />
 
-      <Tabs defaultValue="templates" value={activeTab} onValueChange={setActiveTab}>
+      <Tabs defaultValue="templates" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="bg-card rounded-md p-1">
           {isMobile ? (
             <div className="grid grid-cols-2 gap-1 mb-1">
@@ -322,7 +323,7 @@ const MensagensETemplates = () => {
           )}
         </div>
         
-        <TabsContent value="templates">
+        <TabsContent value="templates" className="mt-6">
           {showTemplateEditor ? (
             <TemplateEditor
               newTemplate={newTemplate}
@@ -336,7 +337,7 @@ const MensagensETemplates = () => {
             />
           ) : (
             <>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 space-y-4 md:space-y-0">
                 <h2 className="text-xl font-bold">Templates de Mensagens</h2>
                 <Button onClick={() => handleNewTemplate()}>
                   <Plus className="h-4 w-4 mr-2" />
@@ -386,7 +387,7 @@ const MensagensETemplates = () => {
           )}
         </TabsContent>
 
-        <TabsContent value="mensagens">
+        <TabsContent value="mensagens" className="mt-6">
           <Card>
             <CardHeader>
               <CardTitle>Enviar Mensagem</CardTitle>
@@ -410,7 +411,7 @@ const MensagensETemplates = () => {
           </Card>
         </TabsContent>
 
-        <TabsContent value="agendamentos">
+        <TabsContent value="agendamentos" className="mt-6">
           {showScheduleEditor ? (
             <ScheduleEditor
               newAgendamento={newAgendamento}
@@ -424,7 +425,7 @@ const MensagensETemplates = () => {
             />
           ) : (
             <>
-              <div className="flex items-center justify-between mb-4">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 space-y-4 md:space-y-0">
                 <h2 className="text-xl font-bold">Agendamentos Automáticos</h2>
                 <Button onClick={() => setShowScheduleEditor(true)}>
                   <Plus className="h-4 w-4 mr-2" />
@@ -474,7 +475,7 @@ const MensagensETemplates = () => {
           )}
         </TabsContent>
         
-        <TabsContent value="integracoes">
+        <TabsContent value="integracoes" className="mt-6">
           <Card className="mb-6">
             <CardHeader>
               <CardTitle>Integração com WhatsApp (Evolution API)</CardTitle>

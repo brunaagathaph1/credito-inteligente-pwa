@@ -23,7 +23,7 @@ const Layout = () => {
       {isMobile ? (
         <>
           <Navbar />
-          <main className={`flex-1 container mx-auto px-4 pb-16 ${isOverflowRoute ? 'overflow-visible' : ''}`}>
+          <main className={`flex-1 container mx-auto px-4 pb-16 pt-4 ${isOverflowRoute ? 'overflow-visible' : ''}`}>
             <Outlet />
           </main>
           <BottomNav />

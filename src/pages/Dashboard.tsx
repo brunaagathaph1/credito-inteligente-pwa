@@ -1,348 +1,282 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, DollarSign, Users, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
-import { 
-  BarChart as RechartsBarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend
-} from "recharts";
-import { useLoans } from "@/hooks/useLoans";
-import { useClients } from "@/hooks/useClients";
-import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { format, addDays, compareAsc, isAfter, isBefore, parseISO } from "date-fns";
+import { PageHeader } from "@/components/common/PageHeader";
+import { StatCard } from "@/components/dashboard/StatCard";
+import { useLoans } from "@/hooks/useLoans";
+import { useDashboardData } from "@/hooks/useDashboardData";
+import { format, isAfter, isBefore, addDays, differenceInDays, formatDistance } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useActivityLogs } from "@/hooks/useActivityLogs";
-
-interface ResumoCard {
-  titulo: string;
-  valor: string;
-  descricao: string;
-  icone: JSX.Element;
-  cor: string;
-}
-
-interface RecebimentoMensal {
-  mes: string;
-  date: Date;
-  valor: number;
-}
-
-interface Vencimento {
-  id: string;
-  clienteNome: string;
-  valor: number;
-  diasParaVencimento: number;
-  dataVencimento: string;
-}
+import { UserRound, CircleDollarSign, LineChart, Clock, AlertTriangle, CheckCircle2, CalendarClock } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Dashboard = () => {
-  const { loans, isLoadingLoans } = useLoans();
-  const { clients, isLoadingClients } = useClients();
-  const { logActivity } = useActivityLogs();
-  const navigate = useNavigate();
-  const [resumoCards, setResumoCards] = useState<ResumoCard[]>([]);
-  const [recebimentosMensais, setRecebimentosMensais] = useState<{ mes: string; valor: number }[]>([]);
-  const [proximosVencimentos, setProximosVencimentos] = useState<Vencimento[]>([]);
-  
-  useEffect(() => {
-    logActivity("Acessou o Dashboard");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const isMobile = useIsMobile();
+  const { loans } = useLoans();
+  const { 
+    summaryData, 
+    isLoadingSummary, 
+    recentLoans, 
+    isLoadingRecent, 
+    upcomingPayments,
+    isLoadingUpcoming
+  } = useDashboardData();
 
-  useEffect(() => {
-    if (loans && clients) {
-      const today = new Date();
-      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      const startOfPrevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      const endOfPrevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
-      
-      const emprestimosAtivos = (loans || []).filter(emp => emp.status !== "quitado");
-      const totalEmprestimosAtivos = emprestimosAtivos.reduce(
-        (sum, emp) => sum + Number(emp.valor_principal), 0
-      );
-      
-      const clientesComEmprestimosAtivos = new Set(
-        emprestimosAtivos.map(emp => emp.cliente_id)
-      ).size;
-      
-      const clientesNovosMes = (clients || []).filter(
-        cliente => {
-          const createdAt = new Date(cliente.created_at);
-          return isAfter(createdAt, startOfMonth) || createdAt.getTime() === startOfMonth.getTime();
-        }
-      ).length;
-      
-      const pagamentos: any[] = [];
-      loans.forEach(emp => {
-        if (emp.pagamentos && Array.isArray(emp.pagamentos)) {
-          pagamentos.push(...emp.pagamentos);
-        }
-      });
-      
-      const recebimentosMesAtual = pagamentos
-        .filter(pag => {
-          if (!pag || !pag.data_pagamento) return false;
-          const dataPagamento = new Date(pag.data_pagamento);
-          return (isAfter(dataPagamento, startOfMonth) || dataPagamento.getTime() === startOfMonth.getTime()) 
-                 && isBefore(dataPagamento, today);
-        })
-        .reduce((sum, pag) => sum + Number(pag.valor), 0);
-      
-      const recebimentosMesAnterior = pagamentos
-        .filter(pag => {
-          if (!pag || !pag.data_pagamento) return false;
-          const dataPagamento = new Date(pag.data_pagamento);
-          return isAfter(dataPagamento, startOfPrevMonth) && isBefore(dataPagamento, endOfPrevMonth);
-        })
-        .reduce((sum, pag) => sum + Number(pag.valor), 0);
-      
-      const percentualVariacao = recebimentosMesAnterior > 0 
-        ? ((recebimentosMesAtual - recebimentosMesAnterior) / recebimentosMesAnterior) * 100 
-        : 0;
-      
-      const emprestimosAtrasados = (loans || []).filter(emp => emp.status === "atrasado");
-      const valorInadimplencia = emprestimosAtrasados.reduce(
-        (sum, emp) => sum + Number(emp.valor_principal), 0
-      );
-      
-      const percentualInadimplencia = totalEmprestimosAtivos > 0 
-        ? (valorInadimplencia / totalEmprestimosAtivos) * 100 
-        : 0;
-      
-      setResumoCards([
-        {
-          titulo: "Total de Empréstimos Ativos",
-          valor: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(totalEmprestimosAtivos),
-          descricao: `${emprestimosAtivos.length} empréstimo${emprestimosAtivos.length !== 1 ? 's' : ''}`,
-          icone: <DollarSign className="h-6 w-6 text-primary" />,
-          cor: "bg-blue-50 dark:bg-blue-950",
-        },
-        {
-          titulo: "Clientes Ativos",
-          valor: clientesComEmprestimosAtivos.toString(),
-          descricao: `${clientesNovosMes} novo${clientesNovosMes !== 1 ? 's' : ''} este mês`,
-          icone: <Users className="h-6 w-6 text-primary" />,
-          cor: "bg-green-50 dark:bg-green-950",
-        },
-        {
-          titulo: "Recebimentos do Mês",
-          valor: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(recebimentosMesAtual),
-          descricao: `${Math.abs(percentualVariacao).toFixed(0)}% ${percentualVariacao >= 0 ? 'acima' : 'abaixo'} do mês anterior`,
-          icone: percentualVariacao >= 0 
-            ? <ArrowUp className="h-6 w-6 text-success" />
-            : <ArrowDown className="h-6 w-6 text-destructive" />,
-          cor: percentualVariacao >= 0 ? "bg-success/10" : "bg-destructive/10",
-        },
-        {
-          titulo: "Inadimplência",
-          valor: new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valorInadimplencia),
-          descricao: `${percentualInadimplencia.toFixed(1)}% da carteira total`,
-          icone: <ArrowDown className="h-6 w-6 text-destructive" />,
-          cor: "bg-destructive/10",
-        },
-      ]);
-      
-      const ultimosMeses: RecebimentoMensal[] = Array.from({ length: 6 }, (_, i) => {
-        const data = new Date();
-        data.setMonth(data.getMonth() - i);
-        return {
-          mes: format(data, 'MMM', { locale: ptBR }),
-          date: data,
-          valor: 0
-        };
-      }).reverse();
-      
-      pagamentos.forEach(pag => {
-        if (!pag || !pag.data_pagamento) return;
-        
-        const dataPagamento = new Date(pag.data_pagamento);
-        
-        const mesIndex = ultimosMeses.findIndex(m => 
-          m.date.getMonth() === dataPagamento.getMonth() && 
-          m.date.getFullYear() === dataPagamento.getFullYear()
-        );
-        
-        if (mesIndex !== -1) {
-          ultimosMeses[mesIndex].valor += Number(pag.valor);
-        }
-      });
-      
-      setRecebimentosMensais(ultimosMeses.map(m => ({
-        mes: m.mes,
-        valor: m.valor
-      })));
-      
-      const hoje = new Date();
-      const proximosDias = addDays(hoje, 15); // Próximos 15 dias
-      
-      const vencimentosProximos = (loans || [])
-        .filter(emp => 
-          emp.status !== "quitado" && 
-          emp.data_vencimento && 
-          isBefore(parseISO(emp.data_vencimento), proximosDias) && 
-          isAfter(parseISO(emp.data_vencimento), hoje)
-        )
-        .map(emp => {
-          const cliente = clients.find(c => c.id === emp.cliente_id);
-          const diasRestantes = Math.ceil(
-            (new Date(emp.data_vencimento).getTime() - hoje.getTime()) / (1000 * 60 * 60 * 24)
-          );
-          
-          return {
-            id: emp.id,
-            clienteNome: cliente?.nome || "Cliente não encontrado",
-            valor: Number(emp.valor_principal),
-            diasParaVencimento: diasRestantes,
-            dataVencimento: emp.data_vencimento
-          };
-        })
-        .sort((a, b) => a.diasParaVencimento - b.diasParaVencimento)
-        .slice(0, 4); // Limita a 4 itens
-      
-      setProximosVencimentos(vencimentosProximos);
-    }
-  }, [loans, clients]);
-
-  const formatCurrency = (value: any) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
-    }).format(value);
+  const formatCurrency = (value: number) => {
+    return value.toLocaleString("pt-BR", {
+      style: "currency",
+      currency: "BRL"
+    });
   };
   
-  const isLoading = isLoadingLoans || isLoadingClients;
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), "dd/MM/yyyy", { locale: ptBR });
+    } catch (error) {
+      return dateString;
+    }
+  };
+  
+  const handleStatusClass = (status: string) => {
+    switch (status) {
+      case "em_dia":
+        return "bg-success/10 text-success";
+      case "atrasado":
+        return "bg-destructive/10 text-destructive";
+      case "quitado":
+        return "bg-muted text-muted-foreground";
+      case "pendente":
+        return "bg-yellow-500/10 text-yellow-500";
+      default:
+        return "bg-muted text-muted-foreground";
+    }
+  };
+  
+  const handleStatusText = (status: string) => {
+    switch (status) {
+      case "em_dia":
+        return "Em dia";
+      case "atrasado":
+        return "Atrasado";
+      case "quitado":
+        return "Quitado";
+      case "pendente":
+        return "Pendente";
+      case "renegociado":
+        return "Renegociado";
+      default:
+        return status;
+    }
+  };
 
+  const getDueDaysText = (dateString: string) => {
+    const today = new Date();
+    const dueDate = new Date(dateString);
+    const diffDays = differenceInDays(dueDate, today);
+    
+    if (diffDays === 0) {
+      return "Vence hoje";
+    } else if (diffDays === 1) {
+      return "Vence amanhã";
+    } else if (diffDays > 1) {
+      return `Vence em ${diffDays} dias`;
+    } else if (diffDays === -1) {
+      return "Venceu ontem";
+    } else {
+      return `Venceu há ${Math.abs(diffDays)} dias`;
+    }
+  };
+  
+  const getDueDaysClass = (dateString: string) => {
+    const today = new Date();
+    const dueDate = new Date(dateString);
+    
+    if (isBefore(dueDate, today)) {
+      return "text-destructive";
+    } else if (differenceInDays(dueDate, today) <= 3) {
+      return "text-yellow-500";
+    } else {
+      return "text-muted-foreground";
+    }
+  };
+  
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-        <p className="text-muted-foreground">
-          Bem-vindo ao Crédito Inteligente, seus números resumidos.
-        </p>
+      <PageHeader
+        title="Dashboard"
+        description="Visão geral das suas finanças e empréstimos"
+      />
+      
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Total Emprestado"
+          value={isLoadingSummary ? "..." : formatCurrency(summaryData?.totalEmprestado || 0)}
+          description={`Empréstimos Ativos: ${isLoadingSummary ? "..." : loans?.filter(l => l.status !== 'quitado')?.length || 0}`}
+          icon={<CircleDollarSign />}
+          loading={isLoadingSummary}
+        />
+        <StatCard
+          title="Total Recebido"
+          value={isLoadingSummary ? "..." : formatCurrency(summaryData?.totalRecebido || 0)}
+          description={`Pagamentos: ${isLoadingSummary ? "..." : summaryData?.paymentCount || 0}`}
+          icon={<CheckCircle2 />}
+          loading={isLoadingSummary}
+        />
+        <StatCard
+          title="Pendente Recebimento"
+          value={isLoadingSummary ? "..." : formatCurrency(summaryData?.totalPendente || 0)}
+          description={`Clientes: ${isLoadingSummary ? "..." : summaryData?.clientCount || 0}`}
+          icon={<Clock />}
+          loading={isLoadingSummary}
+        />
+        <StatCard
+          title="Movimento do Mês"
+          value={isLoadingSummary ? "..." : formatCurrency(summaryData?.recebimentosMes || 0)}
+          description={`Emprestado: ${isLoadingSummary ? "..." : formatCurrency(summaryData?.emprestimosMes || 0)}`}
+          icon={<LineChart />}
+          loading={isLoadingSummary}
+        />
       </div>
-
-      {isLoading ? (
-        <div className="flex justify-center py-20">
-          <Loader2 className="h-10 w-10 animate-spin text-primary" />
-        </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {resumoCards.map((card, index) => (
-              <Card key={index} className={card.cor}>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-center">
-                    <CardTitle className="text-sm font-medium">
-                      {card.titulo}
-                    </CardTitle>
-                    {card.icone}
+      
+      {/* Content Cards */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Loans Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Empréstimos Recentes</span>
+              {!isLoadingRecent && (
+                <Link to="/emprestimos">
+                  <Button variant="link" size="sm" className="h-auto p-0">
+                    Ver todos
+                  </Button>
+                </Link>
+              )}
+            </CardTitle>
+            <CardDescription>Últimos empréstimos cadastrados no sistema</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingRecent ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center justify-between border-b pb-2">
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <Skeleton className="h-6 w-20" />
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{card.valor}</div>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {card.descricao}
-                  </p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader className="pb-2">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base font-medium">
-                    Recebimentos Mensais
-                  </CardTitle>
-                  <BarChart className="h-4 w-4 text-muted-foreground" />
-                </div>
-              </CardHeader>
-              <CardContent className="pt-2">
-                <div className="h-[300px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RechartsBarChart
-                      data={recebimentosMensais}
-                      margin={{
-                        top: 5,
-                        right: 30,
-                        left: 20,
-                        bottom: 5,
-                      }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="mes" />
-                      <YAxis />
-                      <Tooltip 
-                        formatter={(value) => [formatCurrency(value), "Valor"]}
-                        labelFormatter={(label) => `Mês: ${label}`}
-                      />
-                      <Legend />
-                      <Bar
-                        name="Valor Recebido"
-                        dataKey="valor"
-                        fill="hsl(var(--primary))"
-                        radius={[4, 4, 0, 0]}
-                        barSize={30}
-                      />
-                    </RechartsBarChart>
-                  </ResponsiveContainer>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base font-medium">
-                  Próximos Vencimentos
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="pt-2">
-                {proximosVencimentos.length > 0 ? (
-                  <div className="space-y-4">
-                    {proximosVencimentos.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between border-b pb-3 last:border-0 cursor-pointer hover:bg-accent/50 p-2 rounded"
-                        onClick={() => navigate(`/emprestimos/${item.id}`)}
-                      >
-                        <div className="space-y-1">
-                          <p className="font-medium">{item.clienteNome}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Vencimento em {item.diasParaVencimento} dia{item.diasParaVencimento !== 1 ? 's' : ''}
-                          </p>
-                        </div>
-                        <div className="text-right">
-                          <div className="font-medium">{formatCurrency(item.valor)}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {format(new Date(item.dataVencimento), "dd/MM/yyyy")}
-                          </div>
-                        </div>
+                ))}
+              </div>
+            ) : recentLoans && recentLoans.length > 0 ? (
+              <div className="space-y-4">
+                {recentLoans.map((loan) => (
+                  <div key={loan.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b pb-2">
+                    <div className="space-y-1">
+                      <div className="font-medium">{loan.cliente?.nome || "Cliente"}</div>
+                      <div className="text-sm text-muted-foreground flex items-center">
+                        <CalendarClock className="h-3 w-3 mr-1" />
+                        {formatDate(loan.data_emprestimo)}
                       </div>
-                    ))}
+                    </div>
+                    <div className="flex items-center justify-between mt-2 sm:mt-0">
+                      <div className="text-sm font-medium sm:mr-4">
+                        {formatCurrency(Number(loan.valor_principal))}
+                      </div>
+                      <Badge className={handleStatusClass(loan.status)}>
+                        {handleStatusText(loan.status)}
+                      </Badge>
+                    </div>
                   </div>
-                ) : (
-                  <div className="text-center py-10">
-                    <p className="text-muted-foreground mb-4">Não há vencimentos próximos</p>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => navigate("/emprestimos/novo")}
-                    >
-                      Cadastrar Novo Empréstimo
-                    </Button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-muted-foreground">Nenhum empréstimo registrado ainda.</p>
+              </div>
+            )}
+          </CardContent>
+          <CardFooter>
+            <Link to="/emprestimos/novo" className="w-full">
+              <Button className="w-full">
+                Novo Empréstimo
+              </Button>
+            </Link>
+          </CardFooter>
+        </Card>
+        
+        {/* Upcoming Payments Card */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              <span>Próximos Vencimentos</span>
+              {!isLoadingUpcoming && (
+                <Link to="/emprestimos">
+                  <Button variant="link" size="sm" className="h-auto p-0">
+                    Ver todos
+                  </Button>
+                </Link>
+              )}
+            </CardTitle>
+            <CardDescription>Empréstimos com pagamento próximo ao vencimento</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {isLoadingUpcoming ? (
+              <div className="space-y-4">
+                {[...Array(5)].map((_, i) => (
+                  <div key={i} className="flex items-center justify-between border-b pb-2">
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                    <Skeleton className="h-6 w-20" />
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </>
-      )}
+                ))}
+              </div>
+            ) : upcomingPayments && upcomingPayments.length > 0 ? (
+              <div className="space-y-4">
+                {upcomingPayments.map((loan) => (
+                  <div key={loan.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b pb-2">
+                    <div className="space-y-1">
+                      <div className="font-medium">
+                        <Link to={`/clientes/${loan.cliente_id}`} className="hover:underline">
+                          {loan.cliente?.nome || "Cliente"}
+                        </Link>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {formatCurrency(Number(loan.valor_principal))}
+                      </div>
+                    </div>
+                    <div className="mt-2 sm:mt-0 flex flex-col items-end">
+                      <div className="text-xs font-medium mb-1">
+                        {formatDate(loan.data_vencimento)}
+                      </div>
+                      <div className={`text-xs ${getDueDaysClass(loan.data_vencimento)}`}>
+                        {getDueDaysText(loan.data_vencimento)}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-muted-foreground">Nenhum vencimento próximo.</p>
+              </div>
+            )}
+          </CardContent>
+          <CardFooter>
+            <Link to="/relatorios" className="w-full">
+              <Button variant="outline" className="w-full">
+                Ver Relatórios
+              </Button>
+            </Link>
+          </CardFooter>
+        </Card>
+      </div>
     </div>
   );
 };

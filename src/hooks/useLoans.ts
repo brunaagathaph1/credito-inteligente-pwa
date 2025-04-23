@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -316,6 +315,6 @@ export const useLoans = () => {
     useUpdateLoanStatus,
     useRegisterPayment,
     useCreateRenegotiation,
-    createLoan: useCreateLoan(), // Export the mutation directly
+    createLoan: createLoanMutation, // Export the mutation directly
   };
 };
