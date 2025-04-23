@@ -3,48 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-
-export interface Parcela {
-  id: string;
-  emprestimo_id: string;
-  numero: number;
-  valor: number;
-  data_vencimento: string;
-  status: 'pendente' | 'paga' | 'atrasada';
-  created_by: string;
-}
-
-export interface Pagamento {
-  id: string;
-  emprestimo_id: string;
-  valor: number;
-  data_pagamento: string;
-  tipo: string;
-  observacoes?: string;
-  created_by: string;
-}
-
-export interface Loan {
-  id: string;
-  cliente_id: string;
-  valor_principal: number;
-  taxa_juros: number;
-  prazo_meses?: number;
-  data_inicio: string;
-  data_emprestimo: string;
-  data_vencimento: string;
-  status: 'aberto' | 'quitado' | 'atrasado' | 'renegociado' | 'pendente' | 'em_dia';
-  cliente?: any;
-  valor_total?: number;
-  created_by: string;
-  created_at: string;
-  tipo_juros: string;
-  observacoes?: string;
-  renegociacao_id?: string;
-  renegociado?: boolean;
-  parcelas?: Parcela[];
-  pagamentos?: Pagamento[];
-}
+import { Loan, Pagamento, Parcela } from '@/types/emprestimos';
 
 export const useLoans = () => {
   const { user } = useAuth();
@@ -230,9 +189,9 @@ export const useLoans = () => {
       if (loanError) throw loanError;
 
       // Check if total payments equals or exceeds loan value
-      const totalPaid = allPayments.reduce((sum, p) => sum + parseFloat(p.valor), 0);
+      const totalPaid = allPayments.reduce((sum, p) => sum + parseFloat(String(p.valor)), 0);
       
-      if (totalPaid >= loan.valor_principal) {
+      if (totalPaid >= parseFloat(String(loan.valor_principal))) {
         const { error: updateError } = await supabase
           .from('emprestimos')
           .update({ status: 'quitado' })
@@ -298,7 +257,7 @@ export const useLoans = () => {
   };
 
   // React Query Hooks
-  const { data: loansData, isLoading: isLoadingLoans, error: loansError } = useQuery({
+  const { data: loans, ...loansQueryResult } = useQuery({
     queryKey: ['loans'],
     queryFn: fetchLoans,
   });
@@ -349,9 +308,9 @@ export const useLoans = () => {
   };
 
   return {
-    loans: loansData,
-    isLoadingLoans,
-    loansError,
+    loans,
+    isLoadingLoans: loansQueryResult.isLoading,
+    loansError: loansQueryResult.error,
     useLoan,
     useCreateLoan,
     useUpdateLoanStatus,
