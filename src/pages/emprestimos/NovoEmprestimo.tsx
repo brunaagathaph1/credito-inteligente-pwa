@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,8 @@ const NovoEmprestimo = () => {
   const [valorParcela, setValorParcela] = useState<number | null>(null);
   const [valorTotal, setValorTotal] = useState<number | null>(null);
   const { clients, isLoadingClients } = useClients();
-  const { createLoan } = useLoans();
+  const loansHooks = useLoans();
+  const { createLoan } = loansHooks;
   const { logActivity } = useActivityLogs();
 
   const [formData, setFormData] = useState({

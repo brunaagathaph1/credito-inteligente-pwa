@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart, DollarSign, Users, ArrowUp, ArrowDown, Loader2 } from "lucide-react";
@@ -20,7 +19,6 @@ import { format, addDays, compareAsc, isAfter, isBefore, parseISO } from "date-f
 import { ptBR } from "date-fns/locale";
 import { useActivityLogs } from "@/hooks/useActivityLogs";
 
-// Define interfaces for type safety
 interface ResumoCard {
   titulo: string;
   valor: string;
@@ -59,24 +57,20 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (loans && clients) {
-      // Processa dados para os cards de resumo
       const today = new Date();
       const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
       const startOfPrevMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
       const endOfPrevMonth = new Date(today.getFullYear(), today.getMonth(), 0);
       
-      // Calcula valores para empréstimos ativos (não quitados)
       const emprestimosAtivos = (loans || []).filter(emp => emp.status !== "quitado");
       const totalEmprestimosAtivos = emprestimosAtivos.reduce(
         (sum, emp) => sum + Number(emp.valor_principal), 0
       );
       
-      // Conta clientes ativos (clientes com empréstimos ativos)
       const clientesComEmprestimosAtivos = new Set(
         emprestimosAtivos.map(emp => emp.cliente_id)
       ).size;
       
-      // Calcula novos clientes este mês
       const clientesNovosMes = (clients || []).filter(
         cliente => {
           const createdAt = new Date(cliente.created_at);
@@ -84,9 +78,8 @@ const Dashboard = () => {
         }
       ).length;
       
-      // Calcula recebimentos do mês atual
-      const pagamentos = [];
-      (loans || []).forEach(emp => {
+      const pagamentos: any[] = [];
+      loans.forEach(emp => {
         if (emp.pagamentos && Array.isArray(emp.pagamentos)) {
           pagamentos.push(...emp.pagamentos);
         }
@@ -101,7 +94,6 @@ const Dashboard = () => {
         })
         .reduce((sum, pag) => sum + Number(pag.valor), 0);
       
-      // Calcula recebimentos do mês anterior
       const recebimentosMesAnterior = pagamentos
         .filter(pag => {
           if (!pag || !pag.data_pagamento) return false;
@@ -110,23 +102,19 @@ const Dashboard = () => {
         })
         .reduce((sum, pag) => sum + Number(pag.valor), 0);
       
-      // Calcula percentual de variação entre meses
       const percentualVariacao = recebimentosMesAnterior > 0 
         ? ((recebimentosMesAtual - recebimentosMesAnterior) / recebimentosMesAnterior) * 100 
         : 0;
       
-      // Calcula valor de inadimplência (empréstimos atrasados)
       const emprestimosAtrasados = (loans || []).filter(emp => emp.status === "atrasado");
       const valorInadimplencia = emprestimosAtrasados.reduce(
         (sum, emp) => sum + Number(emp.valor_principal), 0
       );
       
-      // Percentual de inadimplência em relação ao total
       const percentualInadimplencia = totalEmprestimosAtivos > 0 
         ? (valorInadimplencia / totalEmprestimosAtivos) * 100 
         : 0;
       
-      // Atualiza dados dos cards
       setResumoCards([
         {
           titulo: "Total de Empréstimos Ativos",
@@ -160,7 +148,6 @@ const Dashboard = () => {
         },
       ]);
       
-      // Processa dados para o gráfico de recebimentos mensais
       const ultimosMeses: RecebimentoMensal[] = Array.from({ length: 6 }, (_, i) => {
         const data = new Date();
         data.setMonth(data.getMonth() - i);
@@ -171,13 +158,11 @@ const Dashboard = () => {
         };
       }).reverse();
       
-      // Mapeia pagamentos para os respectivos meses
       pagamentos.forEach(pag => {
         if (!pag || !pag.data_pagamento) return;
         
         const dataPagamento = new Date(pag.data_pagamento);
         
-        // Verifica se o pagamento está dentro dos últimos 6 meses
         const mesIndex = ultimosMeses.findIndex(m => 
           m.date.getMonth() === dataPagamento.getMonth() && 
           m.date.getFullYear() === dataPagamento.getFullYear()
@@ -193,7 +178,6 @@ const Dashboard = () => {
         valor: m.valor
       })));
       
-      // Processa dados para próximos vencimentos
       const hoje = new Date();
       const proximosDias = addDays(hoje, 15); // Próximos 15 dias
       

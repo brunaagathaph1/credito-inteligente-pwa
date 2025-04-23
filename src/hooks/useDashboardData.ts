@@ -24,7 +24,7 @@ export const useDashboardData = () => {
         const inicioDeMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1);
         const fimDeMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0);
         
-        (loans || []).forEach(emprestimo => {
+        loans.forEach(emprestimo => {
           // Total emprestado
           totalEmprestado += Number(emprestimo.valor_principal) || 0;
           
@@ -130,7 +130,7 @@ export const useDashboardData = () => {
         const nextMonth = new Date();
         nextMonth.setDate(today.getDate() + 30);
         
-        const upcoming = (loans || [])
+        const upcoming = loans
           .filter(loan => 
             loan.status !== 'quitado' && 
             new Date(loan.data_vencimento) > today &&
