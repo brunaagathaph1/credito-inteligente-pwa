@@ -28,10 +28,12 @@ const Layout = () => {
           <BottomNav />
         </>
       ) : (
-        <div className="flex">
+        <div className="flex h-screen overflow-hidden">
           <Sidebar />
-          <main className="flex-1 px-6 py-8 overflow-visible">
-            <Outlet />
+          <main className="flex-1 overflow-y-auto px-6 py-8">
+            <div className="max-w-7xl mx-auto">
+              <Outlet />
+            </div>
           </main>
         </div>
       )}

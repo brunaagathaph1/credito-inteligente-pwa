@@ -1,12 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { PageHeader } from "@/components/common/PageHeader";
 import { Book, FileText, HelpCircle, Info, Search } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { Input } from '@/components/ui/input';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 const ManualUsuario = () => {
+  const [activeTab, setActiveTab] = useState("inicio");
+  const isMobile = useIsMobile();
+
   return (
     <div className="space-y-6">
       <PageHeader 
@@ -22,29 +27,58 @@ const ManualUsuario = () => {
         />
       </div>
 
-      <Tabs defaultValue="inicio">
-        <TabsList className="mb-4">
-          <TabsTrigger value="inicio">
-            <Info className="h-4 w-4 mr-2" />
-            Início
-          </TabsTrigger>
-          <TabsTrigger value="clientes">
-            <FileText className="h-4 w-4 mr-2" />
-            Clientes
-          </TabsTrigger>
-          <TabsTrigger value="emprestimos">
-            <FileText className="h-4 w-4 mr-2" />
-            Empréstimos
-          </TabsTrigger>
-          <TabsTrigger value="mensagens">
-            <FileText className="h-4 w-4 mr-2" />
-            Mensagens
-          </TabsTrigger>
-          <TabsTrigger value="faq">
-            <HelpCircle className="h-4 w-4 mr-2" />
-            FAQ
-          </TabsTrigger>
-        </TabsList>
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <div className="bg-card rounded-md p-1">
+          {isMobile ? (
+            <ScrollArea className="w-full whitespace-nowrap">
+              <TabsList className="inline-flex w-max">
+                <TabsTrigger value="inicio">
+                  <Info className="h-4 w-4 mr-2" />
+                  Início
+                </TabsTrigger>
+                <TabsTrigger value="clientes">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Clientes
+                </TabsTrigger>
+                <TabsTrigger value="emprestimos">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Empréstimos
+                </TabsTrigger>
+                <TabsTrigger value="mensagens">
+                  <FileText className="h-4 w-4 mr-2" />
+                  Mensagens
+                </TabsTrigger>
+                <TabsTrigger value="faq">
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  FAQ
+                </TabsTrigger>
+              </TabsList>
+            </ScrollArea>
+          ) : (
+            <TabsList className="w-full">
+              <TabsTrigger value="inicio">
+                <Info className="h-4 w-4 mr-2" />
+                Início
+              </TabsTrigger>
+              <TabsTrigger value="clientes">
+                <FileText className="h-4 w-4 mr-2" />
+                Clientes
+              </TabsTrigger>
+              <TabsTrigger value="emprestimos">
+                <FileText className="h-4 w-4 mr-2" />
+                Empréstimos
+              </TabsTrigger>
+              <TabsTrigger value="mensagens">
+                <FileText className="h-4 w-4 mr-2" />
+                Mensagens
+              </TabsTrigger>
+              <TabsTrigger value="faq">
+                <HelpCircle className="h-4 w-4 mr-2" />
+                FAQ
+              </TabsTrigger>
+            </TabsList>
+          )}
+        </div>
 
         <TabsContent value="inicio" className="space-y-4">
           <Card>

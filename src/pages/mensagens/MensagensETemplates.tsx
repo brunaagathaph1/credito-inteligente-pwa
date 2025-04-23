@@ -2,31 +2,36 @@ import { useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { 
-  AlertTriangle, 
   Calendar, 
   Mail, 
   MessageSquare, 
   MessagesSquare, 
   Send, 
   FileText, 
-  Webhook 
+  Webhook,
+  Edit,
+  AlertCircle,
+  CheckCircle 
 } from "lucide-react";
 import { EmptyState } from "@/components/common/EmptyState";
 import { useMensagens } from "@/hooks/useMensagens";
 import { useAuth } from "@/contexts/AuthContext";
-import { VARIAVEIS_TEMPLATES, VariavelTemplate } from "@/types/mensagens";
 import { useClients } from "@/hooks/useClients";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Badge } from "@/components/ui/badge";
+import { Agendamento, Template, Mensagem, VariavelTemplate, WebhookIntegracao } from "@/types/mensagens";
+
 import TemplateEditor from "./components/TemplateEditor";
 import MessageEditor from "./components/MessageEditor";
 import ScheduleEditor from "./components/ScheduleEditor";
+import { WebhookEditor } from "./components/WebhookEditor";
+import { TemplateCard } from "./components/cards/TemplateCard";
+import { MessageCard } from "./components/cards/MessageCard";
+import { ScheduleCard } from "./components/cards/ScheduleCard";
 
 const MensagensETemplates = () => {
   const { user } = useAuth();
@@ -35,10 +40,14 @@ const MensagensETemplates = () => {
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [showMessageEditor, setShowMessageEditor] = useState(false);
   const [showScheduleEditor, setShowScheduleEditor] = useState(false);
+  const [showWebhookEditor, setShowWebhookEditor] = useState(false);
+  const isMobile = useIsMobile();
+  
+  const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
+  const [editingAgendamento, setEditingAgendamento] = useState<Agendamento | null>(null);
 
-  // Hooks para dados
   const { 
-    useTemplates, createTemplate, 
+    useTemplates, createTemplate, updateTemplate,
     useMensagensHistory, createMensagem,
     useAgendamentos, createAgendamento,
     useWebhooks, saveWebhook
@@ -49,7 +58,6 @@ const MensagensETemplates = () => {
   const { data: agendamentos = [], isLoading: isLoadingAgendamentos } = useAgendamentos();
   const { data: webhooks = [], isLoading: isLoadingWebhooks } = useWebhooks();
 
-  // Template editor state
   const [newTemplate, setNewTemplate] = useState({
     nome: '',
     tipo: '' as 'email' | 'whatsapp' | 'sms',
@@ -58,6 +66,32 @@ const MensagensETemplates = () => {
     ativo: true,
     created_by: user?.id || ''
   });
+
+  const handleCloseTemplateEditor = () => {
+    setShowTemplateEditor(false);
+    setEditingTemplate(null);
+    setNewTemplate({
+      nome: '',
+      tipo: '' as 'email' | 'whatsapp' | 'sms',
+      assunto: '',
+      conteudo: '',
+      ativo: true,
+      created_by: user?.id || ''
+    });
+  };
+
+  const handleOpenEditTemplate = (template: Template) => {
+    setEditingTemplate(template);
+    setNewTemplate({
+      nome: template.nome,
+      tipo: template.tipo,
+      assunto: template.assunto || '',
+      conteudo: template.conteudo,
+      ativo: template.ativo,
+      created_by: template.created_by
+    });
+    setShowTemplateEditor(true);
+  };
 
   const handleTemplateChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -96,7 +130,6 @@ const MensagensETemplates = () => {
       conteudo: before + variable.valor + after
     }));
     
-    // Focus back on textarea and place cursor after inserted variable
     setTimeout(() => {
       textArea.focus();
       textArea.selectionStart = start + variable.valor.length;
@@ -108,25 +141,26 @@ const MensagensETemplates = () => {
     if (!user) return;
     
     try {
-      await createTemplate.mutateAsync({
-        ...newTemplate,
-        created_by: user.id
-      });
-      setShowTemplateEditor(false);
-      setNewTemplate({
-        nome: '',
-        tipo: '' as 'email' | 'whatsapp' | 'sms',
-        assunto: '',
-        conteudo: '',
-        ativo: true,
-        created_by: user.id
-      });
+      if (editingTemplate) {
+        await updateTemplate.mutateAsync({
+          id: editingTemplate.id,
+          template: newTemplate
+        });
+        toast.success("Template atualizado com sucesso!");
+      } else {
+        await createTemplate.mutateAsync({
+          ...newTemplate,
+          created_by: user.id
+        });
+        toast.success("Template criado com sucesso!");
+      }
+      handleCloseTemplateEditor();
     } catch (error) {
       console.error('Error saving template:', error);
+      toast.error("Erro ao salvar template.");
     }
   };
 
-  // Mensagem editor state
   const [newMensagem, setNewMensagem] = useState({
     cliente_id: '',
     template_id: '',
@@ -159,14 +193,13 @@ const MensagensETemplates = () => {
       }));
     }
     
-    // Se selecionou um template, preenche os campos com os dados do template
     if (name === 'template_id' && value && value !== '0') {
       const template = templates.find(t => t.id === value);
       if (template) {
         setNewMensagem(prev => ({
           ...prev,
           tipo: template.tipo,
-          assunto: template.assunto,
+          assunto: template.assunto || '',
           conteudo: template.conteudo
         }));
       }
@@ -193,12 +226,13 @@ const MensagensETemplates = () => {
         data_agendamento: '',
         created_by: user.id
       });
+      toast.success("Mensagem enviada com sucesso!");
     } catch (error) {
       console.error('Error sending message:', error);
+      toast.error("Erro ao enviar mensagem.");
     }
   };
 
-  // Agendamento editor state
   const [newAgendamento, setNewAgendamento] = useState({
     nome: '',
     tipo: 'automatico' as 'automatico' | 'recorrente',
@@ -208,6 +242,34 @@ const MensagensETemplates = () => {
     ativo: true,
     created_by: user?.id || ''
   });
+
+  const handleCloseAgendamentoEditor = () => {
+    setShowScheduleEditor(false);
+    setEditingAgendamento(null);
+    setNewAgendamento({
+      nome: '',
+      tipo: 'automatico' as 'automatico' | 'recorrente',
+      evento: '' as 'emprestimo_criado' | 'emprestimo_vencendo' | 'emprestimo_atrasado' | 'pagamento_confirmado',
+      dias_antes: 0,
+      template_id: '',
+      ativo: true,
+      created_by: user?.id || ''
+    });
+  };
+
+  const handleOpenEditAgendamento = (agendamento: Agendamento) => {
+    setEditingAgendamento(agendamento);
+    setNewAgendamento({
+      nome: agendamento.nome,
+      tipo: agendamento.tipo,
+      evento: agendamento.evento,
+      dias_antes: agendamento.dias_antes,
+      template_id: agendamento.template_id,
+      ativo: agendamento.ativo,
+      created_by: agendamento.created_by
+    });
+    setShowScheduleEditor(true);
+  };
 
   const handleAgendamentoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -244,22 +306,14 @@ const MensagensETemplates = () => {
         ...newAgendamento,
         created_by: user.id
       });
-      setShowScheduleEditor(false);
-      setNewAgendamento({
-        nome: '',
-        tipo: 'automatico' as 'automatico' | 'recorrente',
-        evento: '' as 'emprestimo_criado' | 'emprestimo_vencendo' | 'emprestimo_atrasado' | 'pagamento_confirmado',
-        dias_antes: 0,
-        template_id: '',
-        ativo: true,
-        created_by: user.id
-      });
+      handleCloseAgendamentoEditor();
+      toast.success("Agendamento salvo com sucesso!");
     } catch (error) {
       console.error('Error saving agendamento:', error);
+      toast.error("Erro ao salvar agendamento.");
     }
   };
 
-  // Webhook state
   const [webhook, setWebhook] = useState({
     url: '',
     secret_key: '',
@@ -314,7 +368,6 @@ const MensagensETemplates = () => {
         created_by: user.id
       });
       
-      // Reset form and show success message
       toast.success("Webhook salvo com sucesso!");
       setWebhook({
         url: '',
@@ -324,6 +377,7 @@ const MensagensETemplates = () => {
         ativo: true,
         created_by: user.id
       });
+      setShowWebhookEditor(false);
     } catch (error) {
       console.error('Error saving webhook:', error);
       toast.error("Erro ao salvar webhook");
@@ -331,7 +385,6 @@ const MensagensETemplates = () => {
   };
 
   const testWebhook = () => {
-    // Implementação para testar webhook
     if (!webhook.url) {
       toast.error("Digite uma URL válida antes de testar");
       return;
@@ -346,66 +399,6 @@ const MensagensETemplates = () => {
     toast.success("Nova API Key gerada com sucesso!");
   };
 
-  // Renderiza o editor de templates
-  const renderTemplateEditor = () => (
-    <TemplateEditor
-      newTemplate={newTemplate}
-      setNewTemplate={setNewTemplate}
-      handleTemplateChange={handleTemplateChange}
-      handleTemplateSelectChange={handleTemplateSelectChange}
-      handleSaveTemplate={handleSaveTemplate}
-      createTemplateIsPending={createTemplate.isPending}
-      onCancel={() => setShowTemplateEditor(false)}
-      handleInsertVariable={handleInsertVariable}
-    />
-  );
-
-  // Renderiza o editor de mensagens
-  const renderMessageEditor = () => (
-    <MessageEditor
-      newMensagem={{
-        cliente_id: '',
-        template_id: '',
-        assunto: '',
-        conteudo: '',
-        tipo: '' as 'email' | 'whatsapp' | 'sms',
-        status: 'pendente' as 'enviado' | 'agendado' | 'erro' | 'pendente',
-        data_agendamento: '',
-        created_by: user?.id || ''
-      }}
-      setNewMensagem={function(): void {}}
-      clients={clients || []}
-      templates={templates || []}
-      handleMensagemChange={function(): void {}}
-      handleMensagemSelectChange={function(): void {}}
-      createMensagemIsPending={false}
-      handleSendMensagem={function(): void {}}
-      onCancel={() => setShowMessageEditor(false)}
-    />
-  );
-
-  // Renderiza o editor de agendamentos
-  const renderScheduleEditor = () => (
-    <ScheduleEditor
-      newAgendamento={{
-        nome: '',
-        tipo: 'automatico' as 'automatico' | 'recorrente',
-        evento: '' as 'emprestimo_criado' | 'emprestimo_vencendo' | 'emprestimo_atrasado' | 'pagamento_confirmado',
-        dias_antes: 0,
-        template_id: '',
-        ativo: true,
-        created_by: user?.id || ''
-      }}
-      setNewAgendamento={function(): void {}}
-      templates={templates || []}
-      handleAgendamentoChange={function(): void {}}
-      handleAgendamentoSelectChange={function(): void {}}
-      createAgendamentoIsPending={false}
-      handleSaveAgendamento={function(): void {}}
-      onCancel={() => setShowScheduleEditor(false)}
-    />
-  );
-
   return (
     <div className="space-y-6">
       <PageHeader 
@@ -415,23 +408,41 @@ const MensagensETemplates = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <div className="bg-card rounded-md p-1">
-          <TabsList className="w-full flex-nowrap">
-            <TabsTrigger value="templates" className="flex-1" onClick={() => setActiveTab("templates")}>
-              <FileText className="mr-2 h-4 w-4 hidden sm:block" /> Templates
-            </TabsTrigger>
-            <TabsTrigger value="mensagens" className="flex-1" onClick={() => setActiveTab("mensagens")}>
-              <Mail className="mr-2 h-4 w-4 hidden sm:block" /> Mensagens
-            </TabsTrigger>
-            <TabsTrigger value="agendamentos" className="flex-1" onClick={() => setActiveTab("agendamentos")}>
-              <Calendar className="mr-2 h-4 w-4 hidden sm:block" /> Agendamentos
-            </TabsTrigger>
-            <TabsTrigger value="integracoes" className="flex-1" onClick={() => setActiveTab("integracoes")}>
-              <Webhook className="mr-2 h-4 w-4 hidden sm:block" /> Integrações
-            </TabsTrigger>
-          </TabsList>
+          {isMobile ? (
+            <ScrollArea className="w-full whitespace-nowrap">
+              <TabsList className="inline-flex w-max">
+                <TabsTrigger value="templates" className="flex items-center" onClick={() => setActiveTab("templates")}>
+                  <FileText className="mr-2 h-4 w-4" /> Templates
+                </TabsTrigger>
+                <TabsTrigger value="mensagens" className="flex items-center" onClick={() => setActiveTab("mensagens")}>
+                  <Mail className="mr-2 h-4 w-4" /> Mensagens
+                </TabsTrigger>
+                <TabsTrigger value="agendamentos" className="flex items-center" onClick={() => setActiveTab("agendamentos")}>
+                  <Calendar className="mr-2 h-4 w-4" /> Agendamentos
+                </TabsTrigger>
+                <TabsTrigger value="integracoes" className="flex items-center" onClick={() => setActiveTab("integracoes")}>
+                  <Webhook className="mr-2 h-4 w-4" /> Integrações
+                </TabsTrigger>
+              </TabsList>
+            </ScrollArea>
+          ) : (
+            <TabsList className="w-full flex">
+              <TabsTrigger value="templates" className="flex-1" onClick={() => setActiveTab("templates")}>
+                <FileText className="mr-2 h-4 w-4" /> Templates
+              </TabsTrigger>
+              <TabsTrigger value="mensagens" className="flex-1" onClick={() => setActiveTab("mensagens")}>
+                <Mail className="mr-2 h-4 w-4" /> Mensagens
+              </TabsTrigger>
+              <TabsTrigger value="agendamentos" className="flex-1" onClick={() => setActiveTab("agendamentos")}>
+                <Calendar className="mr-2 h-4 w-4" /> Agendamentos
+              </TabsTrigger>
+              <TabsTrigger value="integracoes" className="flex-1" onClick={() => setActiveTab("integracoes")}>
+                <Webhook className="mr-2 h-4 w-4" /> Integrações
+              </TabsTrigger>
+            </TabsList>
+          )}
         </div>
 
-        {/* Templates Tab */}
         <TabsContent value="templates" className="space-y-6">
           {showTemplateEditor ? (
             <TemplateEditor
@@ -440,8 +451,8 @@ const MensagensETemplates = () => {
               handleTemplateChange={handleTemplateChange}
               handleTemplateSelectChange={handleTemplateSelectChange}
               handleSaveTemplate={handleSaveTemplate}
-              createTemplateIsPending={createTemplate.isPending}
-              onCancel={() => setShowTemplateEditor(false)}
+              createTemplateIsPending={createTemplate.isPending || updateTemplate.isPending}
+              onCancel={handleCloseTemplateEditor}
               handleInsertVariable={handleInsertVariable}
             />
           ) : (
@@ -462,39 +473,14 @@ const MensagensETemplates = () => {
                 {isLoadingTemplates ? (
                   <div className="py-6 text-center">Carregando templates...</div>
                 ) : templates && templates.length > 0 ? (
-                  <div className="overflow-x-auto -mx-4 md:mx-0">
-                    <div className="inline-block min-w-full align-middle md:px-0 px-4">
-                      <table className="min-w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left py-3 px-2">Nome</th>
-                            <th className="text-left py-3 px-2">Tipo</th>
-                            <th className="text-left py-3 px-2 hidden sm:table-cell">Assunto</th>
-                            <th className="text-left py-3 px-2">Status</th>
-                            <th className="text-right py-3 px-2">Ações</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {templates.map((template) => (
-                            <tr key={template.id} className="border-b hover:bg-muted/50">
-                              <td className="py-3 px-2">{template.nome}</td>
-                              <td className="py-3 px-2 capitalize">{template.tipo}</td>
-                              <td className="py-3 px-2 hidden sm:table-cell">{template.assunto || "-"}</td>
-                              <td className="py-3 px-2">
-                                <Badge variant={template.ativo ? "secondary" : "outline"}>
-                                  {template.ativo ? "Ativo" : "Inativo"}
-                                </Badge>
-                              </td>
-                              <td className="py-3 px-2 text-right">
-                                <Button variant="ghost" size="sm">
-                                  Editar
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {templates.map((template) => (
+                      <TemplateCard 
+                        key={template.id} 
+                        template={template}
+                        onEdit={() => handleOpenEditTemplate(template)}
+                      />
+                    ))}
                   </div>
                 ) : (
                   <EmptyState
@@ -513,27 +499,17 @@ const MensagensETemplates = () => {
           )}
         </TabsContent>
 
-        {/* Mensagens Tab */}
         <TabsContent value="mensagens" className="space-y-6">
           {showMessageEditor ? (
             <MessageEditor
-              newMensagem={{
-                cliente_id: '',
-                template_id: '',
-                assunto: '',
-                conteudo: '',
-                tipo: '' as 'email' | 'whatsapp' | 'sms',
-                status: 'pendente' as 'enviado' | 'agendado' | 'erro' | 'pendente',
-                data_agendamento: '',
-                created_by: user?.id || ''
-              }}
-              setNewMensagem={function(): void {}}
+              newMensagem={newMensagem}
+              setNewMensagem={setNewMensagem}
               clients={clients || []}
               templates={templates || []}
-              handleMensagemChange={function(): void {}}
-              handleMensagemSelectChange={function(): void {}}
-              createMensagemIsPending={false}
-              handleSendMensagem={function(): void {}}
+              handleMensagemChange={handleMensagemChange}
+              handleMensagemSelectChange={handleMensagemSelectChange}
+              createMensagemIsPending={createMensagem.isPending}
+              handleSendMensagem={handleSendMensagem}
               onCancel={() => setShowMessageEditor(false)}
             />
           ) : (
@@ -554,51 +530,13 @@ const MensagensETemplates = () => {
                 {isLoadingMensagens ? (
                   <div className="py-6 text-center">Carregando mensagens...</div>
                 ) : mensagens && mensagens.length > 0 ? (
-                  <div className="overflow-x-auto -mx-4 md:mx-0">
-                    <div className="inline-block min-w-full align-middle md:px-0 px-4">
-                      <table className="min-w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left py-3 px-2">Cliente</th>
-                            <th className="text-left py-3 px-2 hidden sm:table-cell">Assunto</th>
-                            <th className="text-left py-3 px-2">Data</th>
-                            <th className="text-left py-3 px-2 hidden sm:table-cell">Tipo</th>
-                            <th className="text-left py-3 px-2">Status</th>
-                            <th className="text-right py-3 px-2">Ações</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {mensagens.map((mensagem) => (
-                            <tr key={mensagem.id} className="border-b hover:bg-muted/50">
-                              <td className="py-3 px-2">{mensagem.cliente?.nome || "-"}</td>
-                              <td className="py-3 px-2 hidden sm:table-cell">{mensagem.assunto || "-"}</td>
-                              <td className="py-3 px-2">
-                                {mensagem.data_envio ? new Date(mensagem.data_envio).toLocaleDateString() : 
-                                 mensagem.data_agendamento ? new Date(mensagem.data_agendamento).toLocaleDateString() : 
-                                 new Date(mensagem.created_at).toLocaleDateString()}
-                              </td>
-                              <td className="py-3 px-2 capitalize hidden sm:table-cell">{mensagem.tipo}</td>
-                              <td className="py-3 px-2">
-                                <Badge 
-                                  variant={
-                                    mensagem.status === "enviado" ? "secondary" : 
-                                    mensagem.status === "agendado" ? "outline" : 
-                                    "destructive"
-                                  }
-                                >
-                                  {mensagem.status}
-                                </Badge>
-                              </td>
-                              <td className="py-3 px-2 text-right">
-                                <Button variant="ghost" size="sm">
-                                  Visualizar
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {mensagens.map((mensagem) => (
+                      <MessageCard 
+                        key={mensagem.id} 
+                        mensagem={mensagem}
+                      />
+                    ))}
                   </div>
                 ) : (
                   <EmptyState
@@ -617,26 +555,17 @@ const MensagensETemplates = () => {
           )}
         </TabsContent>
 
-        {/* Agendamentos Tab */}
         <TabsContent value="agendamentos" className="space-y-6">
           {showScheduleEditor ? (
             <ScheduleEditor
-              newAgendamento={{
-                nome: '',
-                tipo: 'automatico' as 'automatico' | 'recorrente',
-                evento: '' as 'emprestimo_criado' | 'emprestimo_vencendo' | 'emprestimo_atrasado' | 'pagamento_confirmado',
-                dias_antes: 0,
-                template_id: '',
-                ativo: true,
-                created_by: user?.id || ''
-              }}
-              setNewAgendamento={function(): void {}}
+              newAgendamento={newAgendamento}
+              setNewAgendamento={setNewAgendamento}
               templates={templates || []}
-              handleAgendamentoChange={function(): void {}}
-              handleAgendamentoSelectChange={function(): void {}}
-              createAgendamentoIsPending={false}
-              handleSaveAgendamento={function(): void {}}
-              onCancel={() => setShowScheduleEditor(false)}
+              handleAgendamentoChange={handleAgendamentoChange}
+              handleAgendamentoSelectChange={handleAgendamentoSelectChange}
+              createAgendamentoIsPending={createAgendamento.isPending}
+              handleSaveAgendamento={handleSaveAgendamento}
+              onCancel={handleCloseAgendamentoEditor}
             />
           ) : (
             <Card>
@@ -656,41 +585,14 @@ const MensagensETemplates = () => {
                 {isLoadingAgendamentos ? (
                   <div className="py-6 text-center">Carregando agendamentos...</div>
                 ) : agendamentos && agendamentos.length > 0 ? (
-                  <div className="overflow-x-auto -mx-4 md:mx-0">
-                    <div className="inline-block min-w-full align-middle md:px-0 px-4">
-                      <table className="min-w-full">
-                        <thead>
-                          <tr className="border-b">
-                            <th className="text-left py-3 px-2">Nome</th>
-                            <th className="text-left py-3 px-2 hidden sm:table-cell">Evento</th>
-                            <th className="text-left py-3 px-2">Template</th>
-                            <th className="text-left py-3 px-2">Status</th>
-                            <th className="text-right py-3 px-2">Ações</th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {agendamentos.map((agendamento) => (
-                            <tr key={agendamento.id} className="border-b hover:bg-muted/50">
-                              <td className="py-3 px-2">{agendamento.nome}</td>
-                              <td className="py-3 px-2 hidden sm:table-cell">{agendamento.evento}</td>
-                              <td className="py-3 px-2">{agendamento.template?.nome || "-"}</td>
-                              <td className="py-3 px-2">
-                                <Badge 
-                                  variant={agendamento.ativo ? "secondary" : "destructive"}
-                                >
-                                  {agendamento.ativo ? "Ativo" : "Inativo"}
-                                </Badge>
-                              </td>
-                              <td className="py-3 px-2 text-right">
-                                <Button variant="ghost" size="sm">
-                                  Editar
-                                </Button>
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {agendamentos.map((agendamento) => (
+                      <ScheduleCard 
+                        key={agendamento.id} 
+                        agendamento={agendamento}
+                        onEdit={() => handleOpenEditAgendamento(agendamento)}
+                      />
+                    ))}
                   </div>
                 ) : (
                   <EmptyState
@@ -709,174 +611,172 @@ const MensagensETemplates = () => {
           )}
         </TabsContent>
 
-        {/* Integrações Tab */}
         <TabsContent value="integracoes" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Integrações Externas</CardTitle>
-              <CardDescription>
-                Configure integrações com serviços externos
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Integração com WhatsApp (Evolution API)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="url">URL da API</Label>
-                    <Input 
-                      id="url" 
-                      name="url"
-                      placeholder="https://sua-evolution-api.com" 
-                      value={evolutionApi.url}
-                      onChange={handleEvolutionApiChange}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="api_key">API Key</Label>
-                    <Input 
-                      id="api_key" 
-                      name="api_key"
-                      type="password"
-                      placeholder="Chave secreta da API" 
-                      value={evolutionApi.api_key}
-                      onChange={handleEvolutionApiChange}
-                    />
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <Button onClick={() => toast.success("Conexão testada com sucesso!")}>
-                    Testar Conexão
-                  </Button>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t space-y-4">
-                <h3 className="text-lg font-semibold">Webhooks</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="url">URL para POST Automático</Label>
-                    <Input 
-                      id="url" 
-                      name="url"
-                      placeholder="https://seu-webhook.com" 
-                      value={webhook.url}
-                      onChange={handleWebhookChange}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Esta URL receberá POST automático quando ocorrerem os eventos selecionados
-                    </p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="secret_key">Secret Key</Label>
-                    <Input 
-                      id="secret_key" 
-                      name="secret_key"
-                      type="password"
-                      placeholder="Chave secreta para autenticação" 
-                      value={webhook.secret_key}
-                      onChange={handleWebhookChange}
-                    />
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <Label className="mb-2 block">Eventos a serem notificados:</Label>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="evento-emprestimo" 
-                        checked={webhook.eventos.includes('novoEmprestimo')}
-                        onCheckedChange={() => handleEventoChange('novoEmprestimo')}
-                      />
-                      <Label htmlFor="evento-emprestimo">Novo empréstimo</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="evento-pagamento" 
-                        checked={webhook.eventos.includes('novoPagamento')}
-                        onCheckedChange={() => handleEventoChange('novoPagamento')}
-                      />
-                      <Label htmlFor="evento-pagamento">Novo pagamento</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="evento-cliente" 
-                        checked={webhook.eventos.includes('novoCliente')}
-                        onCheckedChange={() => handleEventoChange('novoCliente')}
-                      />
-                      <Label htmlFor="evento-cliente">Novo cliente</Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Checkbox 
-                        id="evento-atrasado" 
-                        checked={webhook.eventos.includes('emprestimoAtrasado')}
-                        onCheckedChange={() => handleEventoChange('emprestimoAtrasado')}
-                      />
-                      <Label htmlFor="evento-atrasado">Empréstimo atrasado</Label>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 flex gap-2">
-                  <Button onClick={handleSaveWebhook}>
-                    Salvar Webhooks
-                  </Button>
-                  <Button variant="outline" onClick={testWebhook}>
-                    Testar Webhook
-                  </Button>
-                </div>
-              </div>
-
-              <div className="pt-4 border-t space-y-4">
-                <h3 className="text-lg font-semibold">URL para API (GET externo)</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="api-url">URL da API</Label>
-                    <div className="flex items-center space-x-2">
+          {showWebhookEditor ? (
+            <WebhookEditor 
+              webhook={webhook}
+              setWebhook={setWebhook}
+              handleWebhookChange={handleWebhookChange}
+              handleEventoChange={handleEventoChange}
+              handleSaveWebhook={handleSaveWebhook}
+              testWebhook={testWebhook}
+              saveWebhookIsPending={saveWebhook.isPending}
+              onCancel={() => setShowWebhookEditor(false)}
+            />
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>Integrações Externas</CardTitle>
+                <CardDescription>
+                  Configure integrações com serviços externos
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold">Integração com WhatsApp (Evolution API)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="url">URL da API</Label>
                       <Input 
-                        id="api-url" 
-                        value={apiUrl} 
-                        readOnly
+                        id="url" 
+                        name="url"
+                        placeholder="https://sua-evolution-api.com" 
+                        value={evolutionApi.url}
+                        onChange={handleEvolutionApiChange}
                       />
-                      <Button 
-                        variant="outline" 
-                        size="icon" 
-                        onClick={() => {
-                          navigator.clipboard.writeText(apiUrl);
-                          toast.success("URL copiada para a área de transferência");
-                        }}
-                      >
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                        </svg>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="api_key">API Key</Label>
+                      <Input 
+                        id="api_key" 
+                        name="api_key"
+                        type="password"
+                        placeholder="Chave secreta da API" 
+                        value={evolutionApi.api_key}
+                        onChange={handleEvolutionApiChange}
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <Button onClick={() => {
+                      if (!evolutionApi.url) {
+                        toast.error("Digite uma URL válida antes de testar");
+                        return;
+                      }
+                      toast.success("Conexão testada com sucesso!");
+                    }}>
+                      Testar Conexão
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h3 className="text-lg font-semibold">Webhooks</h3>
+                    <Button variant="outline" onClick={() => setShowWebhookEditor(true)}>
+                      <Webhook className="mr-2 h-4 w-4" />
+                      Novo Webhook
+                    </Button>
+                  </div>
+                  
+                  {webhooks && webhooks.length > 0 ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {webhooks.map((hook) => (
+                        <Card key={hook.id} className="overflow-hidden">
+                          <CardHeader className="pb-2">
+                            <div className="flex justify-between items-center">
+                              <CardTitle className="text-base">{hook.nome}</CardTitle>
+                              <Badge variant={hook.ativo ? "default" : "outline"}>
+                                {hook.ativo ? "Ativo" : "Inativo"}
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="pb-4 pt-0">
+                            <p className="text-sm text-muted-foreground truncate mb-1">
+                              URL: {hook.url}
+                            </p>
+                            <div className="flex flex-wrap gap-1 mt-2">
+                              {hook.eventos.map((evento) => (
+                                <Badge key={evento} variant="secondary" className="text-xs">
+                                  {evento}
+                                </Badge>
+                              ))}
+                            </div>
+                            <div className="flex gap-2 mt-4">
+                              <Button size="sm" variant="outline" className="text-xs" onClick={() => {
+                                toast.success("Webhook testado com sucesso!");
+                              }}>Testar</Button>
+                              <Button size="sm" variant="outline" className="text-xs">Editar</Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8">
+                      <p className="text-muted-foreground mb-4">Nenhum webhook configurado</p>
+                      <Button onClick={() => setShowWebhookEditor(true)}>
+                        Configurar Primeiro Webhook
                       </Button>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Esta URL permite que sistemas externos consultem informações via GET
-                    </p>
+                  )}
+                </div>
+
+                <div className="pt-4 border-t space-y-4">
+                  <h3 className="text-lg font-semibold">URL para API (GET externo)</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="api-url">URL da API</Label>
+                      <div className="flex items-center space-x-2">
+                        <Input 
+                          id="api-url" 
+                          value={apiUrl} 
+                          readOnly
+                        />
+                        <Button 
+                          variant="outline" 
+                          size="icon" 
+                          onClick={() => {
+                            navigator.clipboard.writeText(apiUrl);
+                            toast.success("URL copiada para a área de transferência");
+                          }}
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                          </svg>
+                        </Button>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Esta URL permite que sistemas externos consultem informações via GET
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="api-key">API Key</Label>
+                      <Input 
+                        id="api-key" 
+                        type="password"
+                        placeholder="Chave secreta para autenticação"
+                        value={apiKey}
+                        onChange={(e) => setApiKey(e.target.value)}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Inclua esta chave no cabeçalho de autorização das requisições
+                      </p>
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="api-key">API Key</Label>
-                    <Input 
-                      id="api-key" 
-                      type="password"
-                      placeholder="Chave secreta para autenticação"
-                      value={apiKey}
-                      onChange={(e) => setApiKey(e.target.value)}
-                    />
-                    <p className="text-sm text-muted-foreground">
-                      Inclua esta chave no cabeçalho de autorização das requisições
-                    </p>
+                  <div className="mt-4">
+                    <Button onClick={() => {
+                      generateApiKey();
+                      toast.success("Nova API Key gerada com sucesso!");
+                    }}>
+                      Gerar Nova API Key
+                    </Button>
                   </div>
                 </div>
-                <div className="mt-4">
-                  <Button onClick={generateApiKey}>
-                    Gerar Nova API Key
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
       </Tabs>
     </div>

@@ -42,7 +42,8 @@ const BottomNav = () => {
           to={route.href}
           className={cn(
             "flex flex-col items-center justify-center space-y-1 text-xs font-medium transition-colors",
-            location.pathname === route.href
+            location.pathname === route.href || 
+            (route.href !== '/dashboard' && location.pathname.startsWith(route.href))
               ? "text-primary"
               : "text-muted-foreground hover:text-primary"
           )}
