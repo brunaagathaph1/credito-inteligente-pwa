@@ -781,4 +781,41 @@ const ManualUsuario = () => {
                     <div className="space-y-3">
                       <p>
                         Gerencie categorias para organizar empréstimos e transações:
-                      </p
+                      </p>
+                      
+                      <h4 className="font-medium mt-3">Adicionar Nova Categoria:</h4>
+                      <ol className="list-decimal pl-5 space-y-2">
+                        <li>Acesse "Configurações {'>'}Categorias".</li>
+                        <li>Clique em "Nova Categoria".</li>
+                        <li>Preencha o nome e descrição da categoria.</li>
+                        <li>Clique em "Salvar".</li>
+                      </ol>
+                      
+                      <h4 className="font-medium mt-3">Gerenciar Categorias:</h4>
+                      <p>
+                        Na lista de categorias, você pode:
+                      </p>
+                      <ul className="list-disc pl-5 space-y-1">
+                        <li>Editar nome e descrição.</li>
+                        <li>Desativar categorias sem excluí-las.</li>
+                        <li>Excluir categorias não utilizadas.</li>
+                      </ul>
+                      
+                      <p className="mt-3">
+                        <strong>Uso das Categorias:</strong> As categorias podem ser aplicadas a 
+                        empréstimos durante a criação ou edição, permitindo melhor organização e 
+                        filtragem nos relatórios e listagens.
+                      </p>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+    </div>
+  );
+};
+
+export default ManualUsuario;
