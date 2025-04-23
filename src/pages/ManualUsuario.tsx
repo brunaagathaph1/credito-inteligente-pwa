@@ -300,10 +300,10 @@ const ManualUsuario = () => {
                     </ol>
                     <p className="mt-2">Exemplos de variáveis:</p>
                     <ul className="list-disc pl-6 space-y-1 mt-1">
-                      <li><code>{{cliente.nome}}</code> - Nome do cliente</li>
-                      <li><code>{{emprestimo.valor_principal}}</code> - Valor do empréstimo</li>
-                      <li><code>{{emprestimo.data_vencimento}}</code> - Data de vencimento</li>
-                      <li><code>{{pagamento.valor}}</code> - Valor do pagamento</li>
+                      <li><code>{"{{cliente.nome}}"}</code> - Nome do cliente</li>
+                      <li><code>{"{{emprestimo.valor_principal}}"}</code> - Valor do empréstimo</li>
+                      <li><code>{"{{emprestimo.data_vencimento}}"}</code> - Data de vencimento</li>
+                      <li><code>{"{{pagamento.valor}}"}</code> - Valor do pagamento</li>
                     </ul>
                   </AccordionContent>
                 </AccordionItem>
