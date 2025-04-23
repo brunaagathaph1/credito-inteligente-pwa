@@ -16,8 +16,7 @@ const Layout = () => {
     location.pathname.includes('/mensagens') ||
     location.pathname.includes('/manual') ||
     location.pathname.includes('/relatorios') ||
-    location.pathname.includes('/clientes/') ||
-    location.pathname.includes('/emprestimos/');
+    location.pathname.includes('/clientes/');
 
   return (
     <div className="min-h-screen flex flex-col">

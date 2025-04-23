@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -31,6 +31,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Agendamento, Template, Mensagem, VariavelTemplate, WebhookIntegracao } from "@/types/mensagens";
 import { Textarea } from "@/components/ui/textarea";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 
 import TemplateEditor from "./components/TemplateEditor";
 import MessageEditor from "./components/MessageEditor";
@@ -67,6 +68,7 @@ const MensagensETemplates = () => {
     api_key: '',
     observacoes: ''
   });
+  const [activeTab, setActiveTab] = useState("templates");
 
   // New message state
   const [newMensagem, setNewMensagem] = useState({
@@ -245,11 +247,11 @@ const MensagensETemplates = () => {
   };
 
   // Side effect to set Evolution API config
-  useState(() => {
+  useEffect(() => {
     if (evolutionApiConfigData.data) {
       setEvolutionApiConfig(evolutionApiConfigData.data);
     }
-  });
+  }, [evolutionApiConfigData.data]);
 
   return (
     <div className="space-y-6">
@@ -258,26 +260,45 @@ const MensagensETemplates = () => {
         description="Envie mensagens e gerencie templates para comunicação com clientes"
       />
 
-      <Tabs defaultValue="templates">
+      <Tabs defaultValue="templates" value={activeTab} onValueChange={setActiveTab}>
         <div className="bg-card rounded-md p-1">
           {isMobile ? (
-            <div className="grid grid-cols-2 gap-1">
-              <TabsTrigger value="templates" className="text-xs py-1 px-2">
+            <div className="grid grid-cols-2 gap-1 mb-1">
+              <Button 
+                variant={activeTab === "templates" ? "default" : "ghost"} 
+                className="flex items-center justify-center h-9 text-xs"
+                onClick={() => setActiveTab("templates")}
+              >
                 <MessageSquare className="h-3 w-3 mr-1" />
                 Templates
-              </TabsTrigger>
-              <TabsTrigger value="mensagens" className="text-xs py-1 px-2">
+              </Button>
+              
+              <Button 
+                variant={activeTab === "mensagens" ? "default" : "ghost"} 
+                className="flex items-center justify-center h-9 text-xs"
+                onClick={() => setActiveTab("mensagens")}
+              >
                 <MessagesSquare className="h-3 w-3 mr-1" />
                 Mensagens
-              </TabsTrigger>
-              <TabsTrigger value="agendamentos" className="text-xs py-1 px-2">
+              </Button>
+              
+              <Button 
+                variant={activeTab === "agendamentos" ? "default" : "ghost"} 
+                className="flex items-center justify-center h-9 text-xs"
+                onClick={() => setActiveTab("agendamentos")}
+              >
                 <Calendar className="h-3 w-3 mr-1" />
                 Agendamentos
-              </TabsTrigger>
-              <TabsTrigger value="integracoes" className="text-xs py-1 px-2">
+              </Button>
+              
+              <Button 
+                variant={activeTab === "integracoes" ? "default" : "ghost"} 
+                className="flex items-center justify-center h-9 text-xs"
+                onClick={() => setActiveTab("integracoes")}
+              >
                 <Link className="h-3 w-3 mr-1" />
                 Integrações
-              </TabsTrigger>
+              </Button>
             </div>
           ) : (
             <TabsList className="grid grid-cols-4">
@@ -375,10 +396,10 @@ const MensagensETemplates = () => {
             </CardHeader>
             <CardContent>
               <MessageEditor 
-                templates={templates.data || []} 
-                clients={clients || []}
                 newMensagem={newMensagem}
                 setNewMensagem={setNewMensagem}
+                templates={templates.data || []} 
+                clients={clients || []}
                 handleMensagemChange={handleMensagemChange}
                 handleMensagemSelectChange={handleMensagemSelectChange}
                 createMensagemIsPending={createMensagem.isPending}

@@ -65,11 +65,6 @@ const Clientes = () => {
     return "text-destructive";
   };
 
-  const handleViewClient = (clientId: string) => {
-    // Use Link Component directly instead of programmatic navigation to avoid loading issues
-    document.getElementById(`client-link-${clientId}`)?.click();
-  };
-
   // Renderiza um card para dispositivos móveis em vez de uma linha de tabela
   const renderMobileCard = (cliente: any) => (
     <Card key={cliente.id} className="mb-4">
@@ -97,14 +92,15 @@ const Clientes = () => {
         </div>
         
         <div className="flex justify-end">
-          <Link
-            to={`/clientes/${cliente.id}`}
-            id={`client-link-${cliente.id}`}
-            className="inline-flex items-center justify-center text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background hover:bg-accent hover:text-accent-foreground h-9 rounded-md px-3"
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => navigate(`/clientes/${cliente.id}`)}
+            className="flex items-center"
           >
             <Eye className="h-4 w-4 mr-1" />
             Ver detalhes
-          </Link>
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -188,15 +184,14 @@ const Clientes = () => {
                           {cliente.score || '-'}
                         </TableCell>
                         <TableCell className="text-right">
-                          {/* Use direct Link component instead of button with onClick */}
-                          <Link 
-                            to={`/clientes/${cliente.id}`} 
-                            id={`client-link-${cliente.id}`}
-                            className="inline-flex items-center justify-center rounded-md w-8 h-8 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background hover:bg-accent hover:text-accent-foreground"
+                          <Button
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => navigate(`/clientes/${cliente.id}`)}
                           >
                             <Eye className="h-4 w-4" />
                             <span className="sr-only">Ver cliente</span>
-                          </Link>
+                          </Button>
                         </TableCell>
                       </TableRow>
                     ))}

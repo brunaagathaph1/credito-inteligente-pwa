@@ -1,430 +1,290 @@
-import React, { useState } from 'react';
-import { PageHeader } from "@/components/common/PageHeader";
-import { Book, FileText, HelpCircle, Info, Search } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Input } from '@/components/ui/input';
+
+import { useState } from 'react';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from '@/hooks/use-mobile';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Book, CreditCard, FileText, MessageSquare, Settings, Users } from 'lucide-react';
 
 const ManualUsuario = () => {
-  const [activeTab, setActiveTab] = useState("inicio");
   const isMobile = useIsMobile();
-
+  const [activeTab, setActiveTab] = useState("inicio");
+  
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+  };
+  
   return (
     <div className="space-y-6">
-      <PageHeader 
-        title="Manual do Usuário" 
-        description="Instruções e guia completo para utilização do sistema"
-      />
-
-      <div className="flex items-center space-x-2 mb-6">
-        <Search className="h-5 w-5 text-muted-foreground" />
-        <Input 
-          placeholder="Pesquisar no manual..." 
-          className="max-w-md"
-        />
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight">Manual do Usuário</h2>
+        <p className="text-muted-foreground">
+          Instruções e tutoriais para auxiliar no uso do sistema.
+        </p>
       </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="bg-card rounded-md p-1">
-          {isMobile ? (
-            <div className="grid grid-cols-3 gap-1 mb-1">
-              <TabsTrigger value="inicio" className="text-xs py-1 px-2">
-                <Info className="h-3 w-3 mr-1" />
-                Início
-              </TabsTrigger>
-              <TabsTrigger value="clientes" className="text-xs py-1 px-2">
-                <FileText className="h-3 w-3 mr-1" />
-                Clientes
-              </TabsTrigger>
-              <TabsTrigger value="emprestimos" className="text-xs py-1 px-2">
-                <FileText className="h-3 w-3 mr-1" />
-                Empréstimos
-              </TabsTrigger>
-              <TabsTrigger value="mensagens" className="text-xs py-1 px-2 col-start-1 col-end-2">
-                <FileText className="h-3 w-3 mr-1" />
-                Mensagens
-              </TabsTrigger>
-              <TabsTrigger value="faq" className="text-xs py-1 px-2 col-start-2 col-end-3">
-                <HelpCircle className="h-3 w-3 mr-1" />
-                FAQ
-              </TabsTrigger>
-            </div>
-          ) : (
-            <TabsList className="w-full">
-              <TabsTrigger value="inicio">
-                <Info className="h-4 w-4 mr-2" />
-                Início
-              </TabsTrigger>
-              <TabsTrigger value="clientes">
-                <FileText className="h-4 w-4 mr-2" />
-                Clientes
-              </TabsTrigger>
-              <TabsTrigger value="emprestimos">
-                <FileText className="h-4 w-4 mr-2" />
-                Empréstimos
-              </TabsTrigger>
-              <TabsTrigger value="mensagens">
-                <FileText className="h-4 w-4 mr-2" />
-                Mensagens
-              </TabsTrigger>
-              <TabsTrigger value="faq">
-                <HelpCircle className="h-4 w-4 mr-2" />
-                FAQ
-              </TabsTrigger>
-            </TabsList>
-          )}
+      {isMobile ? (
+        <div className="space-y-6">
+          <div className="grid grid-cols-3 gap-2 text-center">
+            <Button
+              variant={activeTab === "inicio" ? "default" : "outline"}
+              className="flex flex-col items-center justify-center h-16 p-1"
+              onClick={() => handleTabChange("inicio")}
+            >
+              <Settings className="h-4 w-4 mb-1" />
+              <span className="text-xs">Início</span>
+            </Button>
+            <Button
+              variant={activeTab === "clientes" ? "default" : "outline"}
+              className="flex flex-col items-center justify-center h-16 p-1"
+              onClick={() => handleTabChange("clientes")}
+            >
+              <Users className="h-4 w-4 mb-1" />
+              <span className="text-xs">Clientes</span>
+            </Button>
+            <Button
+              variant={activeTab === "emprestimos" ? "default" : "outline"}
+              className="flex flex-col items-center justify-center h-16 p-1"
+              onClick={() => handleTabChange("emprestimos")}
+            >
+              <CreditCard className="h-4 w-4 mb-1" />
+              <span className="text-xs">Empréstimos</span>
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 gap-2 text-center">
+            <Button
+              variant={activeTab === "mensagens" ? "default" : "outline"}
+              className="flex flex-col items-center justify-center h-16 p-1"
+              onClick={() => handleTabChange("mensagens")}
+            >
+              <MessageSquare className="h-4 w-4 mb-1" />
+              <span className="text-xs">Mensagens</span>
+            </Button>
+            <Button
+              variant={activeTab === "faq" ? "default" : "outline"}
+              className="flex flex-col items-center justify-center h-16 p-1"
+              onClick={() => handleTabChange("faq")}
+            >
+              <Book className="h-4 w-4 mb-1" />
+              <span className="text-xs">FAQ</span>
+            </Button>
+          </div>
+          {/* Conteúdo conforme a aba selecionada */}
+          {activeTab === "inicio" && <ManualInicio />}
+          {activeTab === "clientes" && <ManualClientes />}
+          {activeTab === "emprestimos" && <ManualEmprestimos />}
+          {activeTab === "mensagens" && <ManualMensagens />}
+          {activeTab === "faq" && <ManualFAQ />}
         </div>
-
-        <TabsContent value="inicio" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Bem-vindo ao Manual do Usuário</CardTitle>
-              <CardDescription>
-                Este manual contém todas as informações necessárias para utilizar o sistema de forma eficiente.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p>
-                O sistema foi desenvolvido para facilitar a gestão de empréstimos, clientes e pagamentos.
-                Navegue pelas abas acima para encontrar instruções específicas para cada área do sistema.
-              </p>
-              
-              <h3 className="text-lg font-semibold mt-4">Visão Geral do Sistema</h3>
-              <p>
-                O sistema está organizado nas seguintes seções principais:
-              </p>
-              <ul className="list-disc pl-6 space-y-2">
-                <li><strong>Dashboard:</strong> Visão geral com estatísticas e informações importantes</li>
-                <li><strong>Clientes:</strong> Cadastro e gerenciamento de clientes</li>
-                <li><strong>Empréstimos:</strong> Criação e acompanhamento de empréstimos</li>
-                <li><strong>Relatórios:</strong> Relatórios e gráficos para análise de dados</li>
-                <li><strong>Mensagens:</strong> Envio de comunicações para clientes</li>
-                <li><strong>Configurações:</strong> Personalização do sistema</li>
-              </ul>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="clientes" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gerenciamento de Clientes</CardTitle>
-              <CardDescription>
-                Aprenda a cadastrar, editar e gerenciar seus clientes.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="item-1">
-                  <AccordionTrigger>Como cadastrar um novo cliente?</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Para cadastrar um novo cliente, siga os passos abaixo:</p>
-                    <ol className="list-decimal pl-6 space-y-2 mt-2">
-                      <li>Acesse o menu "Clientes" no painel lateral</li>
-                      <li>Clique no botão "Novo Cliente"</li>
-                      <li>Preencha os campos obrigatórios (Nome, CPF, etc.)</li>
-                      <li>Clique em "Salvar" para finalizar o cadastro</li>
-                    </ol>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-2">
-                  <AccordionTrigger>Como editar informações de um cliente?</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Para editar as informações de um cliente existente:</p>
-                    <ol className="list-decimal pl-6 space-y-2 mt-2">
-                      <li>Acesse o menu "Clientes"</li>
-                      <li>Localize o cliente na lista ou use a busca</li>
-                      <li>Clique no nome do cliente para acessar os detalhes</li>
-                      <li>Clique no botão "Editar" no canto superior direito</li>
-                      <li>Faça as alterações necessárias</li>
-                      <li>Clique em "Salvar" para confirmar as mudanças</li>
-                    </ol>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-3">
-                  <AccordionTrigger>Como visualizar o histórico de um cliente?</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Para visualizar o histórico completo de um cliente:</p>
-                    <ol className="list-decimal pl-6 space-y-2 mt-2">
-                      <li>Acesse o menu "Clientes"</li>
-                      <li>Clique no nome do cliente para acessar os detalhes</li>
-                      <li>Na página de detalhes, você encontrará abas com:</li>
-                      <ul className="list-disc pl-6 space-y-1 mt-1">
-                        <li>Informações pessoais</li>
-                        <li>Empréstimos ativos e anteriores</li>
-                        <li>Histórico de pagamentos</li>
-                        <li>Histórico de comunicações</li>
-                      </ul>
-                    </ol>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="emprestimos" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gerenciamento de Empréstimos</CardTitle>
-              <CardDescription>
-                Aprenda a criar, acompanhar e gerenciar empréstimos no sistema.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="item-1">
-                  <AccordionTrigger>Como criar um novo empréstimo?</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Para criar um novo empréstimo, siga os passos abaixo:</p>
-                    <ol className="list-decimal pl-6 space-y-2 mt-2">
-                      <li>Acesse o menu "Empréstimos" no painel lateral</li>
-                      <li>Clique no botão "Novo Empréstimo"</li>
-                      <li>Selecione o cliente (ou cadastre um novo)</li>
-                      <li>Preencha os valores do empréstimo:</li>
-                      <ul className="list-disc pl-6 space-y-1 mt-1">
-                        <li>Valor principal</li>
-                        <li>Taxa de juros</li>
-                        <li>Tipo de juros (simples ou composto)</li>
-                        <li>Data de vencimento</li>
-                      </ul>
-                      <li>Clique em "Salvar" para finalizar</li>
-                    </ol>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-2">
-                  <AccordionTrigger>Como registrar um pagamento?</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Para registrar um pagamento em um empréstimo:</p>
-                    <ol className="list-decimal pl-6 space-y-2 mt-2">
-                      <li>Acesse o menu "Empréstimos"</li>
-                      <li>Clique no empréstimo desejado para acessar os detalhes</li>
-                      <li>Clique no botão "Registrar Pagamento"</li>
-                      <li>Preencha o valor do pagamento</li>
-                      <li>Selecione a data do pagamento</li>
-                      <li>Escolha o tipo de pagamento (parcial ou total)</li>
-                      <li>Clique em "Confirmar" para registrar o pagamento</li>
-                    </ol>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-3">
-                  <AccordionTrigger>Como calcular juros e multas por atraso?</AccordionTrigger>
-                  <AccordionContent>
-                    <p>O sistema calcula automaticamente juros e multas por atraso, mas você pode entender como funciona:</p>
-                    <ol className="list-decimal pl-6 space-y-2 mt-2">
-                      <li>Quando um empréstimo está atrasado, o sistema aplica:</li>
-                      <ul className="list-disc pl-6 space-y-1 mt-1">
-                        <li>Multa por atraso (configurável nas Configurações Financeiras)</li>
-                        <li>Juros diários de atraso (configurável nas Configurações Financeiras)</li>
-                      </ul>
-                      <li>Para visualizar o cálculo detalhado:</li>
-                      <ul className="list-disc pl-6 space-y-1 mt-1">
-                        <li>Acesse os detalhes do empréstimo</li>
-                        <li>Vá para a aba "Cálculos"</li>
-                        <li>Você verá o valor original, juros, multas e total a pagar</li>
-                      </ul>
-                    </ol>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-4">
-                  <AccordionTrigger>Como renegociar um empréstimo?</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Para renegociar um empréstimo existente:</p>
-                    <ol className="list-decimal pl-6 space-y-2 mt-2">
-                      <li>Acesse o menu "Empréstimos"</li>
-                      <li>Clique no empréstimo que deseja renegociar</li>
-                      <li>Clique no botão "Renegociar"</li>
-                      <li>Defina os novos termos do empréstimo:</li>
-                      <ul className="list-disc pl-6 space-y-1 mt-1">
-                        <li>Novo valor principal (geralmente o saldo devedor atual)</li>
-                        <li>Nova taxa de juros</li>
-                        <li>Nova data de vencimento</li>
-                      </ul>
-                      <li>Adicione um motivo para a renegociação</li>
-                      <li>Clique em "Confirmar Renegociação"</li>
-                    </ol>
-                    <p className="mt-2">Nota: O empréstimo original será marcado como "Renegociado" e um novo empréstimo será criado com os novos termos.</p>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="mensagens" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Sistema de Mensagens</CardTitle>
-              <CardDescription>
-                Aprenda a enviar mensagens e configurar comunicações automáticas.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="item-1">
-                  <AccordionTrigger>Como criar um template de mensagem?</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Para criar um novo template de mensagem:</p>
-                    <ol className="list-decimal pl-6 space-y-2 mt-2">
-                      <li>Acesse o menu "Mensagens"</li>
-                      <li>Vá para a aba "Templates"</li>
-                      <li>Clique em "Novo Template"</li>
-                      <li>Preencha as informações:</li>
-                      <ul className="list-disc pl-6 space-y-1 mt-1">
-                        <li>Nome do template</li>
-                        <li>Tipo de mensagem (email, WhatsApp, SMS)</li>
-                        <li>Assunto (para emails)</li>
-                        <li>Conteúdo da mensagem</li>
-                      </ul>
-                      <li>Use variáveis disponíveis para personalizar a mensagem</li>
-                      <li>Clique em "Salvar Template"</li>
-                    </ol>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-2">
-                  <AccordionTrigger>Como enviar uma mensagem para um cliente?</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Para enviar uma mensagem para um cliente:</p>
-                    <ol className="list-decimal pl-6 space-y-2 mt-2">
-                      <li>Acesse o menu "Mensagens"</li>
-                      <li>Vá para a aba "Mensagens"</li>
-                      <li>Clique em "Nova Mensagem"</li>
-                      <li>Selecione o cliente destinatário</li>
-                      <li>Escolha o tipo de mensagem (email, WhatsApp, SMS)</li>
-                      <li>Opcionalmente, selecione um template existente</li>
-                      <li>Preencha o assunto e conteúdo da mensagem</li>
-                      <li>Clique em "Enviar Mensagem"</li>
-                    </ol>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-3">
-                  <AccordionTrigger>Como configurar mensagens automáticas?</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Para configurar mensagens automáticas baseadas em eventos:</p>
-                    <ol className="list-decimal pl-6 space-y-2 mt-2">
-                      <li>Acesse o menu "Mensagens"</li>
-                      <li>Vá para a aba "Agendamentos"</li>
-                      <li>Clique em "Novo Agendamento"</li>
-                      <li>Configure o agendamento:</li>
-                      <ul className="list-disc pl-6 space-y-1 mt-1">
-                        <li>Nome do agendamento</li>
-                        <li>Tipo (automático por evento ou recorrente)</li>
-                        <li>Evento disparador (ex: empréstimo vencendo, pagamento confirmado)</li>
-                        <li>Dias de antecedência (para eventos como vencimento)</li>
-                        <li>Template a ser utilizado</li>
-                      </ul>
-                      <li>Clique em "Salvar Agendamento"</li>
-                    </ol>
-                    <p className="mt-2">Nota: As mensagens automáticas serão enviadas quando os eventos configurados ocorrerem, sem necessidade de intervenção manual.</p>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-4">
-                  <AccordionTrigger>Como usar variáveis nas mensagens?</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Para personalizar mensagens com dados dinâmicos:</p>
-                    <ol className="list-decimal pl-6 space-y-2 mt-2">
-                      <li>Ao criar um template ou mensagem, você verá a seção "Variáveis Disponíveis"</li>
-                      <li>Clique em uma variável para inseri-la no conteúdo da mensagem</li>
-                      <li>As variáveis são substituídas pelos dados reais quando a mensagem é enviada</li>
-                    </ol>
-                    <p className="mt-2">Exemplos de variáveis:</p>
-                    <ul className="list-disc pl-6 space-y-1 mt-1">
-                      <li><code>{"{{cliente.nome}}"}</code> - Nome do cliente</li>
-                      <li><code>{"{{emprestimo.valor_principal}}"}</code> - Valor do empréstimo</li>
-                      <li><code>{"{{emprestimo.data_vencimento}}"}</code> - Data de vencimento</li>
-                      <li><code>{"{{pagamento.valor}}"}</code> - Valor do pagamento</li>
-                    </ul>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="faq" className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Perguntas Frequentes</CardTitle>
-              <CardDescription>
-                Respostas para as dúvidas mais comuns sobre o sistema.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="item-1">
-                  <AccordionTrigger>Como recuperar minha senha?</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Para recuperar sua senha:</p>
-                    <ol className="list-decimal pl-6 space-y-2 mt-2">
-                      <li>Na tela de login, clique em "Esqueceu sua senha?"</li>
-                      <li>Digite seu e-mail cadastrado</li>
-                      <li>Clique em "Enviar link de recuperação"</li>
-                      <li>Verifique seu e-mail e siga as instruções enviadas</li>
-                    </ol>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-2">
-                  <AccordionTrigger>O sistema funciona em dispositivos móveis?</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Sim, o sistema é totalmente responsivo e funciona em smartphones e tablets. A interface se adapta automaticamente ao tamanho da tela do dispositivo.</p>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-3">
-                  <AccordionTrigger>Como exportar relatórios?</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Para exportar relatórios:</p>
-                    <ol className="list-decimal pl-6 space-y-2 mt-2">
-                      <li>Acesse o menu "Relatórios"</li>
-                      <li>Selecione o tipo de relatório desejado</li>
-                      <li>Aplique os filtros necessários</li>
-                      <li>Clique no botão "Exportar" no canto superior direito</li>
-                      <li>Escolha o formato desejado (PDF, Excel, CSV)</li>
-                    </ol>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-4">
-                  <AccordionTrigger>Como configurar as taxas de juros padrão?</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Para configurar as taxas de juros padrão:</p>
-                    <ol className="list-decimal pl-6 space-y-2 mt-2">
-                      <li>Acesse o menu "Configurações"</li>
-                      <li>Clique em "Configurações Financeiras"</li>
-                      <li>Crie ou edite uma configuração financeira</li>
-                      <li>Defina os valores para:</li>
-                      <ul className="list-disc pl-6 space-y-1 mt-1">
-                        <li>Taxa padrão de juros</li>
-                        <li>Tipo de juros padrão (simples ou composto)</li>
-                        <li>Taxa de juros para atraso</li>
-                        <li>Taxa de multa para atraso</li>
-                      </ul>
-                      <li>Clique em "Salvar"</li>
-                    </ol>
-                  </AccordionContent>
-                </AccordionItem>
-                <AccordionItem value="item-5">
-                  <AccordionTrigger>O sistema envia lembretes automáticos de vencimento?</AccordionTrigger>
-                  <AccordionContent>
-                    <p>Sim, o sistema pode enviar lembretes automáticos de vencimento. Para configurar:</p>
-                    <ol className="list-decimal pl-6 space-y-2 mt-2">
-                      <li>Acesse o menu "Mensagens"</li>
-                      <li>Vá para a aba "Agendamentos"</li>
-                      <li>Crie um novo agendamento com o evento "emprestimo_vencendo"</li>
-                      <li>Configure quantos dias antes do vencimento o lembrete deve ser enviado</li>
-                      <li>Selecione o template de mensagem a ser utilizado</li>
-                      <li>Ative o agendamento</li>
-                    </ol>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+      ) : (
+        <Tabs defaultValue="inicio">
+          <TabsList>
+            <TabsTrigger value="inicio">Início</TabsTrigger>
+            <TabsTrigger value="clientes">Clientes</TabsTrigger>
+            <TabsTrigger value="emprestimos">Empréstimos</TabsTrigger>
+            <TabsTrigger value="mensagens">Mensagens</TabsTrigger>
+            <TabsTrigger value="faq">FAQ</TabsTrigger>
+          </TabsList>
+          <TabsContent value="inicio">
+            <ManualInicio />
+          </TabsContent>
+          <TabsContent value="clientes">
+            <ManualClientes />
+          </TabsContent>
+          <TabsContent value="emprestimos">
+            <ManualEmprestimos />
+          </TabsContent>
+          <TabsContent value="mensagens">
+            <ManualMensagens />
+          </TabsContent>
+          <TabsContent value="faq">
+            <ManualFAQ />
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 };
+
+const ManualInicio = () => (
+  <Card>
+    <CardHeader>
+      <CardTitle>Introdução ao Sistema</CardTitle>
+      <CardDescription>Visão geral e funcionalidades principais</CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <div>
+        <h3 className="font-bold text-lg mb-1">Bem-vindo ao Crédito Inteligente</h3>
+        <p className="text-muted-foreground">
+          O sistema Crédito Inteligente foi desenvolvido para facilitar a gestão de clientes, empréstimos e comunicações. 
+          Esta plataforma oferece ferramentas completas para automação e controle de todo o ciclo de crédito.
+        </p>
+      </div>
+      
+      <div>
+        <h3 className="font-bold text-lg mb-1">Visão Geral</h3>
+        <p className="text-muted-foreground">
+          Na página inicial (Dashboard), você encontra informações resumidas sobre empréstimos ativos, pagamentos recentes e indicadores financeiros.
+          Use o menu lateral (ou menu inferior no mobile) para navegar entre as diferentes seções do sistema.
+        </p>
+      </div>
+      
+      <div>
+        <h3 className="font-bold text-lg mb-1">Módulos Principais</h3>
+        <ul className="ml-6 list-disc space-y-2 text-muted-foreground">
+          <li><strong>Clientes:</strong> Cadastro e gestão de informações dos clientes</li>
+          <li><strong>Empréstimos:</strong> Controle de empréstimos, parcelas e renegociações</li>
+          <li><strong>Mensagens:</strong> Comunicação automatizada com clientes</li>
+          <li><strong>Relatórios:</strong> Análises financeiras e demonstrativos</li>
+          <li><strong>Configurações:</strong> Personalização do sistema</li>
+        </ul>
+      </div>
+    </CardContent>
+    <CardFooter>
+      <Badge variant="outline">Versão 1.0</Badge>
+    </CardFooter>
+  </Card>
+);
+
+const ManualClientes = () => (
+  <Card>
+    <CardHeader>
+      <CardTitle>Gestão de Clientes</CardTitle>
+      <CardDescription>Como cadastrar e gerenciar clientes</CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <div>
+        <h3 className="font-bold text-lg mb-1">Cadastrando um Novo Cliente</h3>
+        <p className="text-muted-foreground">
+          Para cadastrar um novo cliente, acesse o menu "Clientes" e clique no botão "Novo Cliente". 
+          Preencha todas as informações obrigatórias como nome, CPF e telefone.
+        </p>
+      </div>
+      
+      <div>
+        <h3 className="font-bold text-lg mb-1">Consultando Clientes</h3>
+        <p className="text-muted-foreground">
+          Na lista de clientes, você pode utilizar a barra de busca para encontrar um cliente específico por nome, CPF ou email.
+          Clique em "Ver detalhes" para acessar todas as informações do cliente.
+        </p>
+      </div>
+      
+      <div>
+        <h3 className="font-bold text-lg mb-1">Atualizando Dados</h3>
+        <p className="text-muted-foreground">
+          Na página de detalhes do cliente, utilize o botão "Editar" para atualizar as informações cadastrais.
+          Todas as alterações são registradas e podem ser verificadas no histórico de atividades.
+        </p>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const ManualEmprestimos = () => (
+  <Card>
+    <CardHeader>
+      <CardTitle>Gestão de Empréstimos</CardTitle>
+      <CardDescription>Como criar e gerenciar empréstimos</CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <div>
+        <h3 className="font-bold text-lg mb-1">Criando Empréstimos</h3>
+        <p className="text-muted-foreground">
+          Acesse o menu "Empréstimos" e clique em "Novo Empréstimo". Selecione o cliente, defina o valor, taxa de juros e prazo.
+          O sistema calculará automaticamente as parcelas e datas de vencimento.
+        </p>
+      </div>
+      
+      <div>
+        <h3 className="font-bold text-lg mb-1">Registrando Pagamentos</h3>
+        <p className="text-muted-foreground">
+          Na página de detalhes do empréstimo, localize a parcela desejada e clique em "Registrar Pagamento".
+          Informe o valor pago, data e método de pagamento.
+        </p>
+      </div>
+      
+      <div>
+        <h3 className="font-bold text-lg mb-1">Renegociação</h3>
+        <p className="text-muted-foreground">
+          Caso seja necessário renegociar um empréstimo, acesse a página de detalhes e clique no botão "Renegociar".
+          Defina as novas condições e confirme a operação. O sistema manterá o histórico da negociação original.
+        </p>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const ManualMensagens = () => (
+  <Card>
+    <CardHeader>
+      <CardTitle>Sistema de Comunicação</CardTitle>
+      <CardDescription>Como enviar mensagens e configurar automações</CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <div>
+        <h3 className="font-bold text-lg mb-1">Criando Templates</h3>
+        <p className="text-muted-foreground">
+          Na seção "Templates" do módulo de Mensagens, crie modelos personalizados para comunicação com clientes.
+          Utilize variáveis para personalizar o conteúdo automaticamente.
+        </p>
+      </div>
+      
+      <div>
+        <h3 className="font-bold text-lg mb-1">Enviando Mensagens</h3>
+        <p className="text-muted-foreground">
+          Para enviar uma mensagem manual, selecione o cliente, o tipo de comunicação (WhatsApp, Email ou SMS)
+          e o conteúdo desejado. É possível utilizar um template ou criar uma mensagem personalizada.
+        </p>
+      </div>
+      
+      <div>
+        <h3 className="font-bold text-lg mb-1">Agendamentos Automáticos</h3>
+        <p className="text-muted-foreground">
+          Configure regras para envio automático de mensagens baseado em eventos como vencimento de parcelas,
+          pagamentos confirmados ou atrasos. Defina o template a ser utilizado e o momento do envio.
+        </p>
+      </div>
+    </CardContent>
+  </Card>
+);
+
+const ManualFAQ = () => (
+  <Card>
+    <CardHeader>
+      <CardTitle>Perguntas Frequentes</CardTitle>
+      <CardDescription>Dúvidas comuns sobre o sistema</CardDescription>
+    </CardHeader>
+    <CardContent className="space-y-4">
+      <div>
+        <h3 className="font-bold text-lg mb-1">Como recuperar minha senha?</h3>
+        <p className="text-muted-foreground">
+          Na tela de login, clique em "Esqueci minha senha" e siga as instruções enviadas para seu email.
+        </p>
+      </div>
+      
+      <div>
+        <h3 className="font-bold text-lg mb-1">Como configurar notificações?</h3>
+        <p className="text-muted-foreground">
+          Acesse o menu "Configurações" e selecione "Notificações". Lá você pode personalizar quais alertas deseja receber.
+        </p>
+      </div>
+      
+      <div>
+        <h3 className="font-bold text-lg mb-1">Posso acessar em dispositivos móveis?</h3>
+        <p className="text-muted-foreground">
+          Sim, o sistema é responsivo e funciona em smartphones e tablets através do navegador web.
+        </p>
+      </div>
+      
+      <div>
+        <h3 className="font-bold text-lg mb-1">Como exportar relatórios?</h3>
+        <p className="text-muted-foreground">
+          Na seção de Relatórios, após gerar o relatório desejado, clique no botão "Exportar" e escolha o formato preferido (PDF ou Excel).
+        </p>
+      </div>
+    </CardContent>
+  </Card>
+);
 
 export default ManualUsuario;
