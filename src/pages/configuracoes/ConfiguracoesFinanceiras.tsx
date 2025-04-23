@@ -82,6 +82,11 @@ const ConfiguracoesFinanceiras = () => {
         .from('configuracoes_financeiras')
         .upsert({
           nome: 'evolution_api',
+          prazo_maximo_dias: 0, // Default values for required fields
+          taxa_padrao_juros: 0,
+          tipo_juros_padrao: 'simples',
+          taxa_juros_atraso: 0,
+          taxa_multa_atraso: 0,
           observacoes: JSON.stringify({
             eventos: config.eventos
           }),

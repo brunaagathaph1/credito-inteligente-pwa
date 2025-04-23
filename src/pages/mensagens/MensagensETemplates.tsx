@@ -16,7 +16,7 @@ import {
   MessageSquare, 
   MessagesSquare, 
   Send, 
-  Template, 
+  FileText, 
   Webhook 
 } from "lucide-react";
 import { EmptyState } from "@/components/common/EmptyState";
@@ -382,7 +382,7 @@ const MensagensETemplates = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
         <TabsList className="w-full md:w-auto grid grid-cols-2 md:flex flex-wrap">
           <TabsTrigger value="templates" onClick={() => setActiveTab("templates")}>
-            <Template className="mr-2 h-4 w-4" /> Templates
+            <FileText className="mr-2 h-4 w-4" /> Templates
           </TabsTrigger>
           <TabsTrigger value="mensagens" onClick={() => setActiveTab("mensagens")}>
             <Mail className="mr-2 h-4 w-4" /> Mensagens
@@ -409,7 +409,7 @@ const MensagensETemplates = () => {
                   </CardDescription>
                 </div>
                 <Button className="mt-4 md:mt-0" onClick={() => setShowTemplateEditor(true)}>
-                  <Template className="mr-2 h-4 w-4" />
+                  <FileText className="mr-2 h-4 w-4" />
                   Novo Template
                 </Button>
               </CardHeader>
@@ -433,7 +433,7 @@ const MensagensETemplates = () => {
                             <td className="py-3 px-2 capitalize">{template.tipo}</td>
                             <td className="py-3 px-2">{template.assunto || "-"}</td>
                             <td className="py-3 px-2">
-                              <Badge variant={template.ativo ? "success" : "secondary"}>
+                              <Badge variant={template.ativo ? "secondary" : "outline"}>
                                 {template.ativo ? "Ativo" : "Inativo"}
                               </Badge>
                             </td>
@@ -451,7 +451,7 @@ const MensagensETemplates = () => {
                   <EmptyState
                     title="Nenhum template encontrado"
                     description="Crie templates para enviar mensagens com facilidade"
-                    icon={<Template />}
+                    icon={<FileText />}
                     action={
                       <Button onClick={() => setShowTemplateEditor(true)}>
                         Criar Primeiro Template
@@ -506,7 +506,7 @@ const MensagensETemplates = () => {
                             <td className="py-3 px-2">
                               <Badge 
                                 variant={
-                                  mensagem.status === "enviado" ? "success" : 
+                                  mensagem.status === "enviado" ? "secondary" : 
                                   mensagem.status === "agendado" ? "outline" : 
                                   "destructive"
                                 }
@@ -580,7 +580,7 @@ const MensagensETemplates = () => {
                             <td className="py-3 px-2">{agendamento.template}</td>
                             <td className="py-3 px-2">
                               <Badge 
-                                variant={agendamento.ativo ? "success" : "destructive"}
+                                variant={agendamento.ativo ? "secondary" : "destructive"}
                               >
                                 {agendamento.ativo ? "Ativo" : "Inativo"}
                               </Badge>

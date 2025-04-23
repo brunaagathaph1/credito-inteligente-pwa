@@ -1,460 +1,600 @@
 
-import { PageHeader } from "@/components/common/PageHeader";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React from 'react';
+import { PageHeader } from '@/components/common/PageHeader';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Button } from '@/components/ui/button';
+import { Search, BookOpen, Users, CreditCard, BarChart2, MessageSquare, Settings } from 'lucide-react';
 
 const ManualUsuario = () => {
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Manual do Usuário"
-        description="Guia completo para utilização do sistema Crédito Inteligente"
+      <PageHeader 
+        title="Manual do Usuário" 
+        description="Guia completo de todas as funcionalidades do sistema"
       />
-
-      <Tabs defaultValue="introducao">
-        <TabsList className="w-full md:w-auto grid grid-cols-2 md:flex">
-          <TabsTrigger value="introducao">Introdução</TabsTrigger>
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="clientes">Clientes</TabsTrigger>
-          <TabsTrigger value="emprestimos">Empréstimos</TabsTrigger>
-          <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
-          <TabsTrigger value="configuracoes">Configurações</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="introducao">
-          <Card>
-            <CardHeader>
-              <CardTitle>Introdução ao Sistema</CardTitle>
-              <CardDescription>
-                Visão geral do sistema Crédito Inteligente
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Bem-vindo ao Crédito Inteligente</h3>
-                <p>
-                  O Crédito Inteligente é um sistema completo para gestão de empréstimos e controle
-                  financeiro, desenvolvido para facilitar a administração de operações de crédito,
-                  clientes e pagamentos.
-                </p>
-                
-                <h4 className="text-md font-semibold mt-4">Recursos Principais</h4>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>
-                    <strong>Dashboard:</strong> Visão geral das finanças, empréstimos ativos e
-                    vencimentos.
-                  </li>
-                  <li>
-                    <strong>Clientes:</strong> Cadastro e gerenciamento completo de clientes.
-                  </li>
-                  <li>
-                    <strong>Empréstimos:</strong> Controle detalhado de empréstimos, pagamentos e
-                    renegociações.
-                  </li>
-                  <li>
-                    <strong>Relatórios:</strong> Análise detalhada de desempenho financeiro e
-                    operacional.
-                  </li>
-                  <li>
-                    <strong>Mensagens:</strong> Comunicação com clientes por meio de templates
-                    personalizados.
-                  </li>
-                  <li>
-                    <strong>Configurações:</strong> Personalização do sistema de acordo com suas
-                    necessidades.
-                  </li>
-                </ul>
-                
-                <h4 className="text-md font-semibold mt-4">Como Usar este Manual</h4>
-                <p>
-                  Este manual foi organizado por seções para facilitar a consulta. Navegue pelas
-                  abas acima para acessar instruções detalhadas sobre cada funcionalidade do
-                  sistema.
-                </p>
-                <p>
-                  Se você é um novo usuário, recomendamos ler todas as seções para se familiarizar
-                  com o sistema. Se está buscando informações específicas, vá diretamente para a
-                  seção desejada.
-                </p>
+      
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center">
+            <BookOpen className="w-5 h-5 mr-2" />
+            Manual do Sistema Crédito Inteligente
+          </CardTitle>
+          <CardDescription>
+            Explore este manual para aprender a usar todas as funcionalidades disponíveis no sistema.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="introducao" className="mt-2">
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="w-full md:w-64 flex-shrink-0">
+                <div className="sticky top-4">
+                  <div className="mb-4 relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <input
+                      type="search"
+                      placeholder="Buscar no manual..."
+                      className="pl-8 h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                    />
+                  </div>
+                  <TabsList className="flex flex-col h-auto w-full bg-muted p-0 gap-1">
+                    <TabsTrigger value="introducao" className="justify-start w-full px-3 h-9 data-[state=active]:text-primary">
+                      Introdução
+                    </TabsTrigger>
+                    <TabsTrigger value="dashboard" className="justify-start w-full px-3 h-9 data-[state=active]:text-primary">
+                      Dashboard
+                    </TabsTrigger>
+                    <TabsTrigger value="clientes" className="justify-start w-full px-3 h-9 data-[state=active]:text-primary">
+                      Clientes
+                    </TabsTrigger>
+                    <TabsTrigger value="emprestimos" className="justify-start w-full px-3 h-9 data-[state=active]:text-primary">
+                      Empréstimos
+                    </TabsTrigger>
+                    <TabsTrigger value="relatorios" className="justify-start w-full px-3 h-9 data-[state=active]:text-primary">
+                      Relatórios
+                    </TabsTrigger>
+                    <TabsTrigger value="mensagens" className="justify-start w-full px-3 h-9 data-[state=active]:text-primary">
+                      Mensagens
+                    </TabsTrigger>
+                    <TabsTrigger value="configuracoes" className="justify-start w-full px-3 h-9 data-[state=active]:text-primary">
+                      Configurações
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="dashboard">
-          <Card>
-            <CardHeader>
-              <CardTitle>Dashboard</CardTitle>
-              <CardDescription>
-                Painel de controle com visão geral do sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Painel de Controle</h3>
-                <p>
-                  O Dashboard é a página inicial do sistema e apresenta uma visão geral dos principais
-                  indicadores financeiros e operacionais:
-                </p>
-                
-                <h4 className="text-md font-semibold mt-4">Elementos do Dashboard</h4>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>
-                    <strong>Cartões de Resumo:</strong> Mostram dados resumidos como total
-                    emprestado, valor a receber, total de clientes e empréstimos ativos.
-                  </li>
-                  <li>
-                    <strong>Gráfico de Desempenho:</strong> Apresenta visualmente a evolução
-                    de empréstimos e pagamentos ao longo do tempo.
-                  </li>
-                  <li>
-                    <strong>Empréstimos a Vencer:</strong> Lista os próximos empréstimos com
-                    datas de vencimento próximas.
-                  </li>
-                  <li>
-                    <strong>Últimos Pagamentos:</strong> Registros dos pagamentos mais recentes
-                    recebidos no sistema.
-                  </li>
-                </ul>
-                
-                <h4 className="text-md font-semibold mt-4">Como Usar o Dashboard</h4>
-                <p>
-                  O Dashboard oferece uma visualização rápida do estado atual do seu negócio.
-                  É recomendável verificá-lo diariamente para:
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Identificar empréstimos a vencer nos próximos dias</li>
-                  <li>Acompanhar entrada de novos pagamentos</li>
-                  <li>Monitorar o desempenho geral do seu portfolio de empréstimos</li>
-                  <li>Verificar a distribuição de valores por status</li>
-                </ul>
-                
-                <p className="mt-4">
-                  Para obter informações mais detalhadas, você pode clicar nos links disponíveis
-                  no Dashboard que o levarão às respectivas páginas com informações completas.
-                </p>
+              
+              <div className="flex-1">
+                <ScrollArea className="h-[600px] rounded-md border p-4">
+                  <TabsContent value="introducao" className="mt-0 space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold">Bem-vindo ao Sistema Crédito Inteligente</h3>
+                      <p className="mt-2 text-muted-foreground">
+                        O Sistema Crédito Inteligente é uma plataforma completa para gestão de empréstimos. Este manual vai te ajudar a entender e utilizar todas as funcionalidades disponíveis.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Visão Geral do Sistema</h4>
+                      <p className="text-muted-foreground">
+                        Nosso sistema foi desenvolvido para facilitar o gerenciamento de empréstimos, com funcionalidades como cadastro de clientes, controle de empréstimos, gestão de pagamentos, relatórios e muito mais.
+                      </p>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <h4 className="font-medium">Como Navegar</h4>
+                      <p className="text-muted-foreground">
+                        A navegação no sistema é feita através do menu lateral (ou menu inferior em dispositivos móveis). As principais áreas são:
+                      </p>
+                      <ul className="list-disc pl-5 mt-2 space-y-1 text-muted-foreground">
+                        <li><strong>Dashboard:</strong> Visão geral dos empréstimos e pagamentos</li>
+                        <li><strong>Clientes:</strong> Gerenciamento de clientes</li>
+                        <li><strong>Empréstimos:</strong> Controle dos empréstimos e pagamentos</li>
+                        <li><strong>Relatórios:</strong> Gráficos e relatórios financeiros</li>
+                        <li><strong>Mensagens:</strong> Comunicação com clientes</li>
+                        <li><strong>Configurações:</strong> Ajustes do sistema</li>
+                      </ul>
+                    </div>
+                    
+                    <div className="mt-4">
+                      <h4 className="font-medium">Primeiros Passos</h4>
+                      <ol className="list-decimal pl-5 mt-2 space-y-1 text-muted-foreground">
+                        <li>Cadastre um cliente em "Clientes {'>'} Novo Cliente"</li>
+                        <li>Crie um empréstimo em "Empréstimos {'>'} Novo Empréstimo"</li>
+                        <li>Registre pagamentos no detalhe do empréstimo</li>
+                        <li>Acompanhe pagamentos no Dashboard</li>
+                      </ol>
+                    </div>
+                  </TabsContent>
+                  
+                  <TabsContent value="dashboard" className="mt-0 space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold flex items-center">
+                        <BarChart2 className="w-5 h-5 mr-2" />
+                        Dashboard
+                      </h3>
+                      <p className="mt-2 text-muted-foreground">
+                        O Dashboard é a tela inicial do sistema e fornece uma visão geral dos empréstimos, pagamentos e indicadores financeiros.
+                      </p>
+                    </div>
+                    
+                    <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value="cards">
+                        <AccordionTrigger>Cartões de Resumo</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Na parte superior do Dashboard, você encontrará cartões com resumos importantes:
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li><strong>Total Emprestado:</strong> Soma de todos os empréstimos ativos</li>
+                            <li><strong>Recebido no Mês:</strong> Total de pagamentos recebidos no mês atual</li>
+                            <li><strong>Vencendo Hoje:</strong> Quantidade de empréstimos que vencem hoje</li>
+                            <li><strong>Atrasados:</strong> Quantidade de empréstimos em atraso</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="graficos">
+                        <AccordionTrigger>Gráficos</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Os gráficos do Dashboard mostram visualmente:
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li><strong>Empréstimos por Status:</strong> Distribuição dos empréstimos por status (ativos, quitados, atrasados)</li>
+                            <li><strong>Pagamentos por Mês:</strong> Histórico de pagamentos recebidos nos últimos meses</li>
+                            <li><strong>Empréstimos por Cliente:</strong> Distribuição de empréstimos por cliente</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="listas">
+                        <AccordionTrigger>Listas de Acompanhamento</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Na parte inferior do Dashboard, você encontrará listas para acompanhamento:
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li><strong>Próximos Vencimentos:</strong> Lista dos empréstimos que vencem nos próximos dias</li>
+                            <li><strong>Empréstimos em Atraso:</strong> Lista dos empréstimos com pagamentos em atraso</li>
+                            <li><strong>Últimos Pagamentos:</strong> Registro dos pagamentos mais recentes</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </TabsContent>
+                  
+                  <TabsContent value="clientes" className="mt-0 space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold flex items-center">
+                        <Users className="w-5 h-5 mr-2" />
+                        Clientes
+                      </h3>
+                      <p className="mt-2 text-muted-foreground">
+                        O módulo de Clientes permite cadastrar e gerenciar todos os seus clientes.
+                      </p>
+                    </div>
+                    
+                    <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value="lista-clientes">
+                        <AccordionTrigger>Lista de Clientes</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Na tela principal de Clientes, você verá a lista de todos os clientes cadastrados.
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li>Use a barra de pesquisa para buscar clientes por nome, telefone ou email</li>
+                            <li>Clique no ícone de olho para ver os detalhes do cliente</li>
+                            <li>Use o botão "Novo Cliente" para cadastrar um cliente</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="novo-cliente">
+                        <AccordionTrigger>Cadastro de Cliente</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Para cadastrar um novo cliente, siga estes passos:
+                          </p>
+                          <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
+                            <li>Clique no botão "Novo Cliente"</li>
+                            <li>Preencha os dados do cliente (nome, telefone, email, etc.)</li>
+                            <li>O campo Nome é obrigatório</li>
+                            <li>Preencha o endereço completo para facilitar contatos futuros</li>
+                            <li>Use o campo Observações para adicionar informações adicionais</li>
+                            <li>Clique em "Salvar" para finalizar o cadastro</li>
+                          </ol>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="detalhe-cliente">
+                        <AccordionTrigger>Detalhes do Cliente</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Na tela de detalhes do cliente, você verá:
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li><strong>Dados Pessoais:</strong> Todas as informações de contato do cliente</li>
+                            <li><strong>Empréstimos:</strong> Lista de todos os empréstimos do cliente</li>
+                            <li><strong>Histórico de Pagamentos:</strong> Registro de todos os pagamentos realizados</li>
+                            <li>Use o botão "Editar" para atualizar as informações do cliente</li>
+                            <li>Use o botão "Novo Empréstimo" para criar um empréstimo para este cliente</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </TabsContent>
+                  
+                  <TabsContent value="emprestimos" className="mt-0 space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold flex items-center">
+                        <CreditCard className="w-5 h-5 mr-2" />
+                        Empréstimos
+                      </h3>
+                      <p className="mt-2 text-muted-foreground">
+                        O módulo de Empréstimos permite gerenciar todos os empréstimos e seus pagamentos.
+                      </p>
+                    </div>
+                    
+                    <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value="lista-emprestimos">
+                        <AccordionTrigger>Lista de Empréstimos</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Na tela principal de Empréstimos, você verá a lista de todos os empréstimos cadastrados.
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li>Use a barra de pesquisa para buscar empréstimos por cliente ou status</li>
+                            <li>Use os filtros para visualizar empréstimos por status (pendente, pago, atrasado)</li>
+                            <li>Clique no ícone de olho para ver os detalhes do empréstimo</li>
+                            <li>Use o botão "Novo Empréstimo" para cadastrar um empréstimo</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="novo-emprestimo">
+                        <AccordionTrigger>Cadastro de Empréstimo</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Para cadastrar um novo empréstimo, siga estes passos:
+                          </p>
+                          <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
+                            <li>Clique no botão "Novo Empréstimo"</li>
+                            <li>Selecione o cliente no campo Cliente</li>
+                            <li>Preencha o Valor Principal do empréstimo</li>
+                            <li>Defina a Taxa de Juros aplicada</li>
+                            <li>Escolha o Tipo de Juros (simples ou composto)</li>
+                            <li>Selecione a Data do Empréstimo (por padrão, é a data atual)</li>
+                            <li>Defina a Data de Vencimento</li>
+                            <li>Use o campo Observações para adicionar informações adicionais</li>
+                            <li>Clique em "Salvar" para finalizar o cadastro</li>
+                          </ol>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="detalhe-emprestimo">
+                        <AccordionTrigger>Detalhes do Empréstimo</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Na tela de detalhes do empréstimo, você verá:
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li><strong>Dados do Empréstimo:</strong> Todas as informações sobre o empréstimo</li>
+                            <li><strong>Dados do Cliente:</strong> Informações do cliente vinculado</li>
+                            <li><strong>Pagamentos:</strong> Lista de todos os pagamentos realizados</li>
+                            <li><strong>Renegociações:</strong> Histórico de renegociações, se houver</li>
+                            <li>Use o botão "Registrar Pagamento" para adicionar um novo pagamento</li>
+                            <li>Use o botão "Renegociar" para fazer uma renegociação do empréstimo</li>
+                            <li>Use o botão "Editar" para atualizar as informações do empréstimo</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="pagamentos">
+                        <AccordionTrigger>Pagamentos</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Para registrar um pagamento, siga estes passos:
+                          </p>
+                          <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
+                            <li>Na tela de detalhes do empréstimo, clique em "Registrar Pagamento"</li>
+                            <li>Preencha o Valor do pagamento</li>
+                            <li>Selecione a Data do Pagamento</li>
+                            <li>Escolha o Tipo de pagamento (parcial, total, juros)</li>
+                            <li>Use o campo Observações para adicionar informações adicionais</li>
+                            <li>Clique em "Salvar" para registrar o pagamento</li>
+                          </ol>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="renegociacao">
+                        <AccordionTrigger>Renegociação</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Para realizar uma renegociação, siga estes passos:
+                          </p>
+                          <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
+                            <li>Na tela de detalhes do empréstimo, clique em "Renegociar"</li>
+                            <li>Defina o Novo Valor Principal (incluindo juros acumulados, se aplicável)</li>
+                            <li>Ajuste a Nova Taxa de Juros, se necessário</li>
+                            <li>Escolha o Novo Tipo de Juros, se desejar alterar</li>
+                            <li>Defina a Nova Data de Vencimento</li>
+                            <li>Preencha o Motivo da renegociação</li>
+                            <li>Clique em "Confirmar Renegociação" para finalizar</li>
+                          </ol>
+                          <p className="text-muted-foreground mt-2">
+                            Ao renegociar, o empréstimo atual será marcado como "Renegociado" e um novo empréstimo será criado com as novas condições.
+                          </p>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </TabsContent>
+                  
+                  <TabsContent value="relatorios" className="mt-0 space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold flex items-center">
+                        <BarChart2 className="w-5 h-5 mr-2" />
+                        Relatórios
+                      </h3>
+                      <p className="mt-2 text-muted-foreground">
+                        O módulo de Relatórios fornece gráficos e análises detalhadas sobre seus empréstimos e pagamentos.
+                      </p>
+                    </div>
+                    
+                    <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value="graficos-gerais">
+                        <AccordionTrigger>Gráficos Gerais</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Os gráficos gerais mostram uma visão ampla dos seus empréstimos:
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li><strong>Evolução Mensal:</strong> Mostra o volume de empréstimos e pagamentos mês a mês</li>
+                            <li><strong>Distribuição por Status:</strong> Gráfico de pizza mostrando a proporção de empréstimos por status</li>
+                            <li><strong>Principais Clientes:</strong> Clientes com maior volume de empréstimos</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="relatorios-filtrados">
+                        <AccordionTrigger>Relatórios Filtrados</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Você pode criar relatórios personalizados usando os filtros disponíveis:
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li>Filtre por período (data inicial e final)</li>
+                            <li>Filtre por cliente</li>
+                            <li>Filtre por status do empréstimo</li>
+                            <li>Filtre por valor (mínimo e máximo)</li>
+                            <li>Após aplicar os filtros, clique em "Gerar Relatório"</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="exportacao">
+                        <AccordionTrigger>Exportação de Dados</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Você pode exportar os relatórios gerados em diferentes formatos:
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li>Clique no botão "Exportar" após gerar um relatório</li>
+                            <li>Escolha o formato desejado (PDF, Excel, CSV)</li>
+                            <li>O arquivo será gerado e baixado automaticamente</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </TabsContent>
+                  
+                  <TabsContent value="mensagens" className="mt-0 space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold flex items-center">
+                        <MessageSquare className="w-5 h-5 mr-2" />
+                        Mensagens
+                      </h3>
+                      <p className="mt-2 text-muted-foreground">
+                        O módulo de Mensagens permite enviar comunicações para seus clientes via e-mail e WhatsApp.
+                      </p>
+                    </div>
+                    
+                    <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value="templates">
+                        <AccordionTrigger>Templates de Mensagens</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Os templates permitem criar modelos de mensagens que podem ser reutilizados:
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li>Clique em "Novo Template" para criar um modelo</li>
+                            <li>Defina o Nome do template</li>
+                            <li>Escolha o Tipo (e-mail ou WhatsApp)</li>
+                            <li>Para e-mails, defina o Assunto</li>
+                            <li>Escreva o Conteúdo da mensagem</li>
+                            <li>Use as Variáveis Disponíveis para personalizar as mensagens</li>
+                            <li>Clique em "Salvar Template" para finalizar</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="envio-mensagens">
+                        <AccordionTrigger>Envio de Mensagens</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Para enviar uma mensagem, siga estes passos:
+                          </p>
+                          <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
+                            <li>Clique em "Nova Mensagem"</li>
+                            <li>Selecione o Cliente destinatário</li>
+                            <li>Escolha o Tipo de mensagem (e-mail ou WhatsApp)</li>
+                            <li>Opcionalmente, selecione um Template para usar como base</li>
+                            <li>Se desejar, defina um Agendamento para envio futuro</li>
+                            <li>Para e-mails, preencha o Assunto</li>
+                            <li>Escreva o Conteúdo da mensagem</li>
+                            <li>Clique em "Enviar Mensagem" para finalizar</li>
+                          </ol>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="agendamentos">
+                        <AccordionTrigger>Agendamentos Automáticos</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Agendamentos permitem automatizar o envio de mensagens com base em eventos:
+                          </p>
+                          <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
+                            <li>Clique em "Novo Agendamento"</li>
+                            <li>Defina o Nome do agendamento</li>
+                            <li>Escolha o Tipo (automático por evento ou recorrente)</li>
+                            <li>Selecione o Evento Disparador (empréstimo criado, vencendo, etc.)</li>
+                            <li>Para eventos de vencimento, defina os Dias de Antecedência</li>
+                            <li>Selecione o Template a ser utilizado</li>
+                            <li>Clique em "Salvar Agendamento" para finalizar</li>
+                          </ol>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="integracoes">
+                        <AccordionTrigger>Integrações</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Configure integrações para envio de mensagens via WhatsApp e recebimento de eventos externos:
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li><strong>WhatsApp (Evolution API):</strong> Conecte sua conta do WhatsApp para envio de mensagens</li>
+                            <li><strong>Webhooks:</strong> Configure URLs para receber notificações de eventos do sistema</li>
+                            <li><strong>API externa:</strong> Configure uma API para consultas externas ao sistema</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </TabsContent>
+                  
+                  <TabsContent value="configuracoes" className="mt-0 space-y-4">
+                    <div>
+                      <h3 className="text-lg font-semibold flex items-center">
+                        <Settings className="w-5 h-5 mr-2" />
+                        Configurações
+                      </h3>
+                      <p className="mt-2 text-muted-foreground">
+                        O módulo de Configurações permite personalizar o sistema de acordo com suas necessidades.
+                      </p>
+                    </div>
+                    
+                    <Accordion type="single" collapsible className="w-full">
+                      <AccordionItem value="categorias">
+                        <AccordionTrigger>Categorias</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Gerencie categorias para organizar seus empréstimos:
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li>Veja a lista de categorias existentes</li>
+                            <li>Clique em "Nova Categoria" para criar uma categoria</li>
+                            <li>Preencha o Nome e a Descrição da categoria</li>
+                            <li>Use o botão "Editar" para modificar uma categoria existente</li>
+                            <li>Use o botão "Excluir" para remover uma categoria (se não estiver em uso)</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="metodos-pagamento">
+                        <AccordionTrigger>Métodos de Pagamento</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Gerencie os métodos de pagamento aceitos:
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li>Veja a lista de métodos de pagamento existentes</li>
+                            <li>Clique em "Novo Método" para criar um método de pagamento</li>
+                            <li>Preencha o Nome e a Descrição do método</li>
+                            <li>Use o botão "Editar" para modificar um método existente</li>
+                            <li>Use o botão "Excluir" para remover um método (se não estiver em uso)</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="contas-bancarias">
+                        <AccordionTrigger>Contas Bancárias</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Gerencie suas contas bancárias para recebimentos:
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li>Veja a lista de contas bancárias cadastradas</li>
+                            <li>Clique em "Nova Conta" para cadastrar uma conta</li>
+                            <li>Preencha os dados da conta (banco, agência, número, titular, etc.)</li>
+                            <li>Use o botão "Editar" para modificar uma conta existente</li>
+                            <li>Use o botão "Excluir" para remover uma conta (se não estiver em uso)</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="configuracoes-financeiras">
+                        <AccordionTrigger>Configurações Financeiras</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Configure parâmetros financeiros padrão:
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li><strong>Prazo Máximo:</strong> Defina o prazo máximo em dias para empréstimos</li>
+                            <li><strong>Taxa Padrão de Juros:</strong> Configure a taxa de juros padrão</li>
+                            <li><strong>Tipo de Juros Padrão:</strong> Defina se o padrão é juros simples ou composto</li>
+                            <li><strong>Taxa de Juros de Atraso:</strong> Configure a taxa aplicada em caso de atraso</li>
+                            <li><strong>Taxa de Multa de Atraso:</strong> Defina a multa por atraso</li>
+                            <li><strong>Notificações e Eventos:</strong> Configure quais eventos devem disparar notificações</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="logs-atividades">
+                        <AccordionTrigger>Logs de Atividades</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Consulte o histórico de atividades do sistema:
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li>Veja todas as ações realizadas no sistema</li>
+                            <li>Filtre por data, usuário ou tipo de ação</li>
+                            <li>Consulte detalhes de cada atividade</li>
+                            <li>Os logs são úteis para auditoria e resolução de problemas</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                      
+                      <AccordionItem value="perfil">
+                        <AccordionTrigger>Perfil</AccordionTrigger>
+                        <AccordionContent>
+                          <p className="text-muted-foreground mb-2">
+                            Gerencie seus dados de perfil:
+                          </p>
+                          <ul className="list-disc pl-5 space-y-1 text-muted-foreground">
+                            <li>Visualize e edite seus dados pessoais</li>
+                            <li>Altere sua senha de acesso</li>
+                            <li>Configure preferências de notificação</li>
+                            <li>Gerencie sua foto de perfil</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </TabsContent>
+                </ScrollArea>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="clientes">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gestão de Clientes</CardTitle>
-              <CardDescription>
-                Cadastro e gerenciamento de clientes
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Lista de Clientes</h3>
-                <p>
-                  A página de clientes exibe todos os clientes cadastrados no sistema. A partir dela você pode:
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Visualizar todos os clientes cadastrados</li>
-                  <li>Filtrar clientes por nome, CPF ou telefone</li>
-                  <li>Acessar detalhes de um cliente específico</li>
-                  <li>Cadastrar novos clientes</li>
-                </ul>
-                
-                <h4 className="text-md font-semibold mt-4">Cadastro de Novos Clientes</h4>
-                <p>
-                  Para cadastrar um novo cliente, siga os passos:
-                </p>
-                <ol className="list-decimal pl-5 space-y-2">
-                  <li>Clique no botão "Novo Cliente" no canto superior direito</li>
-                  <li>Preencha os dados do formulário (os campos com * são obrigatórios):
-                    <ul className="list-disc pl-5 mt-2">
-                      <li><strong>Nome Completo*:</strong> Nome completo do cliente</li>
-                      <li><strong>CPF:</strong> CPF do cliente (recomendado para identificação)</li>
-                      <li><strong>Telefone:</strong> Telefone de contato principal</li>
-                      <li><strong>E-mail:</strong> Endereço de e-mail</li>
-                      <li><strong>Endereço:</strong> Endereço completo</li>
-                      <li><strong>Observações:</strong> Informações adicionais relevantes</li>
-                    </ul>
-                  </li>
-                  <li>Clique em "Salvar Cliente" para finalizar o cadastro</li>
-                </ol>
-                
-                <h4 className="text-md font-semibold mt-4">Detalhes do Cliente</h4>
-                <p>
-                  Ao clicar em um cliente na lista ou no ícone de visualização, você acessará
-                  a página de detalhes do cliente, que inclui:
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li><strong>Dados Cadastrais:</strong> Informações pessoais do cliente</li>
-                  <li><strong>Empréstimos:</strong> Lista de todos os empréstimos do cliente</li>
-                  <li><strong>Pagamentos:</strong> Histórico de pagamentos realizados</li>
-                  <li><strong>Histórico:</strong> Registro de atividades relacionadas ao cliente</li>
-                </ul>
-                
-                <p>
-                  Nesta página você também pode:
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Editar os dados do cliente</li>
-                  <li>Cadastrar um novo empréstimo para o cliente</li>
-                  <li>Enviar mensagens personalizadas</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="emprestimos">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gestão de Empréstimos</CardTitle>
-              <CardDescription>
-                Controle de empréstimos, pagamentos e renegociações
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Lista de Empréstimos</h3>
-                <p>
-                  A página de empréstimos exibe todos os empréstimos cadastrados no sistema, permitindo:
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Visualizar todos os empréstimos</li>
-                  <li>Filtrar por cliente, status ou data</li>
-                  <li>Acessar detalhes de um empréstimo específico</li>
-                  <li>Cadastrar novos empréstimos</li>
-                </ul>
-                
-                <h4 className="text-md font-semibold mt-4">Cadastro de Novo Empréstimo</h4>
-                <p>
-                  Para cadastrar um novo empréstimo, siga os passos:
-                </p>
-                <ol className="list-decimal pl-5 space-y-2">
-                  <li>Clique no botão "Novo Empréstimo" no canto superior direito</li>
-                  <li>Selecione um cliente existente ou cadastre um novo</li>
-                  <li>Preencha os dados financeiros do empréstimo:
-                    <ul className="list-disc pl-5 mt-2">
-                      <li><strong>Valor Principal*:</strong> Montante do empréstimo</li>
-                      <li><strong>Taxa de Juros*:</strong> Percentual de juros</li>
-                      <li><strong>Tipo de Juros*:</strong> Simples ou Composto</li>
-                      <li><strong>Data do Empréstimo*:</strong> Data de liberação</li>
-                      <li><strong>Data de Vencimento*:</strong> Data para pagamento</li>
-                      <li><strong>Observações:</strong> Informações adicionais</li>
-                    </ul>
-                  </li>
-                  <li>Clique em "Criar Empréstimo" para finalizar</li>
-                </ol>
-                
-                <h4 className="text-md font-semibold mt-4">Detalhes do Empréstimo</h4>
-                <p>
-                  Ao clicar em um empréstimo na lista, você acessará a página de detalhes que inclui:
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li><strong>Dados Gerais:</strong> Informações do empréstimo e cliente</li>
-                  <li><strong>Resumo Financeiro:</strong> Valores a pagar, juros e total</li>
-                  <li><strong>Pagamentos:</strong> Registro de pagamentos realizados</li>
-                  <li><strong>Renegociações:</strong> Histórico de renegociações, se houver</li>
-                </ul>
-                
-                <h4 className="text-md font-semibold mt-4">Registrar Pagamento</h4>
-                <p>
-                  Para registrar um pagamento:
-                </p>
-                <ol className="list-decimal pl-5 space-y-2">
-                  <li>Acesse a página de detalhes do empréstimo</li>
-                  <li>Clique no botão "Registrar Pagamento"</li>
-                  <li>Preencha os dados do pagamento:
-                    <ul className="list-disc pl-5 mt-2">
-                      <li><strong>Valor*:</strong> Montante do pagamento</li>
-                      <li><strong>Data*:</strong> Data em que o pagamento foi realizado</li>
-                      <li><strong>Tipo*:</strong> Pagamento parcial, total, etc.</li>
-                      <li><strong>Observações:</strong> Informações adicionais</li>
-                    </ul>
-                  </li>
-                  <li>Clique em "Salvar Pagamento"</li>
-                </ol>
-                
-                <h4 className="text-md font-semibold mt-4">Renegociar Empréstimo</h4>
-                <p>
-                  Para renegociar um empréstimo:
-                </p>
-                <ol className="list-decimal pl-5 space-y-2">
-                  <li>Acesse a página de detalhes do empréstimo</li>
-                  <li>Clique no botão "Renegociar"</li>
-                  <li>Preencha os novos termos do empréstimo:
-                    <ul className="list-disc pl-5 mt-2">
-                      <li><strong>Novo Valor Principal*:</strong> Valor atualizado</li>
-                      <li><strong>Nova Taxa de Juros*:</strong> Taxa após renegociação</li>
-                      <li><strong>Novo Tipo de Juros*:</strong> Simples ou Composto</li>
-                      <li><strong>Nova Data de Vencimento*:</strong> Prazo estendido</li>
-                      <li><strong>Motivo da Renegociação*:</strong> Justificativa</li>
-                    </ul>
-                  </li>
-                  <li>Clique em "Confirmar Renegociação"</li>
-                </ol>
-                
-                <p>
-                  Após a renegociação, o empréstimo original será marcado como "Renegociado"
-                  e um novo empréstimo será criado com os novos termos acordados.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="relatorios">
-          <Card>
-            <CardHeader>
-              <CardTitle>Relatórios e Gráficos</CardTitle>
-              <CardDescription>
-                Análise de desempenho e relatórios gerenciais
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Relatórios Disponíveis</h3>
-                <p>
-                  A seção de relatórios oferece diferentes visualizações para análise do desempenho:
-                </p>
-                
-                <h4 className="text-md font-semibold mt-4">Resumo de Desempenho</h4>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li><strong>Total Emprestado:</strong> Valor acumulado de todos os empréstimos</li>
-                  <li><strong>Total Recebido:</strong> Valor total de pagamentos recebidos</li>
-                  <li><strong>A Receber:</strong> Valor pendente de pagamento</li>
-                  <li><strong>Lucro Estimado:</strong> Previsão de lucro com juros</li>
-                </ul>
-                
-                <h4 className="text-md font-semibold mt-4">Gráficos de Análise</h4>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>
-                    <strong>Evolução Mensal:</strong> Gráfico mostrando a evolução de empréstimos e 
-                    pagamentos ao longo dos meses
-                  </li>
-                  <li>
-                    <strong>Distribuição por Status:</strong> Gráfico de pizza mostrando a proporção
-                    de empréstimos por status (Em dia, Atrasado, Quitado, etc.)
-                  </li>
-                  <li>
-                    <strong>Maiores Clientes:</strong> Ranking dos clientes com maior volume de empréstimos
-                  </li>
-                </ul>
-                
-                <h4 className="text-md font-semibold mt-4">Relatórios Detalhados</h4>
-                <p>
-                  Para cada tipo de relatório, você pode:
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Definir filtros por período, cliente ou status</li>
-                  <li>Exportar os dados em formato CSV para análise externa</li>
-                  <li>Imprimir relatórios para apresentação</li>
-                </ul>
-                
-                <h4 className="text-md font-semibold mt-4">Alertas e Notificações</h4>
-                <p>
-                  Na seção de relatórios você também encontra alertas importantes:
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li><strong>Empréstimos a Vencer:</strong> Lista de próximos vencimentos</li>
-                  <li><strong>Empréstimos Atrasados:</strong> Pendências com prazo expirado</li>
-                  <li><strong>Clientes Inadimplentes:</strong> Clientes com histórico de atraso</li>
-                </ul>
-                
-                <p className="mt-4">
-                  Utilize os relatórios regularmente para acompanhar o desempenho do seu negócio e 
-                  identificar tendências que podem ajudar na tomada de decisões estratégicas.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="configuracoes">
-          <Card>
-            <CardHeader>
-              <CardTitle>Configurações do Sistema</CardTitle>
-              <CardDescription>
-                Personalização e ajustes do sistema
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Menu de Configurações</h3>
-                <p>
-                  O menu de configurações permite personalizar o sistema de acordo com suas necessidades:
-                </p>
-                
-                <h4 className="text-md font-semibold mt-4">Configurações Financeiras</h4>
-                <p>
-                  Define os parâmetros financeiros padrão:
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li><strong>Prazo Máximo em Dias:</strong> Limite de prazo para empréstimos</li>
-                  <li><strong>Taxa Padrão de Juros:</strong> Percentual de juros sugerido</li>
-                  <li><strong>Tipo de Juros Padrão:</strong> Simples ou Composto</li>
-                  <li><strong>Taxa de Juros de Atraso:</strong> Juros aplicados em caso de atraso</li>
-                  <li><strong>Taxa de Multa de Atraso:</strong> Multa por atraso no pagamento</li>
-                </ul>
-                
-                <h4 className="text-md font-semibold mt-4">Categorias</h4>
-                <p>
-                  Gerencia categorias para classificação de empréstimos:
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Criar novas categorias</li>
-                  <li>Editar categorias existentes</li>
-                  <li>Excluir categorias não utilizadas</li>
-                </ul>
-                
-                <h4 className="text-md font-semibold mt-4">Métodos de Pagamento</h4>
-                <p>
-                  Administra os métodos de pagamento aceitos:
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Adicionar novos métodos (Dinheiro, PIX, Transferência, etc.)</li>
-                  <li>Editar métodos existentes</li>
-                  <li>Ativar ou desativar métodos</li>
-                </ul>
-                
-                <h4 className="text-md font-semibold mt-4">Contas Bancárias</h4>
-                <p>
-                  Gerencia contas bancárias para controle financeiro:
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Cadastrar contas bancárias</li>
-                  <li>Atualizar dados das contas</li>
-                  <li>Definir conta principal</li>
-                </ul>
-                
-                <h4 className="text-md font-semibold mt-4">Logs de Atividades</h4>
-                <p>
-                  Visualiza o histórico de ações realizadas no sistema:
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Ver quem realizou cada ação</li>
-                  <li>Acompanhar data e hora das atividades</li>
-                  <li>Filtrar logs por usuário, ação ou período</li>
-                </ul>
-                
-                <h4 className="text-md font-semibold mt-4">Perfil</h4>
-                <p>
-                  Gerencia seus dados de usuário:
-                </p>
-                <ul className="list-disc pl-5 space-y-2">
-                  <li>Atualizar informações pessoais</li>
-                  <li>Alterar senha de acesso</li>
-                  <li>Configurar preferências de notificação</li>
-                </ul>
-                
-                <p className="mt-4">
-                  É recomendável configurar os parâmetros financeiros e categorias logo após a 
-                  instalação do sistema para garantir que os empréstimos sejam cadastrados com
-                  os valores padrão corretos.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+            </div>
+          </Tabs>
+        </CardContent>
+      </Card>
+      
+      <div className="flex justify-center mt-6">
+        <Button variant="outline" className="mr-2">
+          Imprimir Manual
+        </Button>
+        <Button>
+          Baixar PDF
+        </Button>
+      </div>
     </div>
   );
 };
