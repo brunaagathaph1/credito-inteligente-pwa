@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,7 +14,6 @@ import { List, Plus, Pencil, Trash2 } from "lucide-react";
 import { EmptyState } from "@/components/common/EmptyState";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
-// Interface para as categorias
 interface Category {
   id: string;
   name: string;
@@ -34,7 +32,6 @@ const Categorias = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
 
-  // Fetch categorias
   useEffect(() => {
     fetchCategories();
   }, []);
@@ -160,8 +157,7 @@ const Categorias = () => {
     <div className="space-y-6">
       <PageHeader 
         title="Categorias" 
-        description="Gerencie categorias para organizar suas transações"
-        icon={<List className="h-6 w-6" />}
+        description="Gerencie as categorias de transações do sistema"
       />
 
       <Card>

@@ -21,13 +21,7 @@ export function PageHeader({
   const navigate = useNavigate();
 
   const handleBack = () => {
-    try {
-      navigate(-1);
-    } catch (error) {
-      console.error('Error navigating back:', error);
-      // Fallback to home page if there's an error
-      navigate('/');
-    }
+    navigate(-1);
   };
 
   return (

@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -168,7 +169,17 @@ export const useMensagens = () => {
             .order('nome');
           
           if (error) throw error;
-          return data || [];
+          
+          // Transform raw data to match the Agendamento type
+          const agendamentos = data?.map(item => {
+            return {
+              ...item,
+              tipo: item.tipo as 'automatico' | 'recorrente',
+              evento: item.evento as 'emprestimo_criado' | 'emprestimo_vencendo' | 'emprestimo_atrasado' | 'pagamento_confirmado'
+            };
+          }) || [];
+          
+          return agendamentos;
         } catch (error) {
           console.error("Error fetching agendamentos:", error);
           toast.error("Erro ao carregar agendamentos");

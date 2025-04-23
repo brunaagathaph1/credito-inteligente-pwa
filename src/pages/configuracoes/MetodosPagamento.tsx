@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -15,7 +14,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { EmptyState } from "@/components/common/EmptyState";
 import { format } from "date-fns";
 
-// Interface para métodos de pagamento
 interface PaymentMethod {
   id: string;
   name: string;
@@ -35,7 +33,6 @@ const MetodosPagamento = () => {
   const [deleteDialogOpen, setDeleteDialogOpen]= useState(false);
   const [methodToDelete, setMethodToDelete] = useState<string | null>(null);
 
-  // Carregar métodos de pagamento
   useEffect(() => {
     fetchPaymentMethods();
   }, []);
@@ -165,8 +162,7 @@ const MetodosPagamento = () => {
     <div className="space-y-6">
       <PageHeader 
         title="Métodos de Pagamento" 
-        description="Gerencie formas de pagamento para transações"
-        icon={<CreditCard className="h-6 w-6" />}
+        description="Gerencie os métodos de pagamento do sistema"
       />
 
       <Card>

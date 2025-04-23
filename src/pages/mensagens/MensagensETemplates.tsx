@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,6 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import { toast } from "sonner";
 import { 
   AlertTriangle, 
   Calendar, 
@@ -49,7 +50,7 @@ const MensagensETemplates = () => {
   // Template editor state
   const [newTemplate, setNewTemplate] = useState({
     nome: '',
-    tipo: '',
+    tipo: '' as 'email' | 'whatsapp' | 'sms',
     assunto: '',
     conteudo: '',
     ativo: true,
@@ -65,10 +66,17 @@ const MensagensETemplates = () => {
   };
 
   const handleTemplateSelectChange = (name: string, value: string) => {
-    setNewTemplate(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    if (name === 'tipo') {
+      setNewTemplate(prev => ({
+        ...prev,
+        [name]: value as 'email' | 'whatsapp' | 'sms'
+      }));
+    } else {
+      setNewTemplate(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleInsertVariable = (variable: VariavelTemplate) => {
@@ -105,7 +113,7 @@ const MensagensETemplates = () => {
       setShowTemplateEditor(false);
       setNewTemplate({
         nome: '',
-        tipo: '',
+        tipo: '' as 'email' | 'whatsapp' | 'sms',
         assunto: '',
         conteudo: '',
         ativo: true,
@@ -122,8 +130,8 @@ const MensagensETemplates = () => {
     template_id: '',
     assunto: '',
     conteudo: '',
-    tipo: '',
-    status: 'pendente',
+    tipo: '' as 'email' | 'whatsapp' | 'sms',
+    status: 'pendente' as 'enviado' | 'agendado' | 'erro' | 'pendente',
     data_agendamento: '',
     created_by: user?.id || ''
   });
@@ -137,10 +145,17 @@ const MensagensETemplates = () => {
   };
 
   const handleMensagemSelectChange = (name: string, value: string) => {
-    setNewMensagem(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    if (name === 'tipo') {
+      setNewMensagem(prev => ({
+        ...prev,
+        [name]: value as 'email' | 'whatsapp' | 'sms'
+      }));
+    } else {
+      setNewMensagem(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
     
     // Se selecionou um template, preenche os campos com os dados do template
     if (name === 'template_id' && value && value !== '0') {
@@ -171,8 +186,8 @@ const MensagensETemplates = () => {
         template_id: '',
         assunto: '',
         conteudo: '',
-        tipo: '',
-        status: 'pendente',
+        tipo: '' as 'email' | 'whatsapp' | 'sms',
+        status: 'pendente' as 'enviado' | 'agendado' | 'erro' | 'pendente',
         data_agendamento: '',
         created_by: user.id
       });
@@ -184,8 +199,8 @@ const MensagensETemplates = () => {
   // Agendamento editor state
   const [newAgendamento, setNewAgendamento] = useState({
     nome: '',
-    tipo: 'automatico',
-    evento: '',
+    tipo: 'automatico' as 'automatico' | 'recorrente',
+    evento: '' as 'emprestimo_criado' | 'emprestimo_vencendo' | 'emprestimo_atrasado' | 'pagamento_confirmado',
     dias_antes: 0,
     template_id: '',
     ativo: true,
@@ -196,15 +211,27 @@ const MensagensETemplates = () => {
     const { name, value } = e.target;
     setNewAgendamento(prev => ({
       ...prev,
-      [name]: value
+      [name]: name === 'dias_antes' ? parseInt(value) : value
     }));
   };
 
   const handleAgendamentoSelectChange = (name: string, value: string) => {
-    setNewAgendamento(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    if (name === 'tipo') {
+      setNewAgendamento(prev => ({
+        ...prev,
+        [name]: value as 'automatico' | 'recorrente'
+      }));
+    } else if (name === 'evento') {
+      setNewAgendamento(prev => ({
+        ...prev,
+        [name]: value as 'emprestimo_criado' | 'emprestimo_vencendo' | 'emprestimo_atrasado' | 'pagamento_confirmado'
+      }));
+    } else {
+      setNewAgendamento(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
   };
 
   const handleSaveAgendamento = async () => {
@@ -218,8 +245,8 @@ const MensagensETemplates = () => {
       setShowScheduleEditor(false);
       setNewAgendamento({
         nome: '',
-        tipo: 'automatico',
-        evento: '',
+        tipo: 'automatico' as 'automatico' | 'recorrente',
+        evento: '' as 'emprestimo_criado' | 'emprestimo_vencendo' | 'emprestimo_atrasado' | 'pagamento_confirmado',
         dias_antes: 0,
         template_id: '',
         ativo: true,
@@ -706,7 +733,7 @@ const MensagensETemplates = () => {
               <CardContent>
                 {isLoadingTemplates ? (
                   <div className="py-6 text-center">Carregando templates...</div>
-                ) : templates.length > 0 ? (
+                ) : templates && templates.length > 0 ? (
                   <div className="overflow-x-auto">
                     <table className="w-full">
                       <thead>
@@ -719,7 +746,7 @@ const MensagensETemplates = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {templates.map((template) => (
+                        {templates && templates.map((template) => (
                           <tr key={template.id} className="border-b hover:bg-muted/50">
                             <td className="py-3 px-2">{template.nome}</td>
                             <td className="py-3 px-2 capitalize">{template.tipo}</td>
