@@ -10,13 +10,14 @@ export const useLoans = () => {
 
   const fetchLoans = async () => {
     try {
-      // Fetch basic loans data with cliente
+      // Fetch basic loans data with cliente, excluding renegociated loans
       const { data: loans, error } = await supabase
         .from('emprestimos')
         .select(`
           *,
           cliente:clientes(id, nome, telefone, email, cpf)
         `)
+        .eq('renegociado', false) // Não mostrar empréstimos renegociados na lista principal
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -56,12 +57,17 @@ export const useLoans = () => {
 
   const fetchLoan = async (id: string) => {
     try {
-      // Modified query to correctly specify the relationship
+      // Modified query to correctly specify the relationship and include renegociations
       const { data, error } = await supabase
         .from('emprestimos')
         .select(`
           *,
-          cliente:clientes(id, nome, telefone, email, cpf)
+          cliente:clientes(id, nome, telefone, email, cpf),
+          renegociacao:renegociacao_id(
+            *,
+            emprestimo_anterior:emprestimo_id(*),
+            novo_emprestimo:id(*)
+          )
         `)
         .eq('id', id)
         .single();
@@ -82,21 +88,11 @@ export const useLoans = () => {
         throw pagamentosError;
       }
       
-      // Handle renegociacoes separately due to the relationship issues
-      let renegociacoes = null;
-      try {
-        const { data: renegociacoesData, error: renegociacoesError } = await supabase
-          .from('renegociacoes')
-          .select('*')
-          .eq('emprestimo_id', id);
-          
-        if (!renegociacoesError) {
-          renegociacoes = renegociacoesData;
-        }
-      } catch (renegociacaoErr) {
-        console.error('Erro ao carregar renegociações:', renegociacaoErr);
-        // Continue even if renegociacoes fail
-      }
+      // Fetch renegociacoes where this loan is either the original or new loan
+      const { data: renegociacoes, error: renegociacoesError } = await supabase
+        .from('renegociacoes')
+        .select('*, emprestimo:emprestimo_id(*)')
+        .or(`emprestimo_id.eq.${id}`);
 
       // Combine the data
       return {

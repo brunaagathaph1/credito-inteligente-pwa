@@ -15,6 +15,7 @@ import { format, addDays } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivityLogs } from "@/hooks/useActivityLogs";
+import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
 interface RenegociacaoDialogProps {
@@ -31,7 +32,10 @@ export function RenegociacaoDialog({
   onRenegociationComplete 
 }: RenegociacaoDialogProps) {
   const { logActivity } = useActivityLogs();
+  const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [formaPagamento, setFormaPagamento] = useState("Dinheiro");
+  const [observacoesAdicionais, setObservacoesAdicionais] = useState("");
   const [formData, setFormData] = useState({
     novoValorPrincipal: "",
     novaTaxaJuros: "",
@@ -55,6 +59,8 @@ export function RenegociacaoDialog({
         motivo: "",
         observacoes: ""
       });
+      setFormaPagamento("Dinheiro");
+      setObservacoesAdicionais("");
     }
   }, [emprestimo]);
 
@@ -68,9 +74,9 @@ export function RenegociacaoDialog({
   };
 
   const handleSubmit = async () => {
-    if (!emprestimo) return;
+    if (!emprestimo || !user?.id) return;
     
-    if (!formData.novoValorPrincipal || !formData.novaTaxaJuros || !formData.novaDataVencimento) {
+    if (!formData.novoValorPrincipal || !formData.novaTaxaJuros || !formData.novaDataVencimento || !formData.motivo) {
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
@@ -78,7 +84,16 @@ export function RenegociacaoDialog({
     setIsLoading(true);
     
     try {
-      // 1. Criar registro de renegociação
+      const observacoesCompletas = formaPagamento + 
+        (observacoesAdicionais ? ` - ${observacoesAdicionais}` : "");
+
+      // Verificar se houve apenas mudança na data de vencimento
+      const apenasDataAlterada = 
+        parseFloat(formData.novoValorPrincipal) === parseFloat(emprestimo.valor_principal.toString()) &&
+        parseFloat(formData.novaTaxaJuros) === parseFloat(emprestimo.taxa_juros.toString()) &&
+        formData.novoTipoJuros === emprestimo.tipo_juros;
+
+      // 1. Criar registro de renegociação em qualquer caso
       const { data: renegociacao, error: renegociacaoError } = await supabase
         .from('renegociacoes')
         .insert({
@@ -92,46 +107,65 @@ export function RenegociacaoDialog({
           nova_data_vencimento: formData.novaDataVencimento,
           data_renegociacao: new Date().toISOString().split('T')[0],
           motivo: formData.motivo,
-          observacoes: formData.observacoes,
-          created_by: "system" // Idealmente seria o ID do usuário logado
+          observacoes: observacoesCompletas,
+          created_by: user.id
         })
         .select()
         .single();
       
       if (renegociacaoError) throw renegociacaoError;
+
+      if (apenasDataAlterada) {
+        // 2A. Se apenas a data foi alterada, atualizamos o empréstimo existente
+        const { error: updateError } = await supabase
+          .from('emprestimos')
+          .update({
+            data_vencimento: formData.novaDataVencimento,
+            renegociacao_id: renegociacao.id,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', emprestimo.id);
+
+        if (updateError) throw updateError;
+
+        logActivity(`Alterou data de vencimento do empréstimo ID ${emprestimo.id}`);
+        toast.success("Data de vencimento atualizada com sucesso!");
+      } else {
+        // 2B. Se houve outras alterações, marcamos o empréstimo original como renegociado
+        const { error: emprestimoUpdateError } = await supabase
+          .from('emprestimos')
+          .update({
+            status: "renegociado",
+            renegociado: true,
+            renegociacao_id: renegociacao.id,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', emprestimo.id);
       
-      // 2. Atualizar o empréstimo original para status "quitado" e marcar como renegociado
-      const { error: emprestimoUpdateError } = await supabase
-        .from('emprestimos')
-        .update({
-          status: "quitado",
-          renegociado: true,
-          renegociacao_id: renegociacao.id,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', emprestimo.id);
+        if (emprestimoUpdateError) throw emprestimoUpdateError;
       
-      if (emprestimoUpdateError) throw emprestimoUpdateError;
+        // 3. Criar novo empréstimo com os novos valores
+        const { error: novoEmprestimoError } = await supabase
+          .from('emprestimos')
+          .insert({
+            cliente_id: emprestimo.cliente_id,
+            valor_principal: parseFloat(formData.novoValorPrincipal),
+            taxa_juros: parseFloat(formData.novaTaxaJuros),
+            tipo_juros: formData.novoTipoJuros,
+            data_emprestimo: new Date().toISOString().split('T')[0],
+            data_vencimento: formData.novaDataVencimento,
+            status: "em_dia",
+            renegociacao_id: renegociacao.id,
+            created_by: user.id,
+            renegociado: false
+          });
       
-      // 3. Criar novo empréstimo com os novos valores
-      const { error: novoEmprestimoError } = await supabase
-        .from('emprestimos')
-        .insert({
-          cliente_id: emprestimo.cliente_id,
-          valor_principal: parseFloat(formData.novoValorPrincipal),
-          taxa_juros: parseFloat(formData.novaTaxaJuros),
-          tipo_juros: formData.novoTipoJuros,
-          data_emprestimo: new Date().toISOString().split('T')[0],
-          data_vencimento: formData.novaDataVencimento,
-          status: "em-dia",
-          renegociacao_id: renegociacao.id,
-          created_by: "system" // Idealmente seria o ID do usuário logado
-        });
+        if (novoEmprestimoError) throw novoEmprestimoError;
       
-      if (novoEmprestimoError) throw novoEmprestimoError;
-      
-      logActivity(`Renegociou empréstimo ID ${emprestimo.id}`);
-      toast.success("Empréstimo renegociado com sucesso!");
+        logActivity(`Renegociou empréstimo ID ${emprestimo.id}`);
+        toast.success("Empréstimo renegociado com sucesso!");
+      }
+
       onRenegociationComplete();
       onClose();
     } catch (error) {
@@ -232,15 +266,33 @@ export function RenegociacaoDialog({
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="forma_pagamento">Forma de Pagamento</Label>
+            <Select
+              value={formaPagamento}
+              onValueChange={setFormaPagamento}
+            >
+              <SelectTrigger id="forma_pagamento">
+                <SelectValue placeholder="Selecione a forma de pagamento" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                <SelectItem value="PIX">PIX</SelectItem>
+                <SelectItem value="Transferência">Transferência</SelectItem>
+                <SelectItem value="Depósito">Depósito</SelectItem>
+                <SelectItem value="Outro">Outro</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           
           <div className="space-y-2">
             <Label htmlFor="observacoes">Observações</Label>
             <Textarea
               id="observacoes"
-              name="observacoes"
               placeholder="Observações adicionais sobre a renegociação..."
-              value={formData.observacoes}
-              onChange={handleInputChange}
+              value={observacoesAdicionais}
+              onChange={(e) => setObservacoesAdicionais(e.target.value)}
             />
           </div>
         </div>

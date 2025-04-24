@@ -53,12 +53,14 @@ const EmprestimoDetalhe = () => {
   const registerPaymentMutation = useRegisterPayment();
   
   // Local state
+  const [formaPagamento, setFormaPagamento] = useState("Dinheiro");
+  const [observacoesAdicionais, setObservacoesAdicionais] = useState("");
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [showRenegociacaoDialog, setShowRenegociacaoDialog] = useState(false);
   const [newPayment, setNewPayment] = useState({
     valor: "",
     data_pagamento: new Date().toISOString().split("T")[0],
-    tipo: "dinheiro",
+    tipo: "parcial",
     observacoes: "",
     emprestimo_id: id || "",
     created_by: user?.id || "",
@@ -101,19 +103,28 @@ const EmprestimoDetalhe = () => {
         toast.error("Informe um valor válido para o pagamento");
         return;
       }
+
+      // Combina a forma de pagamento com as observações adicionais
+      const observacoesCompletas = formaPagamento + (observacoesAdicionais ? ` - ${observacoesAdicionais}` : "");
       
-      await registerPaymentMutation.mutateAsync(newPayment);
+      await registerPaymentMutation.mutateAsync({
+        ...newPayment,
+        observacoes: observacoesCompletas
+      });
+      
       setShowPaymentDialog(false);
       
       // Reset payment form
       setNewPayment({
         valor: "",
         data_pagamento: new Date().toISOString().split("T")[0],
-        tipo: "dinheiro",
+        tipo: "parcial",
         observacoes: "",
         emprestimo_id: id || "",
         created_by: user?.id || "",
       });
+      setFormaPagamento("Dinheiro");
+      setObservacoesAdicionais("");
       
       toast.success("Pagamento registrado com sucesso!");
     } catch (error) {
@@ -358,23 +369,33 @@ const EmprestimoDetalhe = () => {
             </CardHeader>
             <CardContent>
               {loan.pagamentos && loan.pagamentos.length > 0 ? (
-                <div className="rounded-md border">
-                  <div className="grid grid-cols-4 p-3 font-medium border-b bg-muted/40">
-                    <div>Data</div>
-                    <div>Valor</div>
-                    <div>Tipo</div>
-                    <div>Observações</div>
-                  </div>
-                  <div className="divide-y">
-                    {loan.pagamentos.map((pagamento) => (
-                      <div key={pagamento.id} className="grid grid-cols-4 p-3">
-                        <div>{formatDate(pagamento.data_pagamento)}</div>
-                        <div>{formatCurrency(pagamento.valor)}</div>
-                        <div className="capitalize">{pagamento.tipo}</div>
-                        <div className="truncate text-sm text-muted-foreground">{pagamento.observacoes || "-"}</div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="space-y-4">
+                  {loan.pagamentos.map((pagamento) => (
+                    <Card key={pagamento.id}>
+                      <CardContent className="p-4">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <p className="text-xs text-muted-foreground">Data</p>
+                            <p className="text-sm font-medium">{formatDate(pagamento.data_pagamento)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Valor</p>
+                            <p className="text-sm font-medium text-green-600">{formatCurrency(pagamento.valor)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-muted-foreground">Tipo</p>
+                            <p className="text-sm capitalize">{pagamento.tipo}</p>
+                          </div>
+                          {pagamento.observacoes && (
+                            <div className="col-span-2 mt-2">
+                              <p className="text-xs text-muted-foreground">Observações</p>
+                              <p className="text-sm">{pagamento.observacoes}</p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               ) : (
                 <EmptyState
@@ -390,7 +411,84 @@ const EmprestimoDetalhe = () => {
               )}
             </CardContent>
           </Card>
-          
+
+          {/* Histórico de Renegociações */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Histórico de Renegociações</CardTitle>
+              <CardDescription>
+                Alterações e renegociações deste empréstimo
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loan.renegociacoes && loan.renegociacoes.length > 0 ? (
+                <div className="space-y-4">
+                  {loan.renegociacoes.map((renegociacao) => (
+                    <Card key={renegociacao.id}>
+                      <CardContent className="p-4">
+                        <div className="space-y-4">
+                          <div className="grid grid-cols-2 gap-2">
+                            <div>
+                              <p className="text-xs text-muted-foreground">Data</p>
+                              <p className="text-sm font-medium">{formatDate(renegociacao.data_renegociacao)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-muted-foreground">Motivo</p>
+                              <p className="text-sm capitalize">{renegociacao.motivo}</p>
+                            </div>
+                          </div>
+                          
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">Alterações</p>
+                            <div className="space-y-1 text-sm">
+                              {renegociacao.emprestimo_anterior_valor !== renegociacao.novo_valor_principal && (
+                                <div className="flex items-center gap-2">
+                                  <span>Valor:</span>
+                                  <span className="text-muted-foreground">{formatCurrency(renegociacao.emprestimo_anterior_valor)}</span>
+                                  <span>→</span>
+                                  <span className="font-medium">{formatCurrency(renegociacao.novo_valor_principal)}</span>
+                                </div>
+                              )}
+                              {renegociacao.emprestimo_anterior_juros !== renegociacao.nova_taxa_juros && (
+                                <div className="flex items-center gap-2">
+                                  <span>Juros:</span>
+                                  <span className="text-muted-foreground">{renegociacao.emprestimo_anterior_juros}%</span>
+                                  <span>→</span>
+                                  <span className="font-medium">{renegociacao.nova_taxa_juros}%</span>
+                                </div>
+                              )}
+                              {renegociacao.emprestimo_anterior_vencimento !== renegociacao.nova_data_vencimento && (
+                                <div className="flex items-center gap-2">
+                                  <span>Vencimento:</span>
+                                  <span className="text-muted-foreground">{formatDate(renegociacao.emprestimo_anterior_vencimento)}</span>
+                                  <span>→</span>
+                                  <span className="font-medium">{formatDate(renegociacao.nova_data_vencimento)}</span>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {renegociacao.observacoes && (
+                            <div>
+                              <p className="text-xs text-muted-foreground">Observações</p>
+                              <p className="text-sm">{renegociacao.observacoes}</p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  title="Sem renegociações"
+                  description="Este empréstimo não possui histórico de renegociações."
+                  icon={<Repeat className="h-10 w-10" />}
+                />
+              )}
+            </CardContent>
+          </Card>
+
           {loan.observacoes && (
             <Card>
               <CardHeader>
@@ -472,11 +570,28 @@ const EmprestimoDetalhe = () => {
                   <SelectValue placeholder="Selecione o tipo de pagamento" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="dinheiro">Dinheiro</SelectItem>
-                  <SelectItem value="pix">PIX</SelectItem>
-                  <SelectItem value="transferencia">Transferência</SelectItem>
-                  <SelectItem value="deposito">Depósito</SelectItem>
-                  <SelectItem value="outro">Outro</SelectItem>
+                  <SelectItem value="parcial">Pagamento Parcial</SelectItem>
+                  <SelectItem value="total">Pagamento Total</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="forma_pagamento" className="text-right">
+                Forma
+              </Label>
+              <Select
+                value={formaPagamento}
+                onValueChange={setFormaPagamento}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecione a forma de pagamento" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                  <SelectItem value="PIX">PIX</SelectItem>
+                  <SelectItem value="Transferência">Transferência</SelectItem>
+                  <SelectItem value="Depósito">Depósito</SelectItem>
+                  <SelectItem value="Outro">Outro</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -486,11 +601,10 @@ const EmprestimoDetalhe = () => {
               </Label>
               <Textarea
                 id="observacoes"
-                name="observacoes"
-                placeholder="Observações sobre o pagamento (opcional)"
+                placeholder="Observações adicionais sobre o pagamento (opcional)"
                 className="col-span-3"
-                value={newPayment.observacoes}
-                onChange={handlePaymentChange}
+                value={observacoesAdicionais}
+                onChange={(e) => setObservacoesAdicionais(e.target.value)}
               />
             </div>
           </div>
