@@ -18,12 +18,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Save, Calculator, Loader2 } from "lucide-react";
+import { ArrowLeft, Save, Calculator, Loader2, AlertTriangle } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
 import { useLoans } from "@/hooks/useLoans";
 import { useActivityLogs } from "@/hooks/useActivityLogs";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
+import { FinanceiroService } from "@/services/FinanceiroService";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { ConfiguracaoFinanceira } from "@/types/financeiro";
 
 const NovoEmprestimo = () => {
   const navigate = useNavigate();
@@ -38,6 +42,8 @@ const NovoEmprestimo = () => {
   const { useCreateLoan } = useLoans();
   const createLoanMutation = useCreateLoan();
   const { logActivity } = useActivityLogs();
+  const [configuracoes, setConfiguracoes] = useState<ConfiguracaoFinanceira[]>([]);
+  const [configSelecionada, setConfigSelecionada] = useState<ConfiguracaoFinanceira | null>(null);
 
   const [formData, setFormData] = useState({
     clienteId: clienteIdParam || "",
@@ -46,8 +52,40 @@ const NovoEmprestimo = () => {
     tipoJuros: "composto",
     parcelas: "10",
     dataInicio: new Date().toISOString().split('T')[0],
-    dataVencimento: ""
+    dataVencimento: "",
+    configuracaoId: ""
   });
+
+  // Carregar configurações de juros
+  useEffect(() => {
+    const fetchConfiguracoes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('configuracoes_financeiras')
+          .select('*')
+          .eq('ativo', true)
+          .order('nome');
+
+        if (error) throw error;
+        
+        // Transformar os dados do banco para o formato esperado
+        const configuracoesFormatadas: ConfiguracaoFinanceira[] = (data || []).map((config: any) => ({
+          ...config,
+          tipo_juros_padrao: config.tipo_juros_padrao === 'composto' ? 'composto' : 'simples',
+          juros_sobre_juros: 'juros_sobre_juros' in config ? Boolean(config.juros_sobre_juros) : false,
+          acumula_taxa_mensal: 'acumula_taxa_mensal' in config ? Boolean(config.acumula_taxa_mensal) : false,
+          permite_carencia: 'permite_carencia' in config ? Boolean(config.permite_carencia) : false,
+          status: config.ativo ? 'ativo' : 'inativo',
+        }));
+
+        setConfiguracoes(configuracoesFormatadas);
+      } catch (error) {
+        console.error("Erro ao carregar configurações:", error);
+        toast.error("Erro ao carregar configurações de juros");
+      }
+    };
+    fetchConfiguracoes();
+  }, []);
 
   // Log activity when component mounts
   useEffect(() => {
@@ -67,18 +105,32 @@ const NovoEmprestimo = () => {
     }
   }, [formData.dataInicio]);
 
+  // Atualizar valores quando configuração é selecionada
+  useEffect(() => {
+    if (configSelecionada) {
+      setFormData(prev => ({
+        ...prev,
+        juros: configSelecionada.taxa_padrao_juros.toString(),
+        tipoJuros: configSelecionada.tipo_juros_padrao
+      }));
+    }
+  }, [configSelecionada]);
+
+  // Recalcular quando valores mudam
   useEffect(() => {
     if (
       formData.valor && 
       formData.juros && 
-      formData.parcelas && 
-      formData.tipoJuros
+      formData.parcelas &&
+      configSelecionada
     ) {
       calcularValorParcelas();
     }
-  }, [formData]);
+  }, [formData.valor, formData.juros, formData.parcelas, configSelecionada]);
 
   const calcularValorParcelas = () => {
+    if (!configSelecionada) return;
+
     const valor = parseFloat(formData.valor);
     const juros = parseFloat(formData.juros) / 100;
     const parcelas = parseInt(formData.parcelas);
@@ -88,23 +140,27 @@ const NovoEmprestimo = () => {
       setValorTotal(null);
       return;
     }
-    
-    let valorParcela, valorTotal;
-    
-    if (formData.tipoJuros === "simples") {
-      // Juros simples
-      const valorJuros = valor * juros * parcelas;
-      valorTotal = valor + valorJuros;
-      valorParcela = valorTotal / parcelas;
-    } else {
-      // Juros compostos (usando fórmula do sistema Price)
-      const fatorJuros = Math.pow(1 + juros, parcelas);
-      valorParcela = (valor * juros * fatorJuros) / (fatorJuros - 1);
-      valorTotal = valorParcela * parcelas;
+
+    // Usar o serviço financeiro para cálculos
+    const simulacao = FinanceiroService.simularEmprestimo(
+      valor,
+      parcelas,
+      parseFloat(formData.juros),
+      {
+        juros_sobre_juros: configSelecionada.juros_sobre_juros,
+        acumula_taxa_mensal: configSelecionada.acumula_taxa_mensal,
+        permite_carencia: configSelecionada.permite_carencia,
+        prazo_maximo_dias: configSelecionada.prazo_maximo_dias,
+        taxa_padrao_juros: configSelecionada.taxa_padrao_juros,
+        taxa_juros_atraso: configSelecionada.taxa_juros_atraso,
+        taxa_multa_atraso: configSelecionada.taxa_multa_atraso
+      }
+    );
+
+    if (simulacao.length > 0) {
+      setValorParcela(simulacao[0].valorParcela);
+      setValorTotal(simulacao.reduce((total, parcela) => total + parcela.valorTotal, 0));
     }
-    
-    setValorParcela(valorParcela);
-    setValorTotal(valorTotal);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -113,6 +169,10 @@ const NovoEmprestimo = () => {
   };
 
   const handleSelectChange = (name: string, value: string) => {
+    if (name === "configuracaoId") {
+      const config = configuracoes.find(c => c.id === value);
+      setConfigSelecionada(config || null);
+    }
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -121,6 +181,11 @@ const NovoEmprestimo = () => {
     
     if (!formData.clienteId) {
       toast.error("Selecione um cliente para continuar");
+      return;
+    }
+
+    if (!configSelecionada) {
+      toast.error("Selecione uma configuração de juros");
       return;
     }
     
@@ -135,7 +200,16 @@ const NovoEmprestimo = () => {
         data_emprestimo: formData.dataInicio,
         data_vencimento: formData.dataVencimento,
         status: "pendente",
-        observacoes: null,
+        observacoes: JSON.stringify({
+          configuracao_juros: {
+            id: configSelecionada.id,
+            nome: configSelecionada.nome,
+            juros_sobre_juros: configSelecionada.juros_sobre_juros,
+            acumula_taxa_mensal: configSelecionada.acumula_taxa_mensal,
+            permite_carencia: configSelecionada.permite_carencia,
+            prazo_maximo_dias: configSelecionada.prazo_maximo_dias
+          }
+        }),
         renegociacao_id: null,
         renegociado: false,
         created_by: user?.id || "system"
@@ -239,22 +313,47 @@ const NovoEmprestimo = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="juros">Taxa de Juros Mensal (%)</Label>
-                <Input
-                  id="juros"
-                  name="juros"
-                  type="number"
-                  placeholder="2,5"
-                  step="0.1"
-                  min="0"
-                  value={formData.juros}
-                  onChange={handleInputChange}
-                  required
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="configuracaoId">Configuração de Juros</Label>
+              <Select
+                value={formData.configuracaoId}
+                onValueChange={(value) => handleSelectChange("configuracaoId", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a configuração de juros" />
+                </SelectTrigger>
+                <SelectContent>
+                  {configuracoes.map((config) => (
+                    <SelectItem key={config.id} value={config.id}>
+                      {config.nome} - {config.taxa_padrao_juros}%
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
+            {configSelecionada && (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Regras de Juros</AlertTitle>
+                <AlertDescription>
+                  <ul className="list-disc list-inside space-y-1 text-sm">
+                    <li>Taxa: {configSelecionada.taxa_padrao_juros}% ao mês</li>
+                    {configSelecionada.juros_sobre_juros && (
+                      <li>Juros calculados sobre juros anteriores</li>
+                    )}
+                    {configSelecionada.acumula_taxa_mensal && (
+                      <li>Taxa acumula mensalmente</li>
+                    )}
+                    {configSelecionada.permite_carencia && (
+                      <li>Carência de {configSelecionada.prazo_maximo_dias} dias para multa</li>
+                    )}
+                  </ul>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="parcelas">Número de Parcelas</Label>
                 <Input
@@ -270,32 +369,16 @@ const NovoEmprestimo = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="tipoJuros">Tipo de Juros</Label>
-                <Select
-                  value={formData.tipoJuros}
-                  onValueChange={(value) => handleSelectChange("tipoJuros", value)}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o tipo de juros" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="simples">Juros Simples</SelectItem>
-                    <SelectItem value="composto">Juros Compostos</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="dataVencimento">Data de Vencimento</Label>
+                <Input
+                  id="dataVencimento"
+                  name="dataVencimento"
+                  type="date"
+                  value={formData.dataVencimento}
+                  onChange={handleInputChange}
+                  required
+                />
               </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="dataVencimento">Data de Vencimento</Label>
-              <Input
-                id="dataVencimento"
-                name="dataVencimento"
-                type="date"
-                value={formData.dataVencimento}
-                onChange={handleInputChange}
-                required
-              />
             </div>
           </CardContent>
         </Card>
@@ -308,56 +391,68 @@ const NovoEmprestimo = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex justify-center">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={calcularValorParcelas}
-                className="flex items-center"
-              >
-                <Calculator className="mr-2 h-4 w-4" />
-                Calcular Parcelas
-              </Button>
-            </div>
+            {!configSelecionada ? (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Configuração Necessária</AlertTitle>
+                <AlertDescription>
+                  Selecione uma configuração de juros para visualizar a simulação.
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <>
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={calcularValorParcelas}
+                    className="flex items-center"
+                  >
+                    <Calculator className="mr-2 h-4 w-4" />
+                    Calcular Parcelas
+                  </Button>
+                </div>
 
-            {valorParcela && valorTotal && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="bg-accent">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Valor de Cada Parcela</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      R$ {valorParcela.toFixed(2).replace('.', ',')}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {formData.parcelas} parcelas mensais
-                    </p>
-                  </CardContent>
-                </Card>
+                {valorParcela && valorTotal && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card className="bg-accent">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Valor de Cada Parcela</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          R$ {valorParcela.toFixed(2).replace('.', ',')}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formData.parcelas} parcelas mensais
+                        </p>
+                      </CardContent>
+                    </Card>
 
-                <Card className="bg-accent">
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Valor Total a Pagar</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      R$ {valorTotal.toFixed(2).replace('.', ',')}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Principal: R$ {parseFloat(formData.valor).toFixed(2).replace('.', ',')} + 
-                      Juros: R$ {(valorTotal - parseFloat(formData.valor)).toFixed(2).replace('.', ',')}
-                    </p>
-                  </CardContent>
-                </Card>
-              </div>
+                    <Card className="bg-accent">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">Valor Total a Pagar</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="text-2xl font-bold">
+                          R$ {valorTotal.toFixed(2).replace('.', ',')}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Principal: R$ {parseFloat(formData.valor).toFixed(2).replace('.', ',')} + 
+                          Juros: R$ {(valorTotal - parseFloat(formData.valor)).toFixed(2).replace('.', ',')}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </>
             )}
           </CardContent>
           <CardFooter className="flex justify-between">
             <Button variant="outline" type="button" onClick={() => navigate("/emprestimos")}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || !configSelecionada}>
               {isLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />

@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,96 +8,115 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { formatCurrency } from "@/utils/formatters";
+import { FinanceiroService } from "@/services/FinanceiroService";
+import { ConfiguracaoFinanceira } from "@/types/financeiro";
+import { EmptyState } from "@/components/common/EmptyState";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calculator, Plus, Settings2 } from "lucide-react";
+
+interface SimulacaoParcela {
+  numero: number;
+  valorParcela: number;
+}
 
 const ConfiguracoesFinanceiras = () => {
   const { user } = useAuth();
-  const [config, setConfig] = useState({
-    prazo_maximo_dias: 0,
-    taxa_padrao_juros: 0,
-    tipo_juros_padrao: '',
-    taxa_juros_atraso: 0,
-    taxa_multa_atraso: 0,
-    observacoes: '',
-    eventos: {
-      novoEmprestimo: false,
-      novoPagamento: false,
-      novoCliente: false,
-      emprestimoAtrasado: false
-    }
-  });
+  const [configs, setConfigs] = useState<ConfiguracaoFinanceira[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingConfig, setEditingConfig] = useState<ConfiguracaoFinanceira | null>(null);
+  const [simulacao, setSimulacao] = useState<SimulacaoParcela[]>([]);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [configToDelete, setConfigToDelete] = useState<string | null>(null);
+
+  // Form state
+  const [formData, setFormData] = useState<Partial<ConfiguracaoFinanceira>>({
+    nome: '',
+    taxa_padrao_juros: 2.5,
+    tipo_juros_padrao: 'simples',
+    prazo_maximo_dias: 30,
+    taxa_juros_atraso: 1,
+    taxa_multa_atraso: 2,
+    juros_sobre_juros: false,
+    acumula_taxa_mensal: false,
+    permite_carencia: true,
+    status: 'ativo'
+  });
+
+  // Simulação state
+  const [simulacaoData, setSimulacaoData] = useState({
+    valor: 1000,
+    parcelas: 12
+  });
 
   useEffect(() => {
-    const fetchConfig = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('configuracoes_financeiras')
-          .select('*')
-          .eq('nome', 'default')
-          .maybeSingle();
-
-        if (error) throw error;
-
-        if (data) {
-          try {
-            const eventos = data.observacoes ? JSON.parse(data.observacoes).eventos || {} : {};
-            setConfig(prev => ({
-              ...prev,
-              prazo_maximo_dias: data.prazo_maximo_dias || 0,
-              taxa_padrao_juros: data.taxa_padrao_juros || 0,
-              tipo_juros_padrao: data.tipo_juros_padrao || '',
-              taxa_juros_atraso: data.taxa_juros_atraso || 0,
-              taxa_multa_atraso: data.taxa_multa_atraso || 0,
-              eventos: eventos
-            }));
-          } catch(e) {
-            console.error("Error parsing configuration:", e);
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching configuration:", error);
-        toast.error("Erro ao carregar configurações financeiras");
-      }
-    };
-    fetchConfig();
+    fetchConfiguracoes();
   }, []);
 
+  const fetchConfiguracoes = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from('configuracoes_financeiras')
+        .select('*')
+        .order('nome');
+
+      if (error) throw error;
+
+      // Transformar os dados do banco para o formato esperado
+      const configuracoesFormatadas: ConfiguracaoFinanceira[] = (data || []).map((config: any) => ({
+        ...config,
+        tipo_juros_padrao: config.tipo_juros_padrao === 'composto' ? 'composto' : 'simples',
+        juros_sobre_juros: 'juros_sobre_juros' in config ? Boolean(config.juros_sobre_juros) : false,
+        acumula_taxa_mensal: 'acumula_taxa_mensal' in config ? Boolean(config.acumula_taxa_mensal) : false,
+        permite_carencia: 'permite_carencia' in config ? Boolean(config.permite_carencia) : false,
+        status: config.ativo ? 'ativo' : 'inativo',
+      }));
+
+      setConfigs(configuracoesFormatadas);
+    } catch (error) {
+      console.error("Erro ao carregar configurações:", error);
+      toast.error("Erro ao carregar configurações financeiras");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSave = async () => {
-    if (!user) return;
+    if (!user || !formData.nome || !formData.taxa_padrao_juros) {
+      toast.error("Preencha todos os campos obrigatórios");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // Primeiro verifica se existe o registro default
-      const { data: existingData } = await supabase
-        .from('configuracoes_financeiras')
-        .select('id')
-        .eq('nome', 'default')
-        .maybeSingle();
-      
-      // Preparar dados completos para salvamento
       const configData = {
-        nome: 'default',
-        prazo_maximo_dias: Number(config.prazo_maximo_dias),
-        taxa_padrao_juros: Number(config.taxa_padrao_juros),
-        tipo_juros_padrao: config.tipo_juros_padrao,
-        taxa_juros_atraso: Number(config.taxa_juros_atraso),
-        taxa_multa_atraso: Number(config.taxa_multa_atraso),
-        observacoes: JSON.stringify({
-          eventos: config.eventos
-        }),
-        created_by: user.id
+        nome: formData.nome,
+        taxa_padrao_juros: formData.taxa_padrao_juros,
+        tipo_juros_padrao: formData.tipo_juros_padrao,
+        prazo_maximo_dias: formData.prazo_maximo_dias,
+        taxa_juros_atraso: formData.taxa_juros_atraso,
+        taxa_multa_atraso: formData.taxa_multa_atraso,
+        juros_sobre_juros: formData.juros_sobre_juros,
+        acumula_taxa_mensal: formData.acumula_taxa_mensal,
+        permite_carencia: formData.permite_carencia,
+        ativo: formData.status === 'ativo',
+        created_by: user.id,
+        observacoes: formData.observacoes
       };
 
       let result;
-      
-      if (existingData) {
-        // Se existe, usa update ao invés de upsert
+      if (editingConfig) {
         result = await supabase
           .from('configuracoes_financeiras')
           .update(configData)
-          .eq('id', existingData.id);
+          .eq('id', editingConfig.id);
       } else {
-        // Se não existe, insere novo
         result = await supabase
           .from('configuracoes_financeiras')
           .insert(configData);
@@ -106,200 +124,358 @@ const ConfiguracoesFinanceiras = () => {
 
       if (result.error) throw result.error;
 
-      // Salvar configurações da Evolution API separadamente
-      const { data: apiData } = await supabase
-        .from('configuracoes_financeiras')
-        .select('id')
-        .eq('nome', 'evolution_api')
-        .maybeSingle();
-      
-      const apiConfig = {
-        nome: 'evolution_api',
-        prazo_maximo_dias: 0,
-        taxa_padrao_juros: 0,
-        tipo_juros_padrao: 'simples',
-        taxa_juros_atraso: 0,
-        taxa_multa_atraso: 0,
-        observacoes: JSON.stringify({
-          eventos: config.eventos
-        }),
-        created_by: user.id
-      };
-
-      if (apiData) {
-        await supabase
-          .from('configuracoes_financeiras')
-          .update(apiConfig)
-          .eq('id', apiData.id);
+      toast.success(`Configuração ${editingConfig ? 'atualizada' : 'criada'} com sucesso!`);
+      fetchConfiguracoes();
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error: any) {
+      console.error("Erro ao salvar configuração:", error);
+      if (error.code === '23505') {
+        toast.error("Já existe uma configuração com este nome");
       } else {
-        await supabase
-          .from('configuracoes_financeiras')
-          .insert(apiConfig);
+        toast.error("Erro ao salvar configuração");
       }
-
-      toast.success("Configurações salvas com sucesso!");
-    } catch (error) {
-      console.error("Erro ao salvar configurações:", error);
-      toast.error("Erro ao salvar configurações");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleFinancialInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setConfig(prev => ({
-      ...prev,
-      [name]: value
-    }));
+  const handleEdit = (config: ConfiguracaoFinanceira) => {
+    setEditingConfig(config);
+    setFormData(config);
+    setIsDialogOpen(true);
   };
 
-  const handleJurosTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setConfig(prev => ({
-      ...prev,
-      tipo_juros_padrao: e.target.value
-    }));
+  const confirmDelete = (id: string) => {
+    setConfigToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const handleDelete = async () => {
+    if (!configToDelete) return;
+    
+    try {
+      const { error } = await supabase
+        .from('configuracoes_financeiras')
+        .delete()
+        .eq('id', configToDelete);
+
+      if (error) throw error;
+      toast.success("Configuração removida com sucesso!");
+      setDeleteDialogOpen(false);
+      setConfigToDelete(null);
+      fetchConfiguracoes();
+    } catch (error) {
+      console.error("Erro ao remover configuração:", error);
+      toast.error("Erro ao remover configuração");
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      nome: '',
+      taxa_padrao_juros: 2.5,
+      tipo_juros_padrao: 'simples',
+      prazo_maximo_dias: 30,
+      taxa_juros_atraso: 1,
+      taxa_multa_atraso: 2,
+      juros_sobre_juros: false,
+      acumula_taxa_mensal: false,
+      permite_carencia: true,
+      status: 'ativo'
+    });
+    setEditingConfig(null);
+  };
+
+  const handleSimular = (config: ConfiguracaoFinanceira) => {
+    const simulacao = FinanceiroService.simularEmprestimo(
+      simulacaoData.valor,
+      simulacaoData.parcelas,
+      config.taxa_padrao_juros,
+      {
+        juros_sobre_juros: config.juros_sobre_juros,
+        acumula_taxa_mensal: config.acumula_taxa_mensal,
+        permite_carencia: config.permite_carencia,
+        prazo_maximo_dias: config.prazo_maximo_dias,
+        taxa_padrao_juros: config.taxa_padrao_juros,
+        taxa_juros_atraso: config.taxa_juros_atraso,
+        taxa_multa_atraso: config.taxa_multa_atraso
+      }
+    );
+    setSimulacao(simulacao);
   };
 
   return (
     <div className="space-y-6">
       <PageHeader 
         title="Configurações Financeiras" 
-        description="Gerencie configurações padrão do sistema"
+        description="Gerencie os tipos e regras de juros do sistema"
       />
-      
+
       <Card>
         <CardHeader>
-          <CardTitle>Configurações de Juros e Prazos</CardTitle>
-          <CardDescription>Defina os valores padrão para juros e prazos</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="prazo_maximo_dias">Prazo Máximo (dias)</Label>
-              <Input 
-                id="prazo_maximo_dias"
-                name="prazo_maximo_dias"
-                type="number"
-                value={config.prazo_maximo_dias}
-                onChange={handleFinancialInputChange}
-              />
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>Tipos de Juros</CardTitle>
+              <CardDescription>Configure diferentes tipos de juros para empréstimos</CardDescription>
             </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="taxa_padrao_juros">Taxa Padrão de Juros (%)</Label>
-              <Input 
-                id="taxa_padrao_juros"
-                name="taxa_padrao_juros"
-                type="number"
-                step="0.01"
-                value={config.taxa_padrao_juros}
-                onChange={handleFinancialInputChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="tipo_juros_padrao">Tipo de Juros Padrão</Label>
-              <select
-                id="tipo_juros_padrao"
-                className="w-full p-2 rounded-md border border-input bg-background"
-                value={config.tipo_juros_padrao}
-                onChange={handleJurosTypeChange}
-              >
-                <option value="">Selecione...</option>
-                <option value="simples">Simples</option>
-                <option value="composto">Composto</option>
-              </select>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="taxa_juros_atraso">Taxa de Juros de Atraso (%)</Label>
-              <Input 
-                id="taxa_juros_atraso"
-                name="taxa_juros_atraso"
-                type="number"
-                step="0.01"
-                value={config.taxa_juros_atraso}
-                onChange={handleFinancialInputChange}
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="taxa_multa_atraso">Taxa de Multa de Atraso (%)</Label>
-              <Input 
-                id="taxa_multa_atraso"
-                name="taxa_multa_atraso"
-                type="number"
-                step="0.01"
-                value={config.taxa_multa_atraso}
-                onChange={handleFinancialInputChange}
-              />
-            </div>
+            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+              <DialogTrigger asChild>
+                <Button onClick={() => { resetForm(); setIsDialogOpen(true); }}>
+                  <Plus className="mr-2 h-4 w-4" /> Novo Tipo
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>{editingConfig ? 'Editar' : 'Novo'} Tipo de Juros</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="nome">Nome</Label>
+                      <Input
+                        id="nome"
+                        value={formData.nome}
+                        onChange={(e) => setFormData(prev => ({ ...prev, nome: e.target.value }))}
+                        placeholder="Ex: Empréstimo Padrão"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="tipo_juros_padrao">Tipo de Juros</Label>
+                      <Select
+                        value={formData.tipo_juros_padrao}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, tipo_juros_padrao: value === 'composto' ? 'composto' : 'simples' }))}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione o tipo" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="simples">Juros Simples</SelectItem>
+                          <SelectItem value="composto">Juros Compostos</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="taxa_padrao_juros">Taxa de Juros (%)</Label>
+                      <Input
+                        id="taxa_padrao_juros"
+                        type="number"
+                        step="0.01"
+                        value={formData.taxa_padrao_juros}
+                        onChange={(e) => setFormData(prev => ({ ...prev, taxa_padrao_juros: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="prazo_maximo_dias">Prazo de Carência (dias)</Label>
+                      <Input
+                        id="prazo_maximo_dias"
+                        type="number"
+                        value={formData.prazo_maximo_dias}
+                        onChange={(e) => setFormData(prev => ({ ...prev, prazo_maximo_dias: Number(e.target.value) }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="taxa_multa_atraso">Multa por Atraso (%)</Label>
+                      <Input
+                        id="taxa_multa_atraso"
+                        type="number"
+                        step="0.01"
+                        value={formData.taxa_multa_atraso}
+                        onChange={(e) => setFormData(prev => ({ ...prev, taxa_multa_atraso: Number(e.target.value) }))}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="taxa_juros_atraso">Juros de Mora (%)</Label>
+                      <Input
+                        id="taxa_juros_atraso"
+                        type="number"
+                        step="0.01"
+                        value={formData.taxa_juros_atraso}
+                        onChange={(e) => setFormData(prev => ({ ...prev, taxa_juros_atraso: Number(e.target.value) }))}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <Label>Regras de Juros</Label>
+                    <div className="grid grid-cols-1 gap-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="juros_sobre_juros"
+                          checked={formData.juros_sobre_juros}
+                          onCheckedChange={(checked) => 
+                            setFormData(prev => ({ ...prev, juros_sobre_juros: checked === true }))
+                          }
+                        />
+                        <Label htmlFor="juros_sobre_juros">Permitir juros sobre juros</Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="acumula_taxa_mensal"
+                          checked={formData.acumula_taxa_mensal}
+                          onCheckedChange={(checked) => 
+                            setFormData(prev => ({ ...prev, acumula_taxa_mensal: checked === true }))
+                          }
+                        />
+                        <Label htmlFor="acumula_taxa_mensal">Acumular taxa mensalmente</Label>
+                      </div>
+
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="permite_carencia"
+                          checked={formData.permite_carencia}
+                          onCheckedChange={(checked) => 
+                            setFormData(prev => ({ ...prev, permite_carencia: checked === true }))
+                          }
+                        />
+                        <Label htmlFor="permite_carencia">Permitir prazo de carência</Label>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="status">Status</Label>
+                    <Select
+                      value={formData.status}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as 'ativo' | 'inativo' | 'modelo' }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecione o status" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ativo">Ativo</SelectItem>
+                        <SelectItem value="inativo">Inativo</SelectItem>
+                        <SelectItem value="modelo">Modelo</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="observacoes">Observações</Label>
+                    <Input
+                      id="observacoes"
+                      value={formData.observacoes}
+                      onChange={(e) => setFormData(prev => ({ ...prev, observacoes: e.target.value }))}
+                      placeholder="Observações adicionais"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-end space-x-2">
+                  <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                    Cancelar
+                  </Button>
+                  <Button onClick={handleSave} disabled={isLoading}>
+                    Salvar
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           </div>
-          
-          <Button onClick={handleSave} disabled={isLoading} className="mt-4">
-            {isLoading ? "Salvando..." : "Salvar Configurações"}
-          </Button>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-32">
+              <div className="loader"></div>
+            </div>
+          ) : configs.length === 0 ? (
+            <EmptyState
+              title="Nenhuma configuração encontrada"
+              description="Clique no botão acima para adicionar uma nova configuração"
+            />
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead>Taxa de Juros</TableHead>
+                  <TableHead>Tipo de Juros</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Ações</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {configs.map((config) => (
+                  <TableRow key={config.id}>
+                    <TableCell>{config.nome}</TableCell>
+                    <TableCell>{config.taxa_padrao_juros}%</TableCell>
+                    <TableCell>{config.tipo_juros_padrao}</TableCell>
+                    <TableCell>{config.status}</TableCell>
+                    <TableCell>
+                      <Button variant="outline" size="sm" onClick={() => handleEdit(config)}>
+                        Editar
+                      </Button>
+                      <Button variant="destructive" size="sm" onClick={() => confirmDelete(config.id)}>
+                        Excluir
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>Notificações e Eventos</CardTitle>
-          <CardDescription>Configure os eventos que disparam notificações automáticas</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="novoEmprestimo"
-                checked={config.eventos.novoEmprestimo}
-                onCheckedChange={(checked) => setConfig(prev => ({
-                  ...prev,
-                  eventos: { ...prev.eventos, novoEmprestimo: !!checked }
-                }))}
-              />
-              <Label htmlFor="novoEmprestimo">Novo Empréstimo</Label>
+
+      {simulacao.length > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Simulação de Parcelas</CardTitle>
+            <CardDescription>
+              Simulação para {formData.nome} com valor de {formatCurrency(simulacaoData.valor)} em {simulacaoData.parcelas}x
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="space-y-2">
+                  <Label htmlFor="valor_simulacao">Valor</Label>
+                  <Input
+                    id="valor_simulacao"
+                    type="number"
+                    value={simulacaoData.valor}
+                    onChange={(e) => setSimulacaoData(prev => ({ ...prev, valor: Number(e.target.value) }))}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="parcelas_simulacao">Parcelas</Label>
+                  <Input
+                    id="parcelas_simulacao"
+                    type="number"
+                    value={simulacaoData.parcelas}
+                    onChange={(e) => setSimulacaoData(prev => ({ ...prev, parcelas: Number(e.target.value) }))}
+                  />
+                </div>
+              </div>
+
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Parcela</TableHead>
+                    <TableHead>Valor Base</TableHead>
+                    <TableHead>Valor Total</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {simulacao.map((parcela) => (
+                    <TableRow key={parcela.numero}>
+                      <TableCell>{parcela.numero}ª Parcela</TableCell>
+                      <TableCell>{formatCurrency(parcela.valorParcela)}</TableCell>
+                      <TableCell>{formatCurrency(parcela.valorParcela)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="novoPagamento"
-                checked={config.eventos.novoPagamento}
-                onCheckedChange={(checked) => setConfig(prev => ({
-                  ...prev,
-                  eventos: { ...prev.eventos, novoPagamento: !!checked }
-                }))}
-              />
-              <Label htmlFor="novoPagamento">Novo Pagamento</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="novoCliente"
-                checked={config.eventos.novoCliente}
-                onCheckedChange={(checked) => setConfig(prev => ({
-                  ...prev,
-                  eventos: { ...prev.eventos, novoCliente: !!checked }
-                }))}
-              />
-              <Label htmlFor="novoCliente">Novo Cliente</Label>
-            </div>
-            <div className="flex items-center space-x-2">
-              <Checkbox 
-                id="emprestimoAtrasado"
-                checked={config.eventos.emprestimoAtrasado}
-                onCheckedChange={(checked) => setConfig(prev => ({
-                  ...prev,
-                  eventos: { ...prev.eventos, emprestimoAtrasado: !!checked }
-                }))}
-              />
-              <Label htmlFor="emprestimoAtrasado">Empréstimo Atrasado</Label>
-            </div>
-          </div>
-          <Button onClick={handleSave} disabled={isLoading} className="mt-4">
-            {isLoading ? "Salvando..." : "Salvar Configurações"}
-          </Button>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 };

@@ -1,4 +1,3 @@
-
 # Checklist de Implementação - Crédito Inteligente PWA
 
 ## Configuração Inicial
@@ -35,7 +34,7 @@
 - [x] Edição de empréstimo
 - [x] Cálculo de juros simples e compostos
 - [x] Registro de pagamentos
-- [ ] Renegociação de empréstimos
+- [x] Renegociação de empréstimos
 - [x] Histórico de transações
 - [x] Alertas de vencimento
 
@@ -100,3 +99,63 @@
 - [ ] Integração com serviços de cobrança
 - [ ] Módulo de análise de crédito avançado
 - [ ] Melhorar relatórios e gráficos com dados reais
+
+# Checklist de Implementação - Sistema de Juros Personalizado
+
+## 1. Banco de Dados e Configurações
+- [x] Criar tabela configuracoes_financeiras
+- [x] Adicionar campos para regras especiais
+- [x] Implementar migrations
+- [x] Configurar relacionamentos
+
+## 2. Interface do Usuário
+- [x] Criar página de configurações financeiras
+- [x] Implementar formulário de configuração
+- [x] Adicionar campos para regras especiais
+- [x] Integrar com formulário de empréstimo
+- [x] Exibir regras ativas em cada empréstimo
+- [x] Adaptar interface de renegociação
+
+## 3. Lógica de Cálculos
+- [x] Criar serviço/classe para cálculos financeiros
+- [x] Implementar lógica para:
+  - [x] Juros simples
+  - [x] Juros compostos
+  - [x] Juros sobre juros acumulados
+  - [x] Multas e juros de atraso
+  - [x] Respeitar prazo de carência
+- [x] Implementar métodos auxiliares:
+  - [x] Cálculo de juros sobre juros
+  - [x] Acumulação mensal de taxa
+  - [x] Verificação de carência para multas
+
+## 4. Integração com Empréstimos
+- [x] Modificar formulário de criação de empréstimo
+- [x] Selecionar tipo de juros pré-configurado
+- [x] Permitir ajuste dos valores padrão
+- [x] Validar regras específicas do tipo
+- [x] Atualizar cálculos de parcelas e juros
+- [x] Atualizar exibição de informações do empréstimo
+
+## 5. Ajustes no Sistema Existente
+- [x] Identificar código que usa cálculos de juros
+- [x] Garantir compatibilidade com empréstimos existentes
+- [x] Adicionar migração de dados se necessário
+- [x] Atualizar documentação
+
+## 6. Testes e Validação
+- [ ] Criar testes unitários para cálculos
+- [ ] Testar diferentes cenários:
+  - [ ] Empréstimos sem atraso
+  - [ ] Empréstimos com atraso dentro da carência
+  - [ ] Empréstimos com atraso fora da carência
+  - [ ] Diferentes combinações de regras
+- [ ] Validar cálculos com exemplos reais
+- [ ] Testar migração de dados existentes
+
+## 7. Documentação e Finalização
+- [x] Documentar todas as fórmulas utilizadas
+- [ ] Criar guia de uso das configurações
+- [ ] Atualizar manual do usuário
+- [ ] Documentar casos de teste
+- [ ] Criar exemplos de uso

@@ -12,6 +12,7 @@ import { UserRound, CircleDollarSign, LineChart, Clock, AlertTriangle, CheckCirc
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { FinancialProjectionChart } from "@/components/dashboard/FinancialProjectionChart";
 
 const Dashboard = () => {
   const isMobile = useIsMobile();
@@ -24,6 +25,16 @@ const Dashboard = () => {
     upcomingPayments,
     isLoadingUpcoming
   } = useDashboardData();
+
+  // Exemplo de dados de projeção financeira (substitua por dados reais depois)
+  const projectionData = [
+    { mes: 'Jan', saldo: 10000, recebimentos: 2500 },
+    { mes: 'Fev', saldo: 12000, recebimentos: 3000 },
+    { mes: 'Mar', saldo: 13500, recebimentos: 3200 },
+    { mes: 'Abr', saldo: 15000, recebimentos: 3500 },
+    { mes: 'Mai', saldo: 17000, recebimentos: 4000 },
+    { mes: 'Jun', saldo: 18500, recebimentos: 4200 },
+  ];
 
   const formatCurrency = (value: number) => {
     return value.toLocaleString("pt-BR", {
@@ -109,6 +120,17 @@ const Dashboard = () => {
         title="Dashboard"
         description="Visão geral das suas finanças e empréstimos"
       />
+
+      {/* Gráfico de Projeção Financeira */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Projeção Financeira</CardTitle>
+          <CardDescription>Evolução do saldo e recebimentos futuros</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <FinancialProjectionChart data={projectionData} />
+        </CardContent>
+      </Card>
       
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">

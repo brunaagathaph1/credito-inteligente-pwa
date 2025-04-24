@@ -1,4 +1,3 @@
-
 -- Migration: 005_renegociacao_emprestimos.sql
 -- Descrição: Adiciona suporte para renegociação de empréstimos e configurações financeiras
 -- Criado em: 2025-04-22
@@ -16,6 +15,9 @@ CREATE TABLE public.configuracoes_financeiras (
   prazo_maximo_dias integer NOT NULL,
   taxa_multa_atraso numeric(5,2) NOT NULL,
   taxa_juros_atraso numeric(5,2) NOT NULL,
+  juros_sobre_juros boolean NOT NULL DEFAULT false,
+  acumula_taxa_mensal boolean NOT NULL DEFAULT false,
+  permite_carencia boolean NOT NULL DEFAULT true,
   ativo boolean DEFAULT true NOT NULL,
   observacoes text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
@@ -177,8 +179,6 @@ CREATE TABLE public.webhooks (
   nome text NOT NULL,
   url text NOT NULL,
   eventos text[] NOT NULL,
-  headers jsonb,
-  ativo boolean DEFAULT true NOT NULL,
   secret_key text,
   created_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,
   updated_at timestamp with time zone DEFAULT timezone('utc'::text, now()) NOT NULL,

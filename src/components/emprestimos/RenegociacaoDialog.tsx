@@ -10,13 +10,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { format, addDays } from "date-fns";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useActivityLogs } from "@/hooks/useActivityLogs";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2 } from "lucide-react";
+import { Loader2, AlertTriangle } from "lucide-react";
+import { FinanceiroService } from "@/services/FinanceiroService";
+import { ConfiguracaoFinanceira, SimulacaoParcela } from "@/types/financeiro";
 
 interface RenegociacaoDialogProps {
   isOpen: boolean;
@@ -36,14 +40,51 @@ export function RenegociacaoDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [formaPagamento, setFormaPagamento] = useState("Dinheiro");
   const [observacoesAdicionais, setObservacoesAdicionais] = useState("");
+  const [configuracoes, setConfiguracoes] = useState<ConfiguracaoFinanceira[]>([]);
+  const [configSelecionada, setConfigSelecionada] = useState<ConfiguracaoFinanceira | null>(null);
+  const [simulacao, setSimulacao] = useState<SimulacaoParcela[]>([]);
+
   const [formData, setFormData] = useState({
     novoValorPrincipal: "",
     novaTaxaJuros: "",
     novoTipoJuros: "composto",
     novaDataVencimento: "",
     motivo: "",
-    observacoes: ""
+    observacoes: "",
+    configuracaoId: "",
+    parcelas: "10"
   });
+
+  // Carregar configurações de juros
+  useEffect(() => {
+    const fetchConfiguracoes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('configuracoes_financeiras')
+          .select('*')
+          .eq('ativo', true)
+          .order('nome');
+
+        if (error) throw error;
+
+        // Transformar os dados do banco para o formato esperado
+        const configuracoesFormatadas: ConfiguracaoFinanceira[] = (data || []).map((config: any) => ({
+          ...config,
+          tipo_juros_padrao: config.tipo_juros_padrao === 'composto' ? 'composto' : 'simples',
+          juros_sobre_juros: 'juros_sobre_juros' in config ? Boolean(config.juros_sobre_juros) : false,
+          acumula_taxa_mensal: 'acumula_taxa_mensal' in config ? Boolean(config.acumula_taxa_mensal) : false,
+          permite_carencia: 'permite_carencia' in config ? Boolean(config.permite_carencia) : false,
+          status: config.ativo ? 'ativo' : 'inativo',
+        }));
+
+        setConfiguracoes(configuracoesFormatadas);
+      } catch (error) {
+        console.error("Erro ao carregar configurações:", error);
+        toast.error("Erro ao carregar configurações de juros");
+      }
+    };
+    fetchConfiguracoes();
+  }, []);
 
   // Inicializa os dados do formulário quando o empréstimo muda
   useEffect(() => {
@@ -57,20 +98,64 @@ export function RenegociacaoDialog({
         novoTipoJuros: emprestimo.tipo_juros || "composto",
         novaDataVencimento: format(novoVencimento, "yyyy-MM-dd"),
         motivo: "",
-        observacoes: ""
+        observacoes: "",
+        configuracaoId: "",
+        parcelas: "10"
       });
       setFormaPagamento("Dinheiro");
       setObservacoesAdicionais("");
+      setSimulacao([]);
     }
   }, [emprestimo]);
+
+  // Atualizar valores quando configuração é selecionada
+  useEffect(() => {
+    if (configSelecionada) {
+      setFormData(prev => ({
+        ...prev,
+        novaTaxaJuros: configSelecionada.taxa_padrao_juros.toString(),
+        novoTipoJuros: configSelecionada.tipo_juros_padrao
+      }));
+      calcularSimulacao();
+    }
+  }, [configSelecionada]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+    if (["novoValorPrincipal", "novaTaxaJuros", "parcelas"].includes(name)) {
+      calcularSimulacao();
+    }
   };
 
   const handleSelectChange = (name: string, value: string) => {
+    if (name === "configuracaoId") {
+      const config = configuracoes.find(c => c.id === value);
+      setConfigSelecionada(config || null);
+    }
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const calcularSimulacao = () => {
+    if (!configSelecionada || !formData.novoValorPrincipal || !formData.parcelas) return;
+
+    // Usar o serviço financeiro para cálculos
+    const simulacaoParcelas = FinanceiroService.simularEmprestimo(
+      parseFloat(formData.novoValorPrincipal),
+      parseInt(formData.parcelas),
+      parseFloat(formData.novaTaxaJuros),
+      {
+        juros_sobre_juros: configSelecionada.juros_sobre_juros,
+        acumula_taxa_mensal: configSelecionada.acumula_taxa_mensal,
+        permite_carencia: configSelecionada.permite_carencia,
+        prazo_maximo_dias: configSelecionada.prazo_maximo_dias,
+        taxa_padrao_juros: configSelecionada.taxa_padrao_juros,
+        taxa_juros_atraso: configSelecionada.taxa_juros_atraso,
+        taxa_multa_atraso: configSelecionada.taxa_multa_atraso
+      }
+    );
+
+    setSimulacao(simulacaoParcelas);
   };
 
   const handleSubmit = async () => {
@@ -80,12 +165,27 @@ export function RenegociacaoDialog({
       toast.error("Preencha todos os campos obrigatórios");
       return;
     }
+
+    if (!configSelecionada) {
+      toast.error("Selecione uma configuração de juros");
+      return;
+    }
     
     setIsLoading(true);
     
     try {
-      const observacoesCompletas = formaPagamento + 
-        (observacoesAdicionais ? ` - ${observacoesAdicionais}` : "");
+      const observacoesCompletas = JSON.stringify({
+        forma_pagamento: formaPagamento,
+        observacoes: observacoesAdicionais,
+        configuracao_juros: {
+          id: configSelecionada.id,
+          nome: configSelecionada.nome,
+          juros_sobre_juros: configSelecionada.juros_sobre_juros,
+          acumula_taxa_mensal: configSelecionada.acumula_taxa_mensal,
+          permite_carencia: configSelecionada.permite_carencia,
+          prazo_maximo_dias: configSelecionada.prazo_maximo_dias
+        }
+      });
 
       // Verificar se houve apenas mudança na data de vencimento
       const apenasDataAlterada = 
@@ -157,7 +257,8 @@ export function RenegociacaoDialog({
             status: "em_dia",
             renegociacao_id: renegociacao.id,
             created_by: user.id,
-            renegociado: false
+            renegociado: false,
+            observacoes: observacoesCompletas
           });
       
         if (novoEmprestimoError) throw novoEmprestimoError;
@@ -176,9 +277,12 @@ export function RenegociacaoDialog({
     }
   };
 
+  const valorTotal = simulacao.length > 0 ? simulacao.reduce((total, parcela) => total + parcela.valorTotal, 0) : 0;
+  const valorJuros = valorTotal - parseFloat(formData.novoValorPrincipal || "0");
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>Renegociar Empréstimo</DialogTitle>
           <DialogDescription>
@@ -204,48 +308,100 @@ export function RenegociacaoDialog({
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
-              <Label htmlFor="novaTaxaJuros">Nova Taxa de Juros (%)</Label>
+              <Label htmlFor="parcelas">Número de Parcelas</Label>
               <Input
-                id="novaTaxaJuros"
-                name="novaTaxaJuros"
+                id="parcelas"
+                name="parcelas"
                 type="number"
-                step="0.1"
-                min="0"
-                value={formData.novaTaxaJuros}
+                min="1"
+                value={formData.parcelas}
                 onChange={handleInputChange}
               />
             </div>
           </div>
-          
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="novoTipoJuros">Tipo de Juros</Label>
-              <Select
-                value={formData.novoTipoJuros}
-                onValueChange={(value) => handleSelectChange("novoTipoJuros", value)}
-              >
-                <SelectTrigger id="novoTipoJuros">
-                  <SelectValue placeholder="Selecione o tipo" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="simples">Juros Simples</SelectItem>
-                  <SelectItem value="composto">Juros Compostos</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="configuracaoId">Configuração de Juros</Label>
+            <Select
+              value={formData.configuracaoId}
+              onValueChange={(value) => handleSelectChange("configuracaoId", value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione a configuração de juros" />
+              </SelectTrigger>
+              <SelectContent>
+                {configuracoes.map((config) => (
+                  <SelectItem key={config.id} value={config.id}>
+                    {config.nome} - {config.taxa_padrao_juros}%
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {configSelecionada && (
+            <Alert>
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Regras de Juros</AlertTitle>
+              <AlertDescription>
+                <ul className="list-disc list-inside space-y-1 text-sm">
+                  <li>Taxa: {configSelecionada.taxa_padrao_juros}% ao mês</li>
+                  {configSelecionada.juros_sobre_juros && (
+                    <li>Juros calculados sobre juros anteriores</li>
+                  )}
+                  {configSelecionada.acumula_taxa_mensal && (
+                    <li>Taxa acumula mensalmente</li>
+                  )}
+                  {configSelecionada.permite_carencia && (
+                    <li>Carência de {configSelecionada.prazo_maximo_dias} dias para multa</li>
+                  )}
+                </ul>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {simulacao.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Simulação do Novo Empréstimo</CardTitle>
+                <CardDescription>
+                  Como ficarão as parcelas com as novas condições
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-muted-foreground">Valor da Parcela</div>
+                    <div className="text-2xl font-bold">
+                      R$ {simulacao[0].valorParcela.toFixed(2).replace('.', ',')}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-muted-foreground">Total a Pagar</div>
+                    <div className="text-2xl font-bold">
+                      R$ {valorTotal.toFixed(2).replace('.', ',')}
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-1">
+                      Principal: R$ {parseFloat(formData.novoValorPrincipal).toFixed(2).replace('.', ',')} + 
+                      Juros: R$ {valorJuros.toFixed(2).replace('.', ',')}
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
             
-            <div className="space-y-2">
-              <Label htmlFor="novaDataVencimento">Nova Data de Vencimento</Label>
-              <Input
-                id="novaDataVencimento"
-                name="novaDataVencimento"
-                type="date"
-                value={formData.novaDataVencimento}
-                onChange={handleInputChange}
-              />
-            </div>
+          <div className="space-y-2">
+            <Label htmlFor="novaDataVencimento">Nova Data de Vencimento</Label>
+            <Input
+              id="novaDataVencimento"
+              name="novaDataVencimento"
+              type="date"
+              value={formData.novaDataVencimento}
+              onChange={handleInputChange}
+            />
           </div>
           
           <div className="space-y-2">
@@ -266,7 +422,7 @@ export function RenegociacaoDialog({
               </SelectContent>
             </Select>
           </div>
-
+          
           <div className="space-y-2">
             <Label htmlFor="forma_pagamento">Forma de Pagamento</Label>
             <Select
@@ -301,7 +457,7 @@ export function RenegociacaoDialog({
           <Button variant="outline" onClick={onClose} disabled={isLoading}>
             Cancelar
           </Button>
-          <Button onClick={handleSubmit} disabled={isLoading}>
+          <Button onClick={handleSubmit} disabled={isLoading || !configSelecionada}>
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
