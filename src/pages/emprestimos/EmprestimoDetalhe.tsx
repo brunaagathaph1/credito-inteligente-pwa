@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLoans } from "@/hooks/useLoans";
 import { Renegociacao } from "@/types/emprestimos";
 import { Button } from "@/components/ui/button";
+import { useQueryClient } from "@tanstack/react-query";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -45,6 +46,7 @@ const EmprestimoDetalhe = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const { useLoan, useUpdateLoanStatus, useRegisterPayment, useDeleteLoan, useDeletePayment, useDeleteRenegotiation } = useLoans();
   const { logActivity } = useActivityLogs();
   const isMobile = useIsMobile();
@@ -229,6 +231,8 @@ const EmprestimoDetalhe = () => {
     try {
       await deletePaymentMutation.mutateAsync(paymentId);
       logActivity(`Excluiu pagamento ID ${paymentId}`);
+      // Forçar atualização dos dados do empréstimo
+      queryClient.invalidateQueries({ queryKey: ['loan', id] });
     } catch (error) {
       console.error('Erro ao excluir pagamento:', error);
     }
@@ -239,6 +243,8 @@ const EmprestimoDetalhe = () => {
       try {
         await deleteRenegotiationMutation.mutateAsync(renegociationId);
         logActivity(`Excluiu renegociação ID ${renegociationId}`);
+        // Forçar atualização dos dados do empréstimo
+        queryClient.invalidateQueries({ queryKey: ['loan', id] });
       } catch (error) {
         console.error('Erro ao excluir renegociação:', error);
       }

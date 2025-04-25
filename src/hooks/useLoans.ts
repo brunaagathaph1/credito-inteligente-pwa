@@ -3,10 +3,12 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Loan, Pagamento, Parcela, Renegociacao } from '@/types/emprestimos';
+import { useActivityLogs } from '@/hooks/useActivityLogs';
 
 export const useLoans = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const { logActivity } = useActivityLogs();
 
   const fetchLoans = async () => {
     try {
@@ -179,6 +181,9 @@ export const useLoans = () => {
 
       if (paymentError) throw paymentError;
 
+      // Registrar atividade
+      await logActivity(`Registrou pagamento ID ${payment.id}`);
+
       // Check and update loan status if needed
       const { data: allPayments, error: allPaymentsError } = await supabase
         .from('pagamentos')
@@ -233,6 +238,9 @@ export const useLoans = () => {
         .single();
 
       if (renegociacaoError) throw renegociacaoError;
+
+      // Registrar atividade
+      await logActivity(`Criou renegociação ID ${renegociacao.id}`);
 
       // Atualizamos o status do empréstimo original para 'renegociado'
       const { error: emprestimoOriginalError } = await supabase
@@ -384,21 +392,35 @@ export const useLoans = () => {
   // React Query mutations
   const deleteLoanMutation = useMutation({
     mutationFn: deleteLoan,
-    onSuccess: () => {
+    onSuccess: (_, id) => {
       queryClient.invalidateQueries({ queryKey: ['loans'] });
     }
   });
 
   const deletePaymentMutation = useMutation({
     mutationFn: deletePayment,
-    onSuccess: () => {
+    onSuccess: async (_, id) => {
+      // Buscar o emprestimo_id do pagamento que foi excluído
+      const queryData = queryClient.getQueryData(['loan']) as { id: string } | undefined;
+      if (queryData?.id) {
+        // Forçar uma nova busca dos dados do empréstimo
+        await queryClient.invalidateQueries({ queryKey: ['loan', queryData.id] });
+      }
+      // Atualizar a lista geral de empréstimos
       queryClient.invalidateQueries({ queryKey: ['loans'] });
     }
   });
 
   const deleteRenegotiationMutation = useMutation({
     mutationFn: deleteRenegotiation,
-    onSuccess: () => {
+    onSuccess: async (_, id) => {
+      // Buscar o emprestimo_id da renegociação que foi excluída
+      const queryData = queryClient.getQueryData(['loan']) as { id: string } | undefined;
+      if (queryData?.id) {
+        // Forçar uma nova busca dos dados do empréstimo
+        await queryClient.invalidateQueries({ queryKey: ['loan', queryData.id] });
+      }
+      // Atualizar a lista geral de empréstimos
       queryClient.invalidateQueries({ queryKey: ['loans'] });
     }
   });
@@ -463,7 +485,7 @@ export const useLoans = () => {
     useUpdateLoanStatus,
     useRegisterPayment,
     useCreateRenegotiation,
-    createLoan: createLoanMutation, // Export the mutation directly
+    createLoan: createLoanMutation,
     useDeleteLoan: () => deleteLoanMutation,
     useDeletePayment: () => deletePaymentMutation,
     useDeleteRenegotiation: () => deleteRenegotiationMutation,
