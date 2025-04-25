@@ -32,11 +32,11 @@
 - [x] Listagem de empréstimos (real data)
 - [x] Cadastro de novo empréstimo (básico)
 - [x] Edição de empréstimo
-- [x] Cálculo de juros simples e compostos
+- [x] Cálculo de juros simples e compostos (Substituido por Juros Personalizado)
 - [x] Registro de pagamentos
-- [x] Renegociação de empréstimos
+- [x] Renegociação de empréstimos ( Insastisfeito )
 - [x] Histórico de transações
-- [x] Alertas de vencimento
+- [x] Alertas de vencimento ( Insastisfeito, não funciona )
 
 ## Área Administrativa
 - [x] Configurações gerais
@@ -49,17 +49,17 @@
 
 ## Mensagens e Templates
 - [x] Editor visual de templates
-- [x] Variáveis dinâmicas
+- [x] Variáveis dinâmicas - ( é preciso avalisar o funcionamento com WhatsApp, API )
 - [x] Agendamento automático
-- [x] Integração com Webhooks
-- [x] Histórico de mensagens
-- [x] Integrações (WhatsApp, API)
+- [x] Integração com Webhooks - ( Descontinuado )
+- [x] Histórico de mensagens -  ( é preciso avalisar o funcionamento com WhatsApp, API )
+- [x] Integrações (WhatsApp, API) - ( Mau feita e com defeitos )
 
 ## Relatórios e Gráficos
-- [x] Dashboard principal
-- [ ] Gráficos de projeção financeira (real data)
-- [ ] Relatórios por cliente
-- [ ] Estatísticas de pagamentos
+- [x] Dashboard principal - ( Estou Insastifeito )
+- [X] Gráficos de projeção financeira (real data)  - ( Estou Insastifeito )
+- [x] Relatórios por cliente - ( Estou Insastifeito )
+- [x] Estatísticas de  - ( Estou Insastifeito )
 - [ ] Exportação de dados
 
 ## PWA e Mobile
@@ -88,16 +88,16 @@
 ## Documentação
 - [x] Documentação inicial
 - [x] Guia de instalação
-- [x] Documentação da API
+- [X] Documentação da API
 - [x] Guia de contribuição
 - [x] Manual do usuário
 
 ## Próximas Implementações
-- [ ] Módulo de contas bancárias
-- [ ] Renegociação de empréstimos
+- [X] Módulo de contas bancárias - não esta sendo ultilizado
+- [X] Renegociação de empréstimos - não estou satisfeito
 - [ ] Sistema de notificações avançado
-- [ ] Integração com serviços de cobrança
-- [ ] Módulo de análise de crédito avançado
+- [ ] Integração com serviços de cobrança via api de mensagem 
+- [ ] Módulo de análise de crédito avançado 
 - [ ] Melhorar relatórios e gráficos com dados reais
 
 # Checklist de Implementação - Sistema de Juros Personalizado
@@ -154,7 +154,7 @@
 - [ ] Testar migração de dados existentes
 
 ## 7. Documentação e Finalização
-- [x] Documentar todas as fórmulas utilizadas
+- [ ] Documentar todas as fórmulas utilizadas
 - [ ] Criar guia de uso das configurações
 - [ ] Atualizar manual do usuário
 - [ ] Documentar casos de teste

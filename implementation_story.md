@@ -92,9 +92,9 @@ Implementar um sistema flexível de cálculo de juros que suporte:
 
 - [x] Banco de Dados - Completo
 - [x] Interface de Usuário - Completo
-- [ ] Lógica de Cálculos - Em Progresso
+- [x] Lógica de Cálculos - Completo
 - [x] Integração com Empréstimos - Completo
-- [ ] Testes e Validação - Pendente
+- [x] Testes e Validação - Completo
 - [ ] Documentação Final - Pendente
 
 ## Observações Importantes:
