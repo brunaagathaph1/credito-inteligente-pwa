@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { PageHeader } from "@/components/common/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -57,6 +56,13 @@ const MensagensETemplates = () => {
   const agendamentos = useAgendamentos();
   const evolutionApiConfigData = useEvolutionApiConfig();
   const mensagensHistory = useMensagensHistory();
+
+  const navigationItems = [
+    { id: "templates", label: "Templates", icon: MessageSquare },
+    { id: "mensagens", label: "Mensagens", icon: MessagesSquare },
+    { id: "agendamentos", label: "Agendamentos", icon: Calendar },
+    { id: "integracoes", label: "Integrações", icon: Link }
+  ];
 
   const [showTemplateEditor, setShowTemplateEditor] = useState(false);
   const [showScheduleEditor, setShowScheduleEditor] = useState(false);
@@ -261,288 +267,490 @@ const MensagensETemplates = () => {
         description="Envie mensagens e gerencie templates para comunicação com clientes"
       />
 
-      <Tabs defaultValue="templates" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="bg-card rounded-md p-1">
-          {isMobile ? (
-            <div className="grid grid-cols-2 gap-1 mb-1">
-              <Button 
-                variant={activeTab === "templates" ? "default" : "ghost"} 
-                className="flex items-center justify-center h-9 text-xs"
-                onClick={() => setActiveTab("templates")}
-              >
-                <MessageSquare className="h-3 w-3 mr-1" />
-                Templates
-              </Button>
-              
-              <Button 
-                variant={activeTab === "mensagens" ? "default" : "ghost"} 
-                className="flex items-center justify-center h-9 text-xs"
-                onClick={() => setActiveTab("mensagens")}
-              >
-                <MessagesSquare className="h-3 w-3 mr-1" />
-                Mensagens
-              </Button>
-              
-              <Button 
-                variant={activeTab === "agendamentos" ? "default" : "ghost"} 
-                className="flex items-center justify-center h-9 text-xs"
-                onClick={() => setActiveTab("agendamentos")}
-              >
-                <Calendar className="h-3 w-3 mr-1" />
-                Agendamentos
-              </Button>
-              
-              <Button 
-                variant={activeTab === "integracoes" ? "default" : "ghost"} 
-                className="flex items-center justify-center h-9 text-xs"
-                onClick={() => setActiveTab("integracoes")}
-              >
-                <Link className="h-3 w-3 mr-1" />
-                Integrações
-              </Button>
-            </div>
-          ) : (
-            <TabsList className="grid grid-cols-4">
-              <TabsTrigger value="templates">
-                <MessageSquare className="h-4 w-4 mr-2" />
-                Templates
-              </TabsTrigger>
-              <TabsTrigger value="mensagens">
-                <MessagesSquare className="h-4 w-4 mr-2" />
-                Mensagens
-              </TabsTrigger>
-              <TabsTrigger value="agendamentos">
-                <Calendar className="h-4 w-4 mr-2" />
-                Agendamentos
-              </TabsTrigger>
-              <TabsTrigger value="integracoes">
-                <Link className="h-4 w-4 mr-2" />
-                Integrações
-              </TabsTrigger>
-            </TabsList>
-          )}
+      {isMobile ? (
+        <div>
+          {/* Barra de navegação mobile */}
+          <div className="bg-card border-b shadow-sm mb-6">
+            <nav className="flex w-full overflow-x-auto no-scrollbar">
+              {navigationItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`
+                    flex-1 min-w-[25%] flex flex-col items-center justify-center py-3 px-1
+                    transition-colors duration-200 relative
+                    ${activeTab === item.id 
+                      ? 'text-primary border-b-2 border-primary' 
+                      : 'text-muted-foreground hover:text-primary hover:bg-accent/50'
+                    }
+                  `}
+                >
+                  <item.icon className="h-5 w-5 mb-1" aria-hidden="true" />
+                  <span className="text-[10px] font-medium">{item.label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Conteúdo */}
+          <div>
+            {activeTab === "templates" && (
+              <>
+                {showTemplateEditor ? (
+                  <TemplateEditor
+                    newTemplate={newTemplate}
+                    setNewTemplate={setNewTemplate}
+                    handleTemplateChange={handleTemplateChange}
+                    handleTemplateSelectChange={handleTemplateSelectChange}
+                    handleSaveTemplate={handleSaveTemplate}
+                    createTemplateIsPending={createTemplate.isPending}
+                    onCancel={() => setShowTemplateEditor(false)}
+                    handleInsertVariable={handleInsertVariable}
+                  />
+                ) : (
+                  <>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 space-y-4 md:space-y-0">
+                      <h2 className="text-xl font-bold">Templates de Mensagens</h2>
+                      <Button onClick={() => handleNewTemplate()}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Novo Template
+                      </Button>
+                    </div>
+
+                    {templates.isLoading ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {[...Array(6)].map((_, i) => (
+                          <Card key={i}>
+                            <CardHeader>
+                              <CardTitle><Skeleton className="h-5 w-3/4" /></CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <Skeleton className="h-4 w-full" />
+                              <Skeleton className="h-4 w-5/6" />
+                              <Skeleton className="h-4 w-1/2" />
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : templates.data && templates.data.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {templates.data.map((template) => (
+                          <TemplateCard 
+                            key={template.id} 
+                            template={template} 
+                            onEdit={() => handleEditTemplate(template)}
+                            onDelete={() => handleDeleteTemplateConfirm(template)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState 
+                        title="Nenhum template encontrado"
+                        description="Crie templates para agilizar o envio de mensagens."
+                        icon={<FilePlus className="h-10 w-10" />}
+                        action={
+                          <Button onClick={() => handleNewTemplate()}>
+                            Criar Template
+                          </Button>
+                        }
+                      />
+                    )}
+                  </>
+                )}
+              </>
+            )}
+
+            {activeTab === "mensagens" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Enviar Mensagem</CardTitle>
+                  <CardDescription>
+                    Envie mensagens personalizadas para seus clientes
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <MessageEditor 
+                    newMensagem={newMensagem}
+                    setNewMensagem={setNewMensagem}
+                    templates={templates.data || []} 
+                    clients={clients || []}
+                    handleMensagemChange={handleMensagemChange}
+                    handleMensagemSelectChange={handleMensagemSelectChange}
+                    createMensagemIsPending={createMensagem.isPending}
+                    handleSendMensagem={handleSendMensagem}
+                    onCancel={() => {}}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {activeTab === "agendamentos" && (
+              <>
+                {showScheduleEditor ? (
+                  <ScheduleEditor
+                    newAgendamento={newAgendamento}
+                    setNewAgendamento={setNewAgendamento}
+                    templates={templates.data || []}
+                    handleAgendamentoChange={handleAgendamentoChange}
+                    handleAgendamentoSelectChange={handleAgendamentoSelectChange}
+                    createAgendamentoIsPending={createAgendamento.isPending}
+                    handleSaveAgendamento={handleSaveAgendamento}
+                    onCancel={() => setShowScheduleEditor(false)}
+                  />
+                ) : (
+                  <>
+                    <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 space-y-4 md:space-y-0">
+                      <h2 className="text-xl font-bold">Agendamentos Automáticos</h2>
+                      <Button onClick={() => setShowScheduleEditor(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Novo Agendamento
+                      </Button>
+                    </div>
+
+                    {agendamentos.isLoading ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {[...Array(6)].map((_, i) => (
+                          <Card key={i}>
+                            <CardHeader>
+                              <CardTitle><Skeleton className="h-5 w-3/4" /></CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                              <Skeleton className="h-4 w-full" />
+                              <Skeleton className="h-4 w-5/6" />
+                              <Skeleton className="h-4 w-1/2" />
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : agendamentos.data && agendamentos.data.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {agendamentos.data.map((agendamento) => (
+                          <ScheduleCard 
+                            key={agendamento.id} 
+                            agendamento={agendamento}
+                            onEdit={() => handleEditSchedule(agendamento)}
+                            onDelete={() => handleDeleteScheduleConfirm(agendamento)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState
+                        title="Nenhum agendamento encontrado"
+                        description="Agende mensagens automáticas para seus clientes."
+                        icon={<Calendar className="h-10 w-10" />}
+                        action={
+                          <Button onClick={() => setShowScheduleEditor(true)}>
+                            Criar Agendamento
+                          </Button>
+                        }
+                      />
+                    )}
+                  </>
+                )}
+              </>
+            )}
+
+            {activeTab === "integracoes" && (
+              <>
+                <Card className="mb-6">
+                  <CardHeader>
+                    <CardTitle>Integração com WhatsApp (Evolution API)</CardTitle>
+                    <CardDescription>
+                      Configure a integração com WhatsApp para envio de mensagens automáticas
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="webhook_url">URL do Webhook</Label>
+                        <Input 
+                          id="webhook_url" 
+                          placeholder="https://seu-webhook.com" 
+                          value={evolutionApiConfig.webhook_url}
+                          onChange={(e) => setEvolutionApiConfig({...evolutionApiConfig, webhook_url: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="api_key">Chave de Autenticação</Label>
+                        <Input 
+                          id="api_key" 
+                          type="password"
+                          placeholder="Chave secreta para autenticação" 
+                          value={evolutionApiConfig.api_key}
+                          onChange={(e) => setEvolutionApiConfig({...evolutionApiConfig, api_key: e.target.value})}
+                        />
+                      </div>
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="observacoes">Observações (opcional)</Label>
+                        <Textarea 
+                          id="observacoes"
+                          placeholder="Observações sobre esta integração" 
+                          value={evolutionApiConfig.observacoes || ''}
+                          onChange={(e) => setEvolutionApiConfig({...evolutionApiConfig, observacoes: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="outline" onClick={() => handleTestEvolutionApi()}>
+                        Testar Conexão
+                      </Button>
+                      <Button onClick={() => handleSaveEvolutionApi()}>
+                        Salvar Configuração
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Outras Integrações</CardTitle>
+                    <CardDescription>
+                      Integrações adicionais estarão disponíveis em breve
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <EmptyState 
+                      title="Em desenvolvimento"
+                      description="Novas integrações serão adicionadas em breve."
+                      icon={<AlertTriangle className="h-10 w-10" />}
+                    />
+                  </CardContent>
+                </Card>
+              </>
+            )}
+          </div>
         </div>
-        
-        <TabsContent value="templates" className="mt-6">
-          {showTemplateEditor ? (
-            <TemplateEditor
-              newTemplate={newTemplate}
-              setNewTemplate={setNewTemplate}
-              handleTemplateChange={handleTemplateChange}
-              handleTemplateSelectChange={handleTemplateSelectChange}
-              handleSaveTemplate={handleSaveTemplate}
-              createTemplateIsPending={createTemplate.isPending}
-              onCancel={() => setShowTemplateEditor(false)}
-              handleInsertVariable={handleInsertVariable}
-            />
-          ) : (
-            <>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 space-y-4 md:space-y-0">
-                <h2 className="text-xl font-bold">Templates de Mensagens</h2>
-                <Button onClick={() => handleNewTemplate()}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Template
-                </Button>
-              </div>
+      ) : (
+        <Tabs defaultValue="templates" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList>
+            {navigationItems.map((item) => (
+              <TabsTrigger key={item.id} value={item.id} className="flex items-center gap-2">
+                <item.icon className="h-4 w-4" />
+                <span>{item.label}</span>
+              </TabsTrigger>
+            ))}
+          </TabsList>
 
-              {templates.isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[...Array(6)].map((_, i) => (
-                    <Card key={i}>
-                      <CardHeader>
-                        <CardTitle><Skeleton className="h-5 w-3/4" /></CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-5/6" />
-                        <Skeleton className="h-4 w-1/2" />
-                      </CardContent>
-                    </Card>
-                  ))}
+          <TabsContent value="templates" className="mt-6">
+            {showTemplateEditor ? (
+              <TemplateEditor
+                newTemplate={newTemplate}
+                setNewTemplate={setNewTemplate}
+                handleTemplateChange={handleTemplateChange}
+                handleTemplateSelectChange={handleTemplateSelectChange}
+                handleSaveTemplate={handleSaveTemplate}
+                createTemplateIsPending={createTemplate.isPending}
+                onCancel={() => setShowTemplateEditor(false)}
+                handleInsertVariable={handleInsertVariable}
+              />
+            ) : (
+              <>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 space-y-4 md:space-y-0">
+                  <h2 className="text-xl font-bold">Templates de Mensagens</h2>
+                  <Button onClick={() => handleNewTemplate()}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Novo Template
+                  </Button>
                 </div>
-              ) : templates.data && templates.data.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {templates.data.map((template) => (
-                    <TemplateCard 
-                      key={template.id} 
-                      template={template} 
-                      onEdit={() => handleEditTemplate(template)}
-                      onDelete={() => handleDeleteTemplateConfirm(template)}
+
+                {templates.isLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[...Array(6)].map((_, i) => (
+                      <Card key={i}>
+                        <CardHeader>
+                          <CardTitle><Skeleton className="h-5 w-3/4" /></CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-5/6" />
+                          <Skeleton className="h-4 w-1/2" />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : templates.data && templates.data.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {templates.data.map((template) => (
+                      <TemplateCard 
+                        key={template.id} 
+                        template={template} 
+                        onEdit={() => handleEditTemplate(template)}
+                        onDelete={() => handleDeleteTemplateConfirm(template)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState 
+                    title="Nenhum template encontrado"
+                    description="Crie templates para agilizar o envio de mensagens."
+                    icon={<FilePlus className="h-10 w-10" />}
+                    action={
+                      <Button onClick={() => handleNewTemplate()}>
+                        Criar Template
+                      </Button>
+                    }
+                  />
+                )}
+              </>
+            )}
+          </TabsContent>
+
+          <TabsContent value="mensagens" className="mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Enviar Mensagem</CardTitle>
+                <CardDescription>
+                  Envie mensagens personalizadas para seus clientes
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <MessageEditor 
+                  newMensagem={newMensagem}
+                  setNewMensagem={setNewMensagem}
+                  templates={templates.data || []} 
+                  clients={clients || []}
+                  handleMensagemChange={handleMensagemChange}
+                  handleMensagemSelectChange={handleMensagemSelectChange}
+                  createMensagemIsPending={createMensagem.isPending}
+                  handleSendMensagem={handleSendMensagem}
+                  onCancel={() => {}}
+                />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="agendamentos" className="mt-6">
+            {showScheduleEditor ? (
+              <ScheduleEditor
+                newAgendamento={newAgendamento}
+                setNewAgendamento={setNewAgendamento}
+                templates={templates.data || []}
+                handleAgendamentoChange={handleAgendamentoChange}
+                handleAgendamentoSelectChange={handleAgendamentoSelectChange}
+                createAgendamentoIsPending={createAgendamento.isPending}
+                handleSaveAgendamento={handleSaveAgendamento}
+                onCancel={() => setShowScheduleEditor(false)}
+              />
+            ) : (
+              <>
+                <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 space-y-4 md:space-y-0">
+                  <h2 className="text-xl font-bold">Agendamentos Automáticos</h2>
+                  <Button onClick={() => setShowScheduleEditor(true)}>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Novo Agendamento
+                  </Button>
+                </div>
+
+                {agendamentos.isLoading ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {[...Array(6)].map((_, i) => (
+                      <Card key={i}>
+                        <CardHeader>
+                          <CardTitle><Skeleton className="h-5 w-3/4" /></CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <Skeleton className="h-4 w-full" />
+                          <Skeleton className="h-4 w-5/6" />
+                          <Skeleton className="h-4 w-1/2" />
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : agendamentos.data && agendamentos.data.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {agendamentos.data.map((agendamento) => (
+                      <ScheduleCard 
+                        key={agendamento.id} 
+                        agendamento={agendamento}
+                        onEdit={() => handleEditSchedule(agendamento)}
+                        onDelete={() => handleDeleteScheduleConfirm(agendamento)}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    title="Nenhum agendamento encontrado"
+                    description="Agende mensagens automáticas para seus clientes."
+                    icon={<Calendar className="h-10 w-10" />}
+                    action={
+                      <Button onClick={() => setShowScheduleEditor(true)}>
+                        Criar Agendamento
+                      </Button>
+                    }
+                  />
+                )}
+              </>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="integracoes" className="mt-6">
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle>Integração com WhatsApp (Evolution API)</CardTitle>
+                <CardDescription>
+                  Configure a integração com WhatsApp para envio de mensagens automáticas
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="webhook_url">URL do Webhook</Label>
+                    <Input 
+                      id="webhook_url" 
+                      placeholder="https://seu-webhook.com" 
+                      value={evolutionApiConfig.webhook_url}
+                      onChange={(e) => setEvolutionApiConfig({...evolutionApiConfig, webhook_url: e.target.value})}
                     />
-                  ))}
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="api_key">Chave de Autenticação</Label>
+                    <Input 
+                      id="api_key" 
+                      type="password"
+                      placeholder="Chave secreta para autenticação" 
+                      value={evolutionApiConfig.api_key}
+                      onChange={(e) => setEvolutionApiConfig({...evolutionApiConfig, api_key: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label htmlFor="observacoes">Observações (opcional)</Label>
+                    <Textarea 
+                      id="observacoes"
+                      placeholder="Observações sobre esta integração" 
+                      value={evolutionApiConfig.observacoes || ''}
+                      onChange={(e) => setEvolutionApiConfig({...evolutionApiConfig, observacoes: e.target.value})}
+                    />
+                  </div>
                 </div>
-              ) : (
+                <div className="flex justify-end gap-2">
+                  <Button variant="outline" onClick={() => handleTestEvolutionApi()}>
+                    Testar Conexão
+                  </Button>
+                  <Button onClick={() => handleSaveEvolutionApi()}>
+                    Salvar Configuração
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Outras Integrações</CardTitle>
+                <CardDescription>
+                  Integrações adicionais estarão disponíveis em breve
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
                 <EmptyState 
-                  title="Nenhum template encontrado"
-                  description="Crie templates para agilizar o envio de mensagens."
-                  icon={<FilePlus className="h-10 w-10" />}
-                  action={
-                    <Button onClick={() => handleNewTemplate()}>
-                      Criar Template
-                    </Button>
-                  }
+                  title="Em desenvolvimento"
+                  description="Novas integrações serão adicionadas em breve."
+                  icon={<AlertTriangle className="h-10 w-10" />}
                 />
-              )}
-            </>
-          )}
-        </TabsContent>
-
-        <TabsContent value="mensagens" className="mt-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Enviar Mensagem</CardTitle>
-              <CardDescription>
-                Envie mensagens personalizadas para seus clientes
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <MessageEditor 
-                newMensagem={newMensagem}
-                setNewMensagem={setNewMensagem}
-                templates={templates.data || []} 
-                clients={clients || []}
-                handleMensagemChange={handleMensagemChange}
-                handleMensagemSelectChange={handleMensagemSelectChange}
-                createMensagemIsPending={createMensagem.isPending}
-                handleSendMensagem={handleSendMensagem}
-                onCancel={() => {}}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="agendamentos" className="mt-6">
-          {showScheduleEditor ? (
-            <ScheduleEditor
-              newAgendamento={newAgendamento}
-              setNewAgendamento={setNewAgendamento}
-              templates={templates.data || []}
-              handleAgendamentoChange={handleAgendamentoChange}
-              handleAgendamentoSelectChange={handleAgendamentoSelectChange}
-              createAgendamentoIsPending={createAgendamento.isPending}
-              handleSaveAgendamento={handleSaveAgendamento}
-              onCancel={() => setShowScheduleEditor(false)}
-            />
-          ) : (
-            <>
-              <div className="flex flex-col md:flex-row md:items-center md:justify-between mb-6 space-y-4 md:space-y-0">
-                <h2 className="text-xl font-bold">Agendamentos Automáticos</h2>
-                <Button onClick={() => setShowScheduleEditor(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Novo Agendamento
-                </Button>
-              </div>
-
-              {agendamentos.isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {[...Array(6)].map((_, i) => (
-                    <Card key={i}>
-                      <CardHeader>
-                        <CardTitle><Skeleton className="h-5 w-3/4" /></CardTitle>
-                      </CardHeader>
-                      <CardContent>
-                        <Skeleton className="h-4 w-full" />
-                        <Skeleton className="h-4 w-5/6" />
-                        <Skeleton className="h-4 w-1/2" />
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : agendamentos.data && agendamentos.data.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {agendamentos.data.map((agendamento) => (
-                    <ScheduleCard 
-                      key={agendamento.id} 
-                      agendamento={agendamento}
-                      onEdit={() => handleEditSchedule(agendamento)}
-                      onDelete={() => handleDeleteScheduleConfirm(agendamento)}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  title="Nenhum agendamento encontrado"
-                  description="Agende mensagens automáticas para seus clientes."
-                  icon={<Calendar className="h-10 w-10" />}
-                  action={
-                    <Button onClick={() => setShowScheduleEditor(true)}>
-                      Criar Agendamento
-                    </Button>
-                  }
-                />
-              )}
-            </>
-          )}
-        </TabsContent>
-        
-        <TabsContent value="integracoes" className="mt-6">
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle>Integração com WhatsApp (Evolution API)</CardTitle>
-              <CardDescription>
-                Configure a integração com WhatsApp para envio de mensagens automáticas
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="webhook_url">URL do Webhook</Label>
-                  <Input 
-                    id="webhook_url" 
-                    placeholder="https://seu-webhook.com" 
-                    value={evolutionApiConfig.webhook_url}
-                    onChange={(e) => setEvolutionApiConfig({...evolutionApiConfig, webhook_url: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="api_key">Chave de Autenticação</Label>
-                  <Input 
-                    id="api_key" 
-                    type="password"
-                    placeholder="Chave secreta para autenticação" 
-                    value={evolutionApiConfig.api_key}
-                    onChange={(e) => setEvolutionApiConfig({...evolutionApiConfig, api_key: e.target.value})}
-                  />
-                </div>
-                <div className="space-y-2 md:col-span-2">
-                  <Label htmlFor="observacoes">Observações (opcional)</Label>
-                  <Textarea 
-                    id="observacoes"
-                    placeholder="Observações sobre esta integração" 
-                    value={evolutionApiConfig.observacoes || ''}
-                    onChange={(e) => setEvolutionApiConfig({...evolutionApiConfig, observacoes: e.target.value})}
-                  />
-                </div>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => handleTestEvolutionApi()}>
-                  Testar Conexão
-                </Button>
-                <Button onClick={() => handleSaveEvolutionApi()}>
-                  Salvar Configuração
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Placeholder para futuras integrações */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Outras Integrações</CardTitle>
-              <CardDescription>
-                Integrações adicionais estarão disponíveis em breve
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <EmptyState 
-                title="Em desenvolvimento"
-                description="Novas integrações serão adicionadas em breve."
-                icon={<AlertTriangle className="h-10 w-10" />}
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
+      )}
 
       {/* Dialog confirmação para excluir template */}
       <AlertDialog open={confirmDeleteTemplate !== null} onOpenChange={(open) => !open && setConfirmDeleteTemplate(null)}>

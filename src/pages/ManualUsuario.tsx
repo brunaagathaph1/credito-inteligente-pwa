@@ -13,67 +13,52 @@ const ManualUsuario = () => {
   const handleTabChange = (value: string) => {
     setActiveTab(value);
   };
+
+  const navigationItems = [
+    { id: "inicio", label: "Início", icon: Settings },
+    { id: "clientes", label: "Clientes", icon: Users },
+    { id: "emprestimos", label: "Empréstimos", icon: CreditCard },
+    { id: "mensagens", label: "Mensagens", icon: MessageSquare },
+    { id: "faq", label: "FAQ", icon: Book }
+  ];
   
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight">Manual do Usuário</h2>
-        <p className="text-muted-foreground">
-          Instruções e tutoriais para auxiliar no uso do sistema.
-        </p>
-      </div>
-
       {isMobile ? (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant={activeTab === "inicio" ? "default" : "outline"}
-              className="flex flex-col items-center justify-center h-14 p-1"
-              onClick={() => handleTabChange("inicio")}
-            >
-              <Settings className="h-4 w-4 mb-1" />
-              <span className="text-xs">Início</span>
-            </Button>
-            <Button
-              variant={activeTab === "clientes" ? "default" : "outline"}
-              className="flex flex-col items-center justify-center h-14 p-1"
-              onClick={() => handleTabChange("clientes")}
-            >
-              <Users className="h-4 w-4 mb-1" />
-              <span className="text-xs">Clientes</span>
-            </Button>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant={activeTab === "emprestimos" ? "default" : "outline"}
-              className="flex flex-col items-center justify-center h-14 p-1"
-              onClick={() => handleTabChange("emprestimos")}
-            >
-              <CreditCard className="h-4 w-4 mb-1" />
-              <span className="text-xs">Empréstimos</span>
-            </Button>
-            <Button
-              variant={activeTab === "mensagens" ? "default" : "outline"}
-              className="flex flex-col items-center justify-center h-14 p-1"
-              onClick={() => handleTabChange("mensagens")}
-            >
-              <MessageSquare className="h-4 w-4 mb-1" />
-              <span className="text-xs">Mensagens</span>
-            </Button>
-          </div>
-          <div className="grid grid-cols-1">
-            <Button
-              variant={activeTab === "faq" ? "default" : "outline"}
-              className="flex flex-col items-center justify-center h-14 p-1"
-              onClick={() => handleTabChange("faq")}
-            >
-              <Book className="h-4 w-4 mb-1" />
-              <span className="text-xs">FAQ</span>
-            </Button>
+        <div>
+          {/* Cabeçalho */}
+          <div className="mb-6">
+            <h2 className="text-3xl font-bold tracking-tight">Manual do Usuário</h2>
+            <p className="text-muted-foreground">
+              Instruções e tutoriais para auxiliar no uso do sistema.
+            </p>
           </div>
 
-          {/* Conteúdo conforme a aba selecionada */}
-          <div className="mt-6">
+          {/* Barra de navegação */}
+          <div className="bg-card border-b shadow-sm mb-6">
+            <nav className="flex w-full overflow-x-auto no-scrollbar">
+              {navigationItems.map((item) => (
+                <button
+                  key={item.id}
+                  onClick={() => handleTabChange(item.id)}
+                  className={`
+                    flex-1 min-w-[20%] flex flex-col items-center justify-center py-3 px-1
+                    transition-colors duration-200 relative
+                    ${activeTab === item.id 
+                      ? 'text-primary border-b-2 border-primary' 
+                      : 'text-muted-foreground hover:text-primary hover:bg-accent/50'
+                    }
+                  `}
+                >
+                  <item.icon className="h-5 w-5 mb-1" aria-hidden="true" />
+                  <span className="text-[10px] font-medium">{item.label}</span>
+                </button>
+              ))}
+            </nav>
+          </div>
+
+          {/* Conteúdo */}
+          <div>
             {activeTab === "inicio" && <ManualInicio />}
             {activeTab === "clientes" && <ManualClientes />}
             {activeTab === "emprestimos" && <ManualEmprestimos />}
@@ -82,30 +67,37 @@ const ManualUsuario = () => {
           </div>
         </div>
       ) : (
-        <Tabs defaultValue="inicio">
-          <TabsList>
-            <TabsTrigger value="inicio">Início</TabsTrigger>
-            <TabsTrigger value="clientes">Clientes</TabsTrigger>
-            <TabsTrigger value="emprestimos">Empréstimos</TabsTrigger>
-            <TabsTrigger value="mensagens">Mensagens</TabsTrigger>
-            <TabsTrigger value="faq">FAQ</TabsTrigger>
-          </TabsList>
-          <TabsContent value="inicio">
-            <ManualInicio />
-          </TabsContent>
-          <TabsContent value="clientes">
-            <ManualClientes />
-          </TabsContent>
-          <TabsContent value="emprestimos">
-            <ManualEmprestimos />
-          </TabsContent>
-          <TabsContent value="mensagens">
-            <ManualMensagens />
-          </TabsContent>
-          <TabsContent value="faq">
-            <ManualFAQ />
-          </TabsContent>
-        </Tabs>
+        <>
+          {/* Cabeçalho */}
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Manual do Usuário</h2>
+            <p className="text-muted-foreground">
+              Instruções e tutoriais para auxiliar no uso do sistema.
+            </p>
+          </div>
+
+          {/* Versão desktop com tabs */}
+          <Tabs defaultValue="inicio" className="space-y-4">
+            <TabsList className="flex space-x-2">
+              {navigationItems.map((item) => (
+                <TabsTrigger key={item.id} value={item.id} className="flex items-center gap-2">
+                  <item.icon className="h-4 w-4" />
+                  <span>{item.label}</span>
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            {navigationItems.map((item) => (
+              <TabsContent key={item.id} value={item.id}>
+                {item.id === "inicio" && <ManualInicio />}
+                {item.id === "clientes" && <ManualClientes />}
+                {item.id === "emprestimos" && <ManualEmprestimos />}
+                {item.id === "mensagens" && <ManualMensagens />}
+                {item.id === "faq" && <ManualFAQ />}
+              </TabsContent>
+            ))}
+          </Tabs>
+        </>
       )}
     </div>
   );
