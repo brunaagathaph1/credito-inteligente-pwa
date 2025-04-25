@@ -59,30 +59,12 @@ export const useLoans = () => {
 
   const fetchLoan = async (id: string) => {
     try {
-      // Modified query to correctly specify the relationship and include renegociations
+      // Fetch loan with cliente data
       const { data, error } = await supabase
         .from('emprestimos')
         .select(`
           *,
-          cliente:clientes(id, nome, telefone, email, cpf),
-          renegociacao:renegociacao_id(
-            id,
-            emprestimo_id,
-            emprestimo_anterior_valor,
-            emprestimo_anterior_juros,
-            emprestimo_anterior_vencimento,
-            novo_valor_principal,
-            nova_taxa_juros,
-            novo_tipo_juros,
-            nova_data_vencimento,
-            data_renegociacao,
-            motivo,
-            forma_pagamento,
-            observacoes,
-            created_by,
-            created_at,
-            emprestimo:emprestimo_id(*)
-          )
+          cliente:clientes(id, nome, telefone, email, cpf)
         `)
         .eq('id', id)
         .single();
@@ -92,7 +74,7 @@ export const useLoans = () => {
         throw error;
       }
       
-      // Fetch pagamentos in a separate query
+      // Fetch pagamentos
       const { data: pagamentos, error: pagamentosError } = await supabase
         .from('pagamentos')
         .select('*')
@@ -103,13 +85,21 @@ export const useLoans = () => {
         throw pagamentosError;
       }
       
-      // Fetch renegociacoes where this loan is either the original or new loan
+      // Fetch renegociacoes where this loan is the original loan
       const { data: renegociacoes, error: renegociacoesError } = await supabase
         .from('renegociacoes')
-        .select('*, emprestimo:emprestimo_id(*)')
-        .or(`emprestimo_id.eq.${id}`);
+        .select(`
+          *,
+          novo_emprestimo:id(*)
+        `)
+        .eq('emprestimo_id', id);
 
-      // Combine the data
+      if (renegociacoesError) {
+        console.error('Erro ao carregar renegociações:', renegociacoesError);
+        throw renegociacoesError;
+      }
+
+      // Combine all data
       return {
         ...data,
         pagamentos: pagamentos || [],

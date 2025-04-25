@@ -197,70 +197,48 @@ export function RenegociacaoDialog({
       
       if (renegociacaoError) throw renegociacaoError;
 
-      const apenasDataAlterada = 
-        parseFloat(formData.novoValorPrincipal) === parseFloat(emprestimo.valor_principal.toString()) &&
-        parseFloat(formData.novaTaxaJuros) === parseFloat(emprestimo.taxa_juros.toString()) &&
-        formData.novoTipoJuros === emprestimo.tipo_juros;
+      // Primeiro atualizamos o status do empréstimo original para renegociado
+      const { error: emprestimoUpdateError } = await supabase
+        .from('emprestimos')
+        .update({
+          status: "renegociado",
+          renegociado: true,
+          renegociacao_id: renegociacao.id,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', emprestimo.id);
+    
+      if (emprestimoUpdateError) throw emprestimoUpdateError;
+      
+      // Depois criamos o novo empréstimo
+      const { error: novoEmprestimoError } = await supabase
+        .from('emprestimos')
+        .insert({
+          cliente_id: emprestimo.cliente_id,
+          valor_principal: parseFloat(formData.novoValorPrincipal),
+          taxa_juros: parseFloat(formData.novaTaxaJuros),
+          tipo_juros: formData.novoTipoJuros,
+          data_emprestimo: new Date().toISOString().split('T')[0],
+          data_vencimento: formData.novaDataVencimento,
+          status: "pendente",
+          renegociacao_id: renegociacao.id,
+          created_by: user.id,
+          renegociado: false,
+          configuracao_juros: {
+            id: configSelecionada.id,
+            nome: configSelecionada.nome,
+            juros_sobre_juros: configSelecionada.juros_sobre_juros,
+            acumula_taxa_mensal: configSelecionada.acumula_taxa_mensal,
+            permite_carencia: configSelecionada.permite_carencia,
+            prazo_maximo_dias: configSelecionada.prazo_maximo_dias
+          },
+          observacoes: observacoesAdicionais
+        });
 
-      if (apenasDataAlterada) {
-        // 2A. Se apenas a data foi alterada, atualizamos o empréstimo existente
-        const { error: updateError } = await supabase
-          .from('emprestimos')
-          .update({
-            data_vencimento: formData.novaDataVencimento,
-            renegociacao_id: renegociacao.id,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', emprestimo.id);
+      if (novoEmprestimoError) throw novoEmprestimoError;
 
-        if (updateError) throw updateError;
-
-        logActivity(`Alterou data de vencimento do empréstimo ID ${emprestimo.id}`);
-        toast.success("Data de vencimento atualizada com sucesso!");
-      } else {
-        // 2B. Se houve outras alterações, marcamos o empréstimo original como renegociado
-        const { error: emprestimoUpdateError } = await supabase
-          .from('emprestimos')
-          .update({
-            status: "renegociado",
-            renegociado: true,
-            renegociacao_id: renegociacao.id,
-            updated_at: new Date().toISOString()
-          })
-          .eq('id', emprestimo.id);
-      
-        if (emprestimoUpdateError) throw emprestimoUpdateError;
-      
-        // 3. Criar novo empréstimo com os novos valores
-        const { error: novoEmprestimoError } = await supabase
-          .from('emprestimos')
-          .insert({
-            cliente_id: emprestimo.cliente_id,
-            valor_principal: parseFloat(formData.novoValorPrincipal),
-            taxa_juros: parseFloat(formData.novaTaxaJuros),
-            tipo_juros: formData.novoTipoJuros,
-            data_emprestimo: new Date().toISOString().split('T')[0],
-            data_vencimento: formData.novaDataVencimento,
-            status: "em_dia",
-            renegociacao_id: renegociacao.id,
-            created_by: user.id,
-            renegociado: false,
-            configuracao_juros: {
-              id: configSelecionada.id,
-              nome: configSelecionada.nome,
-              juros_sobre_juros: configSelecionada.juros_sobre_juros,
-              acumula_taxa_mensal: configSelecionada.acumula_taxa_mensal,
-              permite_carencia: configSelecionada.permite_carencia,
-              prazo_maximo_dias: configSelecionada.prazo_maximo_dias
-            },
-            observacoes: observacoesAdicionais
-          });
-      
-        if (novoEmprestimoError) throw novoEmprestimoError;
-      
-        logActivity(`Renegociou empréstimo ID ${emprestimo.id}`);
-        toast.success("Empréstimo renegociado com sucesso!");
-      }
+      logActivity(`Renegociou empréstimo ID ${emprestimo.id}`);
+      toast.success("Empréstimo renegociado com sucesso!");
 
       onRenegociationComplete();
       onClose();

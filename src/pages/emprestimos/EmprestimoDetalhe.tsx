@@ -512,56 +512,59 @@ const EmprestimoDetalhe = () => {
                   {loan.renegociacoes && loan.renegociacoes.length > 0 ? (
                     <div className="space-y-4">
                       {(loan.renegociacoes as Renegociacao[]).map((renegociacao) => (
-                        <Card key={renegociacao.id}>
+                        <Card key={renegociacao.id} className="border-blue-200">
                           <CardContent className="p-4">
                             <div className="flex justify-between items-start">
                               <div className="space-y-4 flex-1">
-                                <div className="grid grid-cols-2 gap-2">
+                                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                                   <div>
-                                    <p className="text-xs text-muted-foreground">Data</p>
+                                    <p className="text-xs text-muted-foreground">Data da Renegociação</p>
                                     <p className="text-sm font-medium">{formatDate(renegociacao.data_renegociacao)}</p>
                                   </div>
                                   <div>
                                     <p className="text-xs text-muted-foreground">Motivo</p>
                                     <p className="text-sm capitalize">{renegociacao.motivo}</p>
                                   </div>
+                                  <div>
+                                    <p className="text-xs text-muted-foreground">Status</p>
+                                    <Badge variant="outline" className="mt-1">
+                                      Novo empréstimo criado
+                                    </Badge>
+                                  </div>
                                 </div>
                                 
                                 <div>
-                                  <p className="text-xs text-muted-foreground mb-1">Alterações</p>
-                                  <div className="space-y-1 text-sm">
-                                    {renegociacao.emprestimo_anterior_valor !== renegociacao.novo_valor_principal && (
-                                      <div className="flex items-center gap-2">
-                                        <span>Valor:</span>
-                                        <span className="text-muted-foreground">{formatCurrency(renegociacao.emprestimo_anterior_valor)}</span>
-                                        <span>→</span>
-                                        <span className="font-medium">{formatCurrency(renegociacao.novo_valor_principal)}</span>
+                                  <p className="text-xs text-muted-foreground mb-2">Alterações</p>
+                                  <div className="space-y-2 text-sm bg-muted/30 p-3 rounded-md">
+                                    <div className="space-y-2">
+                                      <div>
+                                        <span className="font-medium">Valor Principal:</span>
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 mt-1">
+                                          <span className="text-muted-foreground">{formatCurrency(renegociacao.emprestimo_anterior_valor)}</span>
+                                          <span className="hidden sm:inline">→</span>
+                                          <span className="text-green-600 font-medium">{formatCurrency(renegociacao.novo_valor_principal)}</span>
+                                        </div>
                                       </div>
-                                    )}
-                                    {renegociacao.emprestimo_anterior_juros !== renegociacao.nova_taxa_juros && (
-                                      <div className="flex items-center gap-2">
-                                        <span>Juros:</span>
-                                        <span className="text-muted-foreground">{renegociacao.emprestimo_anterior_juros}%</span>
-                                        <span>→</span>
-                                        <span className="font-medium">{renegociacao.nova_taxa_juros}%</span>
+                                      <div>
+                                        <span className="font-medium">Taxa de Juros:</span>
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 mt-1">
+                                          <span className="text-muted-foreground">{renegociacao.emprestimo_anterior_juros}%</span>
+                                          <span className="hidden sm:inline">→</span>
+                                          <span className="text-green-600 font-medium">{renegociacao.nova_taxa_juros}%</span>
+                                        </div>
                                       </div>
-                                    )}
-                                    {renegociacao.emprestimo_anterior_vencimento !== renegociacao.nova_data_vencimento && (
-                                      <div className="flex items-center gap-2">
-                                        <span>Vencimento:</span>
-                                        <span className="text-muted-foreground">{formatDate(renegociacao.emprestimo_anterior_vencimento)}</span>
-                                        <span>→</span>
-                                        <span className="font-medium">{formatDate(renegociacao.nova_data_vencimento)}</span>
+                                      <div>
+                                        <span className="font-medium">Vencimento:</span>
+                                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 mt-1">
+                                          <span className="text-muted-foreground">{formatDate(renegociacao.emprestimo_anterior_vencimento)}</span>
+                                          <span className="hidden sm:inline">→</span>
+                                          <span className="text-green-600 font-medium">{formatDate(renegociacao.nova_data_vencimento)}</span>
+                                        </div>
                                       </div>
-                                    )}
+                                    </div>
                                   </div>
                                 </div>
 
-                                <div>
-                                  <p className="text-xs text-muted-foreground">Forma de Pagamento</p>
-                                  <p className="text-sm">{renegociacao.forma_pagamento}</p>
-                                </div>
-                                
                                 {renegociacao.observacoes && (
                                   <div>
                                     <p className="text-xs text-muted-foreground">Observações</p>
@@ -582,7 +585,13 @@ const EmprestimoDetalhe = () => {
                         </Card>
                       ))}
                     </div>
-                  ) : null}
+                  ) : (
+                    <EmptyState
+                      title="Sem renegociações"
+                      description="Este empréstimo ainda não foi renegociado"
+                      icon={<Repeat className="h-10 w-10" />}
+                    />
+                  )}
                 </CardContent>
               </Card>
 
