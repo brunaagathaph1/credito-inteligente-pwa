@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -75,14 +74,14 @@ interface ContaBancaria {
   banco: string;
   numero_agencia: string;
   numero_conta: string;
-  tipo: "corrente" | "poupanca";
+  tipo: "corrente" | "poupanca" | string; // string para compatibilidade total
   titular?: string | null;
   cpf_cnpj?: string | null;
   status: string;
   observacoes?: string | null;
-  criada_em?: string;
-  atualizada_em?: string;
-  criada_por?: string;
+  criada_em?: string | null;
+  atualizada_em?: string | null;
+  criada_por?: string | null;
 }
 
 // Hooks principais

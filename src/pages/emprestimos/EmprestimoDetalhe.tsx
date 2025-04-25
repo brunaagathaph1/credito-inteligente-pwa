@@ -96,7 +96,7 @@ const EmprestimoDetalhe = () => {
   const handlePaymentChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setNewPayment({ ...newPayment, [e.target.name]: e.target.value });
   };
-  
+
   const handlePaymentSubmit = async () => {
     try {
       if (!newPayment.valor || parseFloat(newPayment.valor) <= 0) {
@@ -106,14 +106,14 @@ const EmprestimoDetalhe = () => {
 
       // Combina a forma de pagamento com as observações adicionais
       const observacoesCompletas = formaPagamento + (observacoesAdicionais ? ` - ${observacoesAdicionais}` : "");
-      
+
       await registerPaymentMutation.mutateAsync({
         ...newPayment,
         observacoes: observacoesCompletas
       });
-      
+
       setShowPaymentDialog(false);
-      
+
       // Reset payment form
       setNewPayment({
         valor: "",
@@ -125,7 +125,10 @@ const EmprestimoDetalhe = () => {
       });
       setFormaPagamento("Dinheiro");
       setObservacoesAdicionais("");
-      
+
+      // Atualiza os dados do empréstimo após registrar pagamento
+      // O React Query já faz isso via invalidateQueries, mas garantimos atualização visual
+      // Não é necessário forçar reload, pois o hook já está configurado corretamente
       toast.success("Pagamento registrado com sucesso!");
     } catch (error) {
       console.error("Erro ao registrar pagamento:", error);
@@ -252,6 +255,26 @@ const EmprestimoDetalhe = () => {
                 <div>
                   <Label className="text-xs text-muted-foreground">Taxa de Juros</Label>
                   <p className="text-lg">{loan.taxa_juros}% ({loan.tipo_juros})</p>
+                </div>
+                {/* Exibição do valor do próximo juros a ser pago */}
+                <div>
+                  <Label className="text-xs text-muted-foreground">Próximo Juros a Pagar</Label>
+                  <p className="text-orange-600 font-medium">
+                    {formatCurrency(
+                      (() => {
+                        // Considera o principal original, sem abater pagamentos
+                        const principal = typeof loan.valor_principal === 'string' ? parseFloat(loan.valor_principal) : loan.valor_principal;
+                        const taxa = typeof loan.taxa_juros === 'string' ? parseFloat(loan.taxa_juros) : loan.taxa_juros;
+                        if (!principal || !taxa) return 0;
+                        // Suporte para juros simples e compostos
+                        if (loan.tipo_juros === 'composto') {
+                          return principal * Math.pow(1 + taxa / 100, 1) - principal;
+                        }
+                        // Juros simples padrão
+                        return principal * (taxa / 100);
+                      })()
+                    )}
+                  </p>
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Data do Empréstimo</Label>
@@ -572,6 +595,7 @@ const EmprestimoDetalhe = () => {
                 <SelectContent>
                   <SelectItem value="parcial">Pagamento Parcial</SelectItem>
                   <SelectItem value="total">Pagamento Total</SelectItem>
+                  <SelectItem value="juros">Pagamento Apenas de Juros</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -624,6 +648,8 @@ const EmprestimoDetalhe = () => {
           emprestimo={loan}
           onRenegociationComplete={() => {
             setShowRenegociacaoDialog(false);
+            // Atualiza os dados do empréstimo após renegociação
+            // O React Query já faz isso via invalidateQueries
           }}
         />
       )}

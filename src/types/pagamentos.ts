@@ -1,8 +1,7 @@
-
 export interface Pagamento {
   id: string;
   emprestimo_id: string;
-  valor: number;
+  valor: number | string;
   data_pagamento: string;
   tipo: string;
   observacoes?: string;

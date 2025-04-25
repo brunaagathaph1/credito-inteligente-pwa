@@ -17,6 +17,8 @@ import { EmptyState } from "@/components/common/EmptyState";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calculator, Plus, Settings2 } from "lucide-react";
+import { Popover, PopoverTrigger, PopoverContent } from "@/components/ui/popover";
+import { Info } from "lucide-react";
 
 interface SimulacaoParcela {
   numero: number;
@@ -96,18 +98,20 @@ const ConfiguracoesFinanceiras = () => {
 
     try {
       const configData = {
-        nome: formData.nome,
-        taxa_padrao_juros: formData.taxa_padrao_juros,
-        tipo_juros_padrao: formData.tipo_juros_padrao,
-        prazo_maximo_dias: formData.prazo_maximo_dias,
-        taxa_juros_atraso: formData.taxa_juros_atraso,
-        taxa_multa_atraso: formData.taxa_multa_atraso,
-        juros_sobre_juros: formData.juros_sobre_juros,
-        acumula_taxa_mensal: formData.acumula_taxa_mensal,
-        permite_carencia: formData.permite_carencia,
+        nome: formData.nome || '',
+        taxa_padrao_juros: formData.taxa_padrao_juros ?? 0,
+        tipo_juros_padrao: formData.juros_sobre_juros ? 'composto' : 'simples',
+        prazo_maximo_dias: formData.prazo_maximo_dias ?? 0,
+        taxa_juros_atraso: formData.taxa_juros_atraso ?? 0,
+        taxa_multa_atraso: formData.taxa_multa_atraso ?? 0,
+        juros_sobre_juros: formData.juros_sobre_juros ?? false,
+        acumula_taxa_mensal: formData.acumula_taxa_mensal ?? false,
+        permite_carencia: formData.permite_carencia ?? false,
+        status: formData.status ?? 'ativo',
         ativo: formData.status === 'ativo',
         created_by: user.id,
-        observacoes: formData.observacoes
+        observacoes: formData.observacoes || '',
+        // id, created_at, updated_at são opcionais
       };
 
       let result;
@@ -240,26 +244,14 @@ const ConfiguracoesFinanceiras = () => {
                         placeholder="Ex: Empréstimo Padrão"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="tipo_juros_padrao">Tipo de Juros</Label>
-                      <Select
-                        value={formData.tipo_juros_padrao}
-                        onValueChange={(value) => setFormData(prev => ({ ...prev, tipo_juros_padrao: value === 'composto' ? 'composto' : 'simples' }))}
-                      >
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione o tipo" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="simples">Juros Simples</SelectItem>
-                          <SelectItem value="composto">Juros Compostos</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {/* Removido campo de seleção de tipo de juros */}
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="taxa_padrao_juros">Taxa de Juros (%)</Label>
+                      <div className="flex items-center gap-1">
+                        <Label htmlFor="taxa_padrao_juros">Taxa de Juros (%)</Label>
+                      </div>
                       <Input
                         id="taxa_padrao_juros"
                         type="number"
@@ -269,7 +261,19 @@ const ConfiguracoesFinanceiras = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="prazo_maximo_dias">Prazo de Carência (dias)</Label>
+                      <div className="flex items-center gap-1">
+                        <Label htmlFor="prazo_maximo_dias">Prazo de Carência (dias)</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button type="button" className="p-0 m-0 bg-transparent border-0">
+                              <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" sideOffset={8} className="max-w-xs whitespace-pre-line break-words text-xs md:text-sm">
+                            {`Quantidade de dias após a contratação em que o cliente pode pagar a primeira parcela sem cobrança de multa ou juros de mora.\nExemplo: Se o prazo de carência for 10 dias, o cliente só começa a pagar juros/multa após esse período.`}
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                       <Input
                         id="prazo_maximo_dias"
                         type="number"
@@ -281,7 +285,19 @@ const ConfiguracoesFinanceiras = () => {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="taxa_multa_atraso">Multa por Atraso (%)</Label>
+                      <div className="flex items-center gap-1">
+                        <Label htmlFor="taxa_multa_atraso">Multa por Atraso (%)</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button type="button" className="p-0 m-0 bg-transparent border-0">
+                              <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" sideOffset={8} className="max-w-xs whitespace-pre-line break-words text-xs md:text-sm">
+                            {`Valor percentual cobrado uma única vez sobre o valor da parcela em caso de atraso no pagamento.\nExemplo: Parcela de R$ 1.000, multa de 2% = R$ 20 de multa ao atrasar.`}
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                       <Input
                         id="taxa_multa_atraso"
                         type="number"
@@ -291,7 +307,19 @@ const ConfiguracoesFinanceiras = () => {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="taxa_juros_atraso">Juros de Mora (%)</Label>
+                      <div className="flex items-center gap-1">
+                        <Label htmlFor="taxa_juros_atraso">Juros de Mora (%)</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button type="button" className="p-0 m-0 bg-transparent border-0">
+                              <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" sideOffset={8} className="max-w-xs whitespace-pre-line break-words text-xs md:text-sm">
+                            {`Percentual de juros cobrado por cada mês (ou fração) de atraso no pagamento da parcela.\nExemplo: Parcela de R$ 1.000, juros de mora de 1% ao mês. Se atrasar 2 meses: R$ 1.000 x 1% x 2 = R$ 20 de juros.`}
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                       <Input
                         id="taxa_juros_atraso"
                         type="number"
@@ -314,6 +342,20 @@ const ConfiguracoesFinanceiras = () => {
                           }
                         />
                         <Label htmlFor="juros_sobre_juros">Permitir juros sobre juros</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button type="button" className="p-0 m-0 bg-transparent border-0">
+                              <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" sideOffset={8} className="max-w-xs whitespace-pre-line break-words text-xs md:text-sm">
+                            {`Quando ativado: Calcula juros compostos (juros sobre juros).
+Quando desativado: Calcula juros simples, sempre sobre o valor principal original.
+Exemplo:
+Ativado: 1º mês: R$ 1.000 × 10% = R$ 1.100; 2º mês: R$ 1.100 × 10% = R$ 1.210
+Desativado: Sempre R$ 1.000 × 10% = R$ 100 de juros/mês`}
+                          </PopoverContent>
+                        </Popover>
                       </div>
 
                       <div className="flex items-center space-x-2">
@@ -325,6 +367,17 @@ const ConfiguracoesFinanceiras = () => {
                           }
                         />
                         <Label htmlFor="acumula_taxa_mensal">Acumular taxa mensalmente</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button type="button" className="p-0 m-0 bg-transparent border-0">
+                              <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" sideOffset={8} className="max-w-xs whitespace-pre-line break-words text-xs md:text-sm">
+                            {`Quando ativado: A taxa de juros acumula a cada mês (ex: mês 1 = 10%, mês 2 = 20%, mês 3 = 30%).
+Quando desativado: A taxa de juros é fixa a cada mês (ex: sempre 10% ao mês).`}
+                          </PopoverContent>
+                        </Popover>
                       </div>
 
                       <div className="flex items-center space-x-2">
@@ -336,6 +389,17 @@ const ConfiguracoesFinanceiras = () => {
                           }
                         />
                         <Label htmlFor="permite_carencia">Permitir prazo de carência</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <button type="button" className="p-0 m-0 bg-transparent border-0">
+                              <Info className="h-4 w-4 text-muted-foreground cursor-pointer" />
+                            </button>
+                          </PopoverTrigger>
+                          <PopoverContent align="start" sideOffset={8} className="max-w-xs whitespace-pre-line break-words text-xs md:text-sm">
+                            {`Quando ativado: Permite um prazo de carência para pagamento sem multa/juros de atraso.
+Quando desativado: Qualquer atraso gera multa/juros imediatamente após o vencimento.`}
+                          </PopoverContent>
+                        </Popover>
                       </div>
                     </div>
                   </div>

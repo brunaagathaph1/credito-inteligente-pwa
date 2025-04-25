@@ -184,7 +184,10 @@ export const useLoans = () => {
       if (loanError) throw loanError;
 
       // Check if total payments equals or exceeds loan value
-      const totalPaid = allPayments.reduce((sum, p) => sum + parseFloat(String(p.valor)), 0);
+      // Somar apenas pagamentos que não sejam do tipo 'juros'
+      const totalPaid = allPayments
+        .filter((p) => p.tipo !== 'juros')
+        .reduce((sum, p) => sum + parseFloat(String(p.valor)), 0);
       
       if (totalPaid >= parseFloat(String(loan.valor_principal))) {
         const { error: updateError } = await supabase
