@@ -174,26 +174,7 @@ export function RenegociacaoDialog({
     setIsLoading(true);
     
     try {
-      const observacoesCompletas = JSON.stringify({
-        forma_pagamento: formaPagamento,
-        observacoes: observacoesAdicionais,
-        configuracao_juros: {
-          id: configSelecionada.id,
-          nome: configSelecionada.nome,
-          juros_sobre_juros: configSelecionada.juros_sobre_juros,
-          acumula_taxa_mensal: configSelecionada.acumula_taxa_mensal,
-          permite_carencia: configSelecionada.permite_carencia,
-          prazo_maximo_dias: configSelecionada.prazo_maximo_dias
-        }
-      });
-
-      // Verificar se houve apenas mudança na data de vencimento
-      const apenasDataAlterada = 
-        parseFloat(formData.novoValorPrincipal) === parseFloat(emprestimo.valor_principal.toString()) &&
-        parseFloat(formData.novaTaxaJuros) === parseFloat(emprestimo.taxa_juros.toString()) &&
-        formData.novoTipoJuros === emprestimo.tipo_juros;
-
-      // 1. Criar registro de renegociação em qualquer caso
+      // 1. Criar registro de renegociação
       const { data: renegociacao, error: renegociacaoError } = await supabase
         .from('renegociacoes')
         .insert({
@@ -207,13 +188,19 @@ export function RenegociacaoDialog({
           nova_data_vencimento: formData.novaDataVencimento,
           data_renegociacao: new Date().toISOString().split('T')[0],
           motivo: formData.motivo,
-          observacoes: observacoesCompletas,
+          forma_pagamento: formaPagamento,
+          observacoes: observacoesAdicionais,
           created_by: user.id
         })
         .select()
         .single();
       
       if (renegociacaoError) throw renegociacaoError;
+
+      const apenasDataAlterada = 
+        parseFloat(formData.novoValorPrincipal) === parseFloat(emprestimo.valor_principal.toString()) &&
+        parseFloat(formData.novaTaxaJuros) === parseFloat(emprestimo.taxa_juros.toString()) &&
+        formData.novoTipoJuros === emprestimo.tipo_juros;
 
       if (apenasDataAlterada) {
         // 2A. Se apenas a data foi alterada, atualizamos o empréstimo existente
@@ -258,7 +245,15 @@ export function RenegociacaoDialog({
             renegociacao_id: renegociacao.id,
             created_by: user.id,
             renegociado: false,
-            observacoes: observacoesCompletas
+            configuracao_juros: {
+              id: configSelecionada.id,
+              nome: configSelecionada.nome,
+              juros_sobre_juros: configSelecionada.juros_sobre_juros,
+              acumula_taxa_mensal: configSelecionada.acumula_taxa_mensal,
+              permite_carencia: configSelecionada.permite_carencia,
+              prazo_maximo_dias: configSelecionada.prazo_maximo_dias
+            },
+            observacoes: observacoesAdicionais
           });
       
         if (novoEmprestimoError) throw novoEmprestimoError;

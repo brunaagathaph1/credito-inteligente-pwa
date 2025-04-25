@@ -2,7 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Loan, Pagamento, Parcela } from '@/types/emprestimos';
+import { Loan, Pagamento, Parcela, Renegociacao } from '@/types/emprestimos';
 
 export const useLoans = () => {
   const { user } = useAuth();
@@ -64,9 +64,22 @@ export const useLoans = () => {
           *,
           cliente:clientes(id, nome, telefone, email, cpf),
           renegociacao:renegociacao_id(
-            *,
-            emprestimo_anterior:emprestimo_id(*),
-            novo_emprestimo:id(*)
+            id,
+            emprestimo_id,
+            emprestimo_anterior_valor,
+            emprestimo_anterior_juros,
+            emprestimo_anterior_vencimento,
+            novo_valor_principal,
+            nova_taxa_juros,
+            novo_tipo_juros,
+            nova_data_vencimento,
+            data_renegociacao,
+            motivo,
+            forma_pagamento,
+            observacoes,
+            created_by,
+            created_at,
+            emprestimo:emprestimo_id(*)
           )
         `)
         .eq('id', id)
@@ -254,6 +267,142 @@ export const useLoans = () => {
     }
   };
 
+  const deleteLoan = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('emprestimos')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success('Empréstimo excluído com sucesso!');
+      return true;
+    } catch (error: any) {
+      console.error('Erro ao excluir empréstimo:', error);
+      toast.error(`Erro ao excluir empréstimo: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const deletePayment = async (id: string) => {
+    try {
+      // 1. Buscar o pagamento junto com os dados do empréstimo
+      const { data: pagamento, error: pagamentoError } = await supabase
+        .from('pagamentos')
+        .select(`
+          *,
+          emprestimo:emprestimo_id(
+            id,
+            valor_principal,
+            status
+          )
+        `)
+        .eq('id', id)
+        .single();
+
+      if (pagamentoError) throw pagamentoError;
+
+      // 2. Se for pagamento do tipo 'juros', apenas excluir
+      if (pagamento.tipo === 'juros') {
+        const { error } = await supabase
+          .from('pagamentos')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+        toast.success('Pagamento excluído com sucesso!');
+        return true;
+      }
+
+      // 3. Buscar todos os outros pagamentos do empréstimo
+      const { data: pagamentos, error: pagamentosError } = await supabase
+        .from('pagamentos')
+        .select('*')
+        .eq('emprestimo_id', pagamento.emprestimo_id)
+        .neq('id', id); // Excluir o pagamento que será deletado
+
+      if (pagamentosError) throw pagamentosError;
+
+      // 4. Calcular novo total pago
+      const totalPago = pagamentos
+        .filter((p) => p.tipo !== 'juros')
+        .reduce((sum, p) => sum + parseFloat(String(p.valor)), 0);
+
+      // 5. Determinar novo status do empréstimo
+      let novoStatus = pagamento.emprestimo.status;
+      if (totalPago < parseFloat(String(pagamento.emprestimo.valor_principal))) {
+        novoStatus = pagamento.emprestimo.status === 'quitado' ? 'em_dia' : pagamento.emprestimo.status;
+      }
+
+      // 6. Executar operações em ordem
+      // Primeiro atualizar o status do empréstimo se necessário
+      if (novoStatus !== pagamento.emprestimo.status) {
+        const { error: updateError } = await supabase
+          .from('emprestimos')
+          .update({ status: novoStatus })
+          .eq('id', pagamento.emprestimo_id);
+
+        if (updateError) throw updateError;
+      }
+
+      // Por último, excluir o pagamento
+      const { error: deleteError } = await supabase
+        .from('pagamentos')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
+
+      toast.success('Pagamento excluído com sucesso!');
+      return true;
+    } catch (error: any) {
+      console.error('Erro ao excluir pagamento:', error);
+      toast.error(`Erro ao excluir pagamento: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const deleteRenegotiation = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('renegociacoes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success('Renegociação excluída com sucesso!');
+      return true;
+    } catch (error: any) {
+      console.error('Erro ao excluir renegociação:', error);
+      toast.error(`Erro ao excluir renegociação: ${error.message}`);
+      throw error;
+    }
+  };
+
+  // React Query mutations
+  const deleteLoanMutation = useMutation({
+    mutationFn: deleteLoan,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+    }
+  });
+
+  const deletePaymentMutation = useMutation({
+    mutationFn: deletePayment,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+    }
+  });
+
+  const deleteRenegotiationMutation = useMutation({
+    mutationFn: deleteRenegotiation,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+    }
+  });
+
   // React Query Hooks
   const { data: loans, ...loansQueryResult } = useQuery({
     queryKey: ['loans'],
@@ -315,5 +464,8 @@ export const useLoans = () => {
     useRegisterPayment,
     useCreateRenegotiation,
     createLoan: createLoanMutation, // Export the mutation directly
+    useDeleteLoan: () => deleteLoanMutation,
+    useDeletePayment: () => deletePaymentMutation,
+    useDeleteRenegotiation: () => deleteRenegotiationMutation,
   };
 };

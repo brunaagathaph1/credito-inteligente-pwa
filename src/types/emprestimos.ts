@@ -1,4 +1,3 @@
-
 export interface Loan {
   id: string;
   cliente_id: string;
@@ -42,4 +41,23 @@ export interface Parcela {
   created_by: string;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface Renegociacao {
+  id: string;
+  emprestimo_id: string;
+  emprestimo_anterior_valor: number;
+  emprestimo_anterior_juros: number;
+  emprestimo_anterior_vencimento: string;
+  novo_valor_principal: number;
+  nova_taxa_juros: number;
+  novo_tipo_juros: string;
+  nova_data_vencimento: string;
+  data_renegociacao: string;
+  motivo: string;
+  forma_pagamento?: string;
+  observacoes?: string;
+  created_by: string;
+  created_at?: string;
+  emprestimo?: any;
 }

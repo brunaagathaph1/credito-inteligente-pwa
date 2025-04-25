@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -35,7 +34,7 @@ const Emprestimos = () => {
   const { loans, isLoadingLoans } = useLoans();
   const { logActivity } = useActivityLogs();
   const isMobile = useIsMobile();
-  
+
   // Log activity once when component mounts
   useEffect(() => {
     logActivity("Visualizou lista de empréstimos");
@@ -139,7 +138,7 @@ const Emprestimos = () => {
           )}
         </div>
         
-        <div className="flex justify-end">
+        <div className="flex justify-end mt-4">
           <Button
             variant="ghost"
             size="sm"
@@ -256,16 +255,18 @@ const Emprestimos = () => {
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            asChild
-                          >
-                            <Link to={`/emprestimos/${emprestimo.id}`}>
-                              <Eye className="h-4 w-4" />
-                              <span className="sr-only">Ver empréstimo</span>
-                            </Link>
-                          </Button>
+                          <div className="flex justify-end space-x-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              asChild
+                            >
+                              <Link to={`/emprestimos/${emprestimo.id}`} className="flex items-center">
+                                <Eye className="h-4 w-4 mr-1" />
+                                Ver detalhes
+                              </Link>
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))}

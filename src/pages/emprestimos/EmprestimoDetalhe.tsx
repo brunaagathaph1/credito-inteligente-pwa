@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLoans } from "@/hooks/useLoans";
+import { Renegociacao } from "@/types/emprestimos";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -26,7 +27,8 @@ import {
   Repeat,
   AlertTriangle as AlertTriangleIcon,
   Calendar as CalendarIcon,
-  Plus
+  Plus,
+  Trash2
 } from "lucide-react";
 import { EmptyState } from "@/components/common/EmptyState";
 import { format } from "date-fns";
@@ -43,7 +45,7 @@ const EmprestimoDetalhe = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { useLoan, useUpdateLoanStatus, useRegisterPayment } = useLoans();
+  const { useLoan, useUpdateLoanStatus, useRegisterPayment, useDeleteLoan, useDeletePayment, useDeleteRenegotiation } = useLoans();
   const { logActivity } = useActivityLogs();
   const isMobile = useIsMobile();
   
@@ -51,7 +53,10 @@ const EmprestimoDetalhe = () => {
   const { data: loan, isLoading: isLoadingLoan, error } = useLoan(id);
   const updateLoanStatusMutation = useUpdateLoanStatus();
   const registerPaymentMutation = useRegisterPayment();
-  
+  const deletePaymentMutation = useDeletePayment();
+  const deleteRenegotiationMutation = useDeleteRenegotiation();
+  const deleteLoanMutation = useDeleteLoan();
+
   // Local state
   const [formaPagamento, setFormaPagamento] = useState("Dinheiro");
   const [observacoesAdicionais, setObservacoesAdicionais] = useState("");
@@ -209,6 +214,53 @@ const EmprestimoDetalhe = () => {
     return null;
   }
 
+  const handleDeletePayment = async (paymentId: string) => {
+    const pagamento = loan?.pagamentos?.find(p => p.id === paymentId);
+    if (!pagamento) return;
+
+    const mensagem = pagamento.tipo === 'juros' 
+      ? 'Tem certeza que deseja excluir este pagamento?' 
+      : `Tem certeza que deseja excluir este pagamento?\n\nO valor de ${formatCurrency(pagamento.valor)} será restaurado ao saldo do empréstimo.`;
+
+    if (!window.confirm(mensagem)) {
+      return;
+    }
+
+    try {
+      await deletePaymentMutation.mutateAsync(paymentId);
+      logActivity(`Excluiu pagamento ID ${paymentId}`);
+    } catch (error) {
+      console.error('Erro ao excluir pagamento:', error);
+    }
+  };
+
+  const handleDeleteRenegociacao = async (renegociationId: string) => {
+    if (window.confirm('Tem certeza que deseja excluir esta renegociação?')) {
+      try {
+        await deleteRenegotiationMutation.mutateAsync(renegociationId);
+        logActivity(`Excluiu renegociação ID ${renegociationId}`);
+      } catch (error) {
+        console.error('Erro ao excluir renegociação:', error);
+      }
+    }
+  };
+
+  const handleDeleteEmprestimo = async () => {
+    if (!window.confirm('Tem certeza que deseja excluir este empréstimo?\n\nTodos os pagamentos e renegociações relacionados também serão excluídos.')) {
+      return;
+    }
+
+    try {
+      await deleteLoanMutation.mutateAsync(id || '');
+      logActivity(`Excluiu empréstimo ID ${id}`);
+      navigate('/emprestimos');
+      toast.success('Empréstimo excluído com sucesso!');
+    } catch (error) {
+      console.error('Erro ao excluir empréstimo:', error);
+      toast.error('Erro ao excluir empréstimo');
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-start justify-between">
@@ -234,6 +286,16 @@ const EmprestimoDetalhe = () => {
         <LoadingEmprestimoDetalhe />
       ) : loan ? (
         <div className="space-y-6">
+          <div className="flex justify-end">
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleDeleteEmprestimo}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Excluir Empréstimo
+            </Button>
+          </div>
           <div className="flex flex-col md:flex-row gap-4">
             <Card className="flex-1">
               <CardHeader>
@@ -396,135 +458,145 @@ const EmprestimoDetalhe = () => {
                   {loan.pagamentos.map((pagamento) => (
                     <Card key={pagamento.id}>
                       <CardContent className="p-4">
-                        <div className="grid grid-cols-2 gap-2">
-                          <div>
-                            <p className="text-xs text-muted-foreground">Data</p>
-                            <p className="text-sm font-medium">{formatDate(pagamento.data_pagamento)}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Valor</p>
-                            <p className="text-sm font-medium text-green-600">{formatCurrency(pagamento.valor)}</p>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Tipo</p>
-                            <p className="text-sm capitalize">{pagamento.tipo}</p>
-                          </div>
-                          {pagamento.observacoes && (
-                            <div className="col-span-2 mt-2">
-                              <p className="text-xs text-muted-foreground">Observações</p>
-                              <p className="text-sm">{pagamento.observacoes}</p>
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  title="Sem pagamentos"
-                  description="Nenhum pagamento foi registrado para este empréstimo."
-                  icon={<ReceiptText className="h-10 w-10" />}
-                  action={loan.status !== "quitado" && loan.status !== "renegociado" ? (
-                    <Button onClick={() => setShowPaymentDialog(true)}>
-                      Registrar Pagamento
-                    </Button>
-                  ) : undefined}
-                />
-              )}
-            </CardContent>
-          </Card>
-
-          {/* Histórico de Renegociações */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Histórico de Renegociações</CardTitle>
-              <CardDescription>
-                Alterações e renegociações deste empréstimo
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              {loan.renegociacoes && loan.renegociacoes.length > 0 ? (
-                <div className="space-y-4">
-                  {loan.renegociacoes.map((renegociacao) => (
-                    <Card key={renegociacao.id}>
-                      <CardContent className="p-4">
-                        <div className="space-y-4">
+                        <div className="flex justify-between items-start">
                           <div className="grid grid-cols-2 gap-2">
                             <div>
                               <p className="text-xs text-muted-foreground">Data</p>
-                              <p className="text-sm font-medium">{formatDate(renegociacao.data_renegociacao)}</p>
+                              <p className="text-sm font-medium">{formatDate(pagamento.data_pagamento)}</p>
                             </div>
                             <div>
-                              <p className="text-xs text-muted-foreground">Motivo</p>
-                              <p className="text-sm capitalize">{renegociacao.motivo}</p>
+                              <p className="text-xs text-muted-foreground">Valor</p>
+                              <p className="text-sm font-medium text-green-600">{formatCurrency(pagamento.valor)}</p>
                             </div>
-                          </div>
-                          
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-1">Alterações</p>
-                            <div className="space-y-1 text-sm">
-                              {renegociacao.emprestimo_anterior_valor !== renegociacao.novo_valor_principal && (
-                                <div className="flex items-center gap-2">
-                                  <span>Valor:</span>
-                                  <span className="text-muted-foreground">{formatCurrency(renegociacao.emprestimo_anterior_valor)}</span>
-                                  <span>→</span>
-                                  <span className="font-medium">{formatCurrency(renegociacao.novo_valor_principal)}</span>
-                                </div>
-                              )}
-                              {renegociacao.emprestimo_anterior_juros !== renegociacao.nova_taxa_juros && (
-                                <div className="flex items-center gap-2">
-                                  <span>Juros:</span>
-                                  <span className="text-muted-foreground">{renegociacao.emprestimo_anterior_juros}%</span>
-                                  <span>→</span>
-                                  <span className="font-medium">{renegociacao.nova_taxa_juros}%</span>
-                                </div>
-                              )}
-                              {renegociacao.emprestimo_anterior_vencimento !== renegociacao.nova_data_vencimento && (
-                                <div className="flex items-center gap-2">
-                                  <span>Vencimento:</span>
-                                  <span className="text-muted-foreground">{formatDate(renegociacao.emprestimo_anterior_vencimento)}</span>
-                                  <span>→</span>
-                                  <span className="font-medium">{formatDate(renegociacao.nova_data_vencimento)}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                          
-                          {renegociacao.observacoes && (
                             <div>
-                              <p className="text-xs text-muted-foreground">Observações</p>
-                              <p className="text-sm">{renegociacao.observacoes}</p>
+                              <p className="text-xs text-muted-foreground">Tipo</p>
+                              <p className="text-sm capitalize">{pagamento.tipo}</p>
                             </div>
-                          )}
+                            {pagamento.observacoes && (
+                              <div className="col-span-2 mt-2">
+                                <p className="text-xs text-muted-foreground">Observações</p>
+                                <p className="text-sm">{pagamento.observacoes}</p>
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeletePayment(pagamento.id)}
+                            className="text-destructive hover:text-destructive"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
                   ))}
                 </div>
-              ) : (
-                <EmptyState
-                  title="Sem renegociações"
-                  description="Este empréstimo não possui histórico de renegociações."
-                  icon={<Repeat className="h-10 w-10" />}
-                />
+              ) : null}
+
+              {/* Histórico de Renegociações */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Histórico de Renegociações</CardTitle>
+                  <CardDescription>
+                    Alterações e renegociações deste empréstimo
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loan.renegociacoes && loan.renegociacoes.length > 0 ? (
+                    <div className="space-y-4">
+                      {(loan.renegociacoes as Renegociacao[]).map((renegociacao) => (
+                        <Card key={renegociacao.id}>
+                          <CardContent className="p-4">
+                            <div className="flex justify-between items-start">
+                              <div className="space-y-4 flex-1">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <p className="text-xs text-muted-foreground">Data</p>
+                                    <p className="text-sm font-medium">{formatDate(renegociacao.data_renegociacao)}</p>
+                                  </div>
+                                  <div>
+                                    <p className="text-xs text-muted-foreground">Motivo</p>
+                                    <p className="text-sm capitalize">{renegociacao.motivo}</p>
+                                  </div>
+                                </div>
+                                
+                                <div>
+                                  <p className="text-xs text-muted-foreground mb-1">Alterações</p>
+                                  <div className="space-y-1 text-sm">
+                                    {renegociacao.emprestimo_anterior_valor !== renegociacao.novo_valor_principal && (
+                                      <div className="flex items-center gap-2">
+                                        <span>Valor:</span>
+                                        <span className="text-muted-foreground">{formatCurrency(renegociacao.emprestimo_anterior_valor)}</span>
+                                        <span>→</span>
+                                        <span className="font-medium">{formatCurrency(renegociacao.novo_valor_principal)}</span>
+                                      </div>
+                                    )}
+                                    {renegociacao.emprestimo_anterior_juros !== renegociacao.nova_taxa_juros && (
+                                      <div className="flex items-center gap-2">
+                                        <span>Juros:</span>
+                                        <span className="text-muted-foreground">{renegociacao.emprestimo_anterior_juros}%</span>
+                                        <span>→</span>
+                                        <span className="font-medium">{renegociacao.nova_taxa_juros}%</span>
+                                      </div>
+                                    )}
+                                    {renegociacao.emprestimo_anterior_vencimento !== renegociacao.nova_data_vencimento && (
+                                      <div className="flex items-center gap-2">
+                                        <span>Vencimento:</span>
+                                        <span className="text-muted-foreground">{formatDate(renegociacao.emprestimo_anterior_vencimento)}</span>
+                                        <span>→</span>
+                                        <span className="font-medium">{formatDate(renegociacao.nova_data_vencimento)}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div>
+                                  <p className="text-xs text-muted-foreground">Forma de Pagamento</p>
+                                  <p className="text-sm">{renegociacao.forma_pagamento}</p>
+                                </div>
+                                
+                                {renegociacao.observacoes && (
+                                  <div>
+                                    <p className="text-xs text-muted-foreground">Observações</p>
+                                    <p className="text-sm whitespace-pre-wrap">{renegociacao.observacoes}</p>
+                                  </div>
+                                )}
+                              </div>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDeleteRenegociacao(renegociacao.id)}
+                                className="text-destructive hover:text-destructive"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
+
+              {loan.observacoes && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Observações</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-start space-x-3">
+                      <FileText className="h-5 w-5 text-muted-foreground" />
+                      <div className="text-sm whitespace-pre-wrap">
+                        {typeof loan.observacoes === 'string' ? loan.observacoes : ''}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </CardContent>
           </Card>
-
-          {loan.observacoes && (
-            <Card>
-              <CardHeader>
-                <CardTitle>Observações</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-start space-x-3">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                  <div className="text-sm whitespace-pre-wrap">{loan.observacoes}</div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
         </div>
       ) : (
         <EmptyState

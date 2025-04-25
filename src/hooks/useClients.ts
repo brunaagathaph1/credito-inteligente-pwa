@@ -1,5 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientesApi } from '@/integrations/supabase/helpers';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { Database } from '@/integrations/supabase/types';
 
@@ -52,15 +53,29 @@ export function useClients(clientId?: string) {
     },
   });
 
-  const deleteClient = useMutation({
-    mutationFn: (id: string) => clientesApi.delete(id),
+  const deleteClient = async (id: string) => {
+    try {
+      const { error } = await supabase
+        .from('clientes')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast.success('Cliente excluído com sucesso!');
+      return true;
+    } catch (error: any) {
+      console.error('Erro ao excluir cliente:', error);
+      toast.error(`Erro ao excluir cliente: ${error.message}`);
+      throw error;
+    }
+  };
+
+  const deleteClientMutation = useMutation({
+    mutationFn: deleteClient,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['clients'] });
-      toast.success('Cliente removido com sucesso!');
-    },
-    onError: (error: any) => {
-      toast.error('Erro ao remover cliente: ' + error.message);
-    },
+    }
   });
 
   return {
@@ -72,6 +87,6 @@ export function useClients(clientId?: string) {
     refetch,
     createClient,
     updateClient,
-    deleteClient,
+    useDeleteClient: () => deleteClientMutation,
   };
 }

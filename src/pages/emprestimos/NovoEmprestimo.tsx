@@ -200,16 +200,15 @@ const NovoEmprestimo = () => {
         data_emprestimo: formData.dataInicio,
         data_vencimento: formData.dataVencimento,
         status: "pendente",
-        observacoes: JSON.stringify({
-          configuracao_juros: {
-            id: configSelecionada.id,
-            nome: configSelecionada.nome,
-            juros_sobre_juros: configSelecionada.juros_sobre_juros,
-            acumula_taxa_mensal: configSelecionada.acumula_taxa_mensal,
-            permite_carencia: configSelecionada.permite_carencia,
-            prazo_maximo_dias: configSelecionada.prazo_maximo_dias
-          }
-        }),
+        configuracao_juros: {
+          id: configSelecionada.id,
+          nome: configSelecionada.nome,
+          juros_sobre_juros: configSelecionada.juros_sobre_juros,
+          acumula_taxa_mensal: configSelecionada.acumula_taxa_mensal,
+          permite_carencia: configSelecionada.permite_carencia,
+          prazo_maximo_dias: configSelecionada.prazo_maximo_dias
+        },
+        observacoes: "",
         renegociacao_id: null,
         renegociado: false,
         created_by: user?.id || "system"

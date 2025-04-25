@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,7 +16,9 @@ import {
   FileText,
   Star,
   AlertTriangle,
-  PlusCircle
+  PlusCircle,
+  Loader2,
+  Trash2
 } from "lucide-react";
 import { useClients } from "@/hooks/useClients";
 import { useLoans } from "@/hooks/useLoans";
@@ -37,6 +39,8 @@ const ClienteDetalhe = () => {
   const { loans } = useLoans();
   const isMobile = useIsMobile();
   const { logActivity } = useActivityLogs();
+  const { useDeleteClient } = useClients();
+  const deleteClientMutation = useDeleteClient();
   
   // Filter loans for this client
   const clientLoans = loans?.filter(loan => loan.cliente_id === id) || [];
@@ -96,6 +100,20 @@ const ClienteDetalhe = () => {
     }
   };
 
+  const handleDeleteCliente = async () => {
+    if (!window.confirm(`Tem certeza que deseja excluir o cliente ${client?.nome}?\n\nTodos os empréstimos, pagamentos e renegociações relacionados também serão excluídos.`)) {
+      return;
+    }
+
+    try {
+      await deleteClientMutation.mutateAsync(id);
+      logActivity(`Excluiu cliente ID ${id}`);
+      navigate("/clientes");
+    } catch (error) {
+      console.error('Erro ao excluir cliente:', error);
+    }
+  };
+  
   if (clientsError) {
     toast.error("Erro ao carregar dados do cliente");
     navigate("/clientes");
@@ -104,33 +122,39 @@ const ClienteDetalhe = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-start justify-between">
+      <div className="flex items-center justify-between">
         <PageHeader
           title={isClientLoading ? "Carregando..." : client?.nome || "Cliente"}
-          description="Detalhes do cliente e empréstimos relacionados"
+          description="Informações detalhadas do cliente"
         />
-
-        <div className="flex items-center space-x-2">
+        
+        <div className="flex items-center gap-2">
+          <Button
+            variant="destructive"
+            size="sm"
+            onClick={handleDeleteCliente}
+            disabled={deleteClientMutation.isPending}
+          >
+            {deleteClientMutation.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Excluindo...
+              </>
+            ) : (
+              <>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Excluir Cliente
+              </>
+            )}
+          </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => navigate("/clientes")}
-            className="hidden md:flex"
           >
             <ArrowLeft className="mr-2 h-4 w-4" />
             Voltar
           </Button>
-          
-          {!isClientLoading && client && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate(`/clientes/editar/${id}`)}
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Editar
-            </Button>
-          )}
         </div>
       </div>
       
