@@ -1,0 +1,25 @@
+## Para entender o que é o sistema leia: prompt_inicial.md
+## Para entender o desenvolvimento leita: ## checklist_implementacao.md
+## Para entender sobre os ultimos mudanças de planos em ## relação a juros leia: implementation_story.md
+
+##  do projeto:
+
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
+
+
+
+
+
+
+## IMPORTANTISSIMO: 
+- Sempre leias migrasções das mais atuais para as mais antigas.
+
+- Meu supabase é o cloud e eu mesmo gosto de execultar as migrações no sql editor, sempre crie os arquivos de migração pra mim no mesmo local e no padrão que tem agora.
+
+- Para entender o que é o sistema leia: prompt_inicial.md
+- Para entender o desenvolvimento leita: - checklist_implementacao.md
+- Para entender sobre os ultimos mudanças de planos em relação a juros leia: implementation_story.md

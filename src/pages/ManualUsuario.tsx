@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -25,11 +24,11 @@ const ManualUsuario = () => {
       </div>
 
       {isMobile ? (
-        <div className="space-y-6">
-          <div className="grid grid-cols-3 gap-2 text-center">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-2">
             <Button
               variant={activeTab === "inicio" ? "default" : "outline"}
-              className="flex flex-col items-center justify-center h-16 p-1"
+              className="flex flex-col items-center justify-center h-14 p-1"
               onClick={() => handleTabChange("inicio")}
             >
               <Settings className="h-4 w-4 mb-1" />
@@ -37,45 +36,50 @@ const ManualUsuario = () => {
             </Button>
             <Button
               variant={activeTab === "clientes" ? "default" : "outline"}
-              className="flex flex-col items-center justify-center h-16 p-1"
+              className="flex flex-col items-center justify-center h-14 p-1"
               onClick={() => handleTabChange("clientes")}
             >
               <Users className="h-4 w-4 mb-1" />
               <span className="text-xs">Clientes</span>
             </Button>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
             <Button
               variant={activeTab === "emprestimos" ? "default" : "outline"}
-              className="flex flex-col items-center justify-center h-16 p-1"
+              className="flex flex-col items-center justify-center h-14 p-1"
               onClick={() => handleTabChange("emprestimos")}
             >
               <CreditCard className="h-4 w-4 mb-1" />
               <span className="text-xs">Empréstimos</span>
             </Button>
-          </div>
-          <div className="grid grid-cols-2 gap-2 text-center">
             <Button
               variant={activeTab === "mensagens" ? "default" : "outline"}
-              className="flex flex-col items-center justify-center h-16 p-1"
+              className="flex flex-col items-center justify-center h-14 p-1"
               onClick={() => handleTabChange("mensagens")}
             >
               <MessageSquare className="h-4 w-4 mb-1" />
               <span className="text-xs">Mensagens</span>
             </Button>
+          </div>
+          <div className="grid grid-cols-1">
             <Button
               variant={activeTab === "faq" ? "default" : "outline"}
-              className="flex flex-col items-center justify-center h-16 p-1"
+              className="flex flex-col items-center justify-center h-14 p-1"
               onClick={() => handleTabChange("faq")}
             >
               <Book className="h-4 w-4 mb-1" />
               <span className="text-xs">FAQ</span>
             </Button>
           </div>
+
           {/* Conteúdo conforme a aba selecionada */}
-          {activeTab === "inicio" && <ManualInicio />}
-          {activeTab === "clientes" && <ManualClientes />}
-          {activeTab === "emprestimos" && <ManualEmprestimos />}
-          {activeTab === "mensagens" && <ManualMensagens />}
-          {activeTab === "faq" && <ManualFAQ />}
+          <div className="mt-6">
+            {activeTab === "inicio" && <ManualInicio />}
+            {activeTab === "clientes" && <ManualClientes />}
+            {activeTab === "emprestimos" && <ManualEmprestimos />}
+            {activeTab === "mensagens" && <ManualMensagens />}
+            {activeTab === "faq" && <ManualFAQ />}
+          </div>
         </div>
       ) : (
         <Tabs defaultValue="inicio">
